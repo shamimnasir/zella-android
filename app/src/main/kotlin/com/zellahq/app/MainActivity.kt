@@ -42,6 +42,7 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.core.content.ContextCompat
+import com.zellahq.app.recording.CameraHub
 import com.zellahq.app.recording.RecordingNote
 import com.zellahq.app.recording.RecordingService
 import com.zellahq.app.recording.Remuxer
@@ -136,6 +137,12 @@ private fun Home(
     var localNote by remember { mutableStateOf<Int?>(null) }
     var items by remember { mutableStateOf(emptyList<RecordingItem>()) }
     var showCamera by rememberSaveable { mutableStateOf(false) }
+    // Zella installs on phones without a camera (screen recording still works), so only offer it when present.
+    val hasCamera =
+        remember {
+            context.packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY) &&
+                CameraHub.available(context).isNotEmpty()
+        }
 
     LaunchedEffect(status.state) {
         if (status.state == RecorderState.Idle) {
@@ -211,7 +218,9 @@ private fun Home(
                 LabelledSwitch(stringResource(R.string.rec_option_voice), voice) { voice = it }
                 LabelledSwitch(stringResource(R.string.rec_option_phone_sound), phoneSound) { phoneSound = it }
                 ActionCard(ZellaColors.CardViolet, stringResource(R.string.rec_start)) { onRecord() }
-                ActionCard(ZellaColors.CardCoral, stringResource(R.string.home_camera)) { showCamera = true }
+                if (hasCamera) {
+                    ActionCard(ZellaColors.CardCoral, stringResource(R.string.home_camera)) { showCamera = true }
+                }
             }
             RecorderState.Recording -> {
                 Text(stringResource(R.string.rec_recording), color = MaterialTheme.colorScheme.onBackground)

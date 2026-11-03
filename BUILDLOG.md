@@ -81,6 +81,7 @@ Camera not verified anywhere:
 - Holding the phone upside down (180).
 - Another app taking the camera mid-recording (the "camera stopped" path exists, untested).
 - 4K camera capture (Pro): not built. Capture is capped at 1080p.
+- A phone with no camera: the release APK now marks both camera features optional and the home screen hides "Record with camera" when no camera is found (confirmed shown on the emulator, which has cameras). The no-camera case itself was not run.
 - The remaining 2 to 4 dropped frames when switching apps may be emulator load. Measure on a phone.
 
 ## Phase 1 exit gate: NOT passed

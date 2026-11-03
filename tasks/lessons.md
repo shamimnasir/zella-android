@@ -2,6 +2,13 @@
 
 Mistakes worth not repeating. Newest first.
 
+## 2026-11-04: a permission silently adds a required hardware feature
+
+Asking for CAMERA made Play treat `android.hardware.camera` as required, which would hide Zella from
+phones without a camera even though screen recording works there. Declaring `camera.any` optional
+was not enough; `android.hardware.camera` itself must be declared `required="false"`. Check
+`aapt dump badging` on the release APK after adding any permission, and read the implied features.
+
 ## 2026-11-04: "repeat the last frame after 33 ms" doubles a third of camera frames
 
 `KEY_REPEAT_PREVIOUS_FRAME_AFTER` was set to one frame time for every source. The camera delivers a
