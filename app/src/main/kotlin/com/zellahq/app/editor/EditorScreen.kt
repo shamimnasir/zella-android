@@ -37,6 +37,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -89,6 +90,8 @@ fun EditorScreen(
     val history by state.history.collectAsState()
     val missing by state.missing.collectAsState()
     val reversing by state.reversing.collectAsState()
+    val currentPlayer by state.playerFlow.collectAsState()
+    val still by state.still.collectAsState()
     var sheet by remember { mutableStateOf(Sheet.None) }
     val selected = project.clips.firstOrNull { it.id == selectedId }
     val store = remember { Storage.store(context) }
@@ -140,10 +143,20 @@ fun EditorScreen(
                         useController = false
                         resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
                         layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
-                        player = state.player
                     }
                 },
+                // A project that gains or loses a fade gets a different player; attach whichever is current.
+                update = { it.player = currentPlayer },
             )
+            // While paused in a project with a fade, the frame under the playhead comes from the file.
+            still?.let {
+                androidx.compose.foundation.Image(
+                    bitmap = it.asImageBitmap(),
+                    contentDescription = null,
+                    modifier = Modifier.aspectRatio(project.aspect.ratio.toFloat()),
+                    contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                )
+            }
             if (project.clips.isEmpty()) {
                 Text(
                     stringResource(R.string.ed_empty),

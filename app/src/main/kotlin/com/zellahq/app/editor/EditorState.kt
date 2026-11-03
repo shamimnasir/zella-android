@@ -112,6 +112,18 @@ class EditorState(
     private val mutableMissing = MutableStateFlow(emptyList<String>())
     val missing: StateFlow<List<String>> = mutableMissing
 
+    private val mutableStill = MutableStateFlow<android.graphics.Bitmap?>(null)
+
+    /**
+     * A still of the frame under the playhead, shown over the preview while paused in a project with
+     * a fade. The two-track player does not draw a new frame after a paused seek (PausedSeekTest),
+     * so scrubbing would show a stale picture. Null when the player draws the right frame itself.
+     */
+    val still: StateFlow<android.graphics.Bitmap?> = mutableStill
+    private val stills = Executors.newSingleThreadExecutor()
+
+    @Volatile private var stillRequest = 0
+
     private val mutableReversing = MutableStateFlow(false)
 
     /** True while a backwards copy is being made; the clip plays forwards until then. */
@@ -119,7 +131,30 @@ class EditorState(
 
     data class History(val canUndo: Boolean, val canRedo: Boolean)
 
-    val player: CompositionPlayer = previewPlayer(context)
+    private var multi = needsMulti(initial)
+    private val mutablePlayer = MutableStateFlow(previewPlayer(context, multi))
+
+    /** Changes when a project gains or loses its first transition; the preview view re-attaches. */
+    val playerFlow: StateFlow<CompositionPlayer> = mutablePlayer
+    val player: CompositionPlayer get() = mutablePlayer.value
+
+    private val listener =
+        object : Player.Listener {
+            override fun onIsPlayingChanged(isPlaying: Boolean) {
+                mutablePlaying.value = isPlaying
+                if (isPlaying) {
+                    mutableStill.value = null
+                } else {
+                    requestStill()
+                }
+            }
+
+            override fun onPlaybackStateChanged(state: Int) {
+                if (state == Player.STATE_ENDED) mutablePlaying.value = false
+            }
+        }
+
+    private fun needsMulti(p: Project) = !p.transitions.isNullOrEmpty() && p.clips.size > 1
 
     private val ticker =
         object : Runnable {
@@ -130,19 +165,7 @@ class EditorState(
         }
 
     init {
-        player.addListener(
-            object : Player.Listener {
-                override fun onIsPlayingChanged(isPlaying: Boolean) {
-                    mutablePlaying.value = isPlaying
-                }
-
-                override fun onPlaybackStateChanged(state: Int) {
-                    if (state == Player.STATE_ENDED) {
-                        mutablePlaying.value = false
-                    }
-                }
-            },
-        )
+        player.addListener(listener)
         rebuild()
         main.post(ticker)
     }
@@ -188,10 +211,18 @@ class EditorState(
             player.clearMediaItems()
             return
         }
+        val wantMulti = needsMulti(p)
+        if (wantMulti != multi) {
+            multi = wantMulti
+            val old = player
+            mutablePlayer.value = previewPlayer(context, multi).also { it.addListener(listener) }
+            old.release()
+        }
         val built = builder.build(p)
         mutableMissing.value = built.missing.map { it.id }
         player.setComposition(built.composition, (position.value * 1000).toLong())
         player.prepare()
+        requestStill()
         // Clips marked reversed get their reversed copy made in the background, then the preview rebuilds.
         mutableReversing.value = built.needsReverse.isNotEmpty()
         if (built.needsReverse.isNotEmpty()) {
@@ -216,6 +247,32 @@ class EditorState(
         val t = seconds.coerceIn(0.0, project.value.duration)
         mutablePosition.value = t
         player.seekTo((t * 1000).toLong())
+        requestStill()
+    }
+
+    /** Reads the frame under the playhead from the clip's file. Only the newest request is shown. */
+    private fun requestStill() {
+        if (!multi || player.isPlaying) {
+            mutableStill.value = null
+            return
+        }
+        val id = ++stillRequest
+        val p = project.value
+        val t = position.value
+        stills.execute {
+            if (id != stillRequest) return@execute // the person has already scrubbed on
+            val (clip, start) = p.clipAt(t) ?: return@execute
+            val local = (t - start).coerceAtLeast(0.0)
+            val sourceSec = if (clip.reversed) clip.trimEnd - local * clip.speed else clip.trimStart + local * clip.speed
+            val bmp =
+                runCatching {
+                    MediaMetadataRetriever().use { m ->
+                        m.setDataSource(store.resolve(clip.source, p.id).path)
+                        m.getScaledFrameAtTime((sourceSec * 1e6).toLong(), MediaMetadataRetriever.OPTION_CLOSEST, 720, 1280)
+                    }
+                }.getOrNull()
+            main.post { if (id == stillRequest) mutableStill.value = bmp }
+        }
     }
 
     fun release() {
@@ -223,16 +280,21 @@ class EditorState(
         saveNow()
         player.release()
         io.shutdown()
+        stills.shutdown()
     }
 }
 
 /**
- * The preview player. It needs a multiple-input video graph: a cross-fade puts clips on two tracks,
- * and the default single-input graph refuses that ("multi-sequence Composition with single input
- * video graph"). Export (Transformer) picks the right graph by itself.
+ * The preview player. A cross-fade puts clips on two tracks, which needs the multiple-input video
+ * graph (the default single-input graph refuses it). But with the multiple-input graph a seek while
+ * paused never draws the new frame (PausedSeekTest, emulator, 2026-11-04). So: single-input unless
+ * the project has a transition.
  */
-fun previewPlayer(context: Context): CompositionPlayer =
+fun previewPlayer(
+    context: Context,
+    multi: Boolean,
+): CompositionPlayer =
     CompositionPlayer
         .Builder(context)
-        .setVideoGraphFactory(androidx.media3.effect.MultipleInputVideoGraph.Factory())
+        .apply { if (multi) setVideoGraphFactory(androidx.media3.effect.MultipleInputVideoGraph.Factory()) }
         .build()

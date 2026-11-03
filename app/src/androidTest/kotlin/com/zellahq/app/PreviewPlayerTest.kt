@@ -58,7 +58,7 @@ class PreviewPlayerTest {
         var durationMs = -1L
         var error: Throwable? = null
         InstrumentationRegistry.getInstrumentation().runOnMainSync {
-            val player = com.zellahq.app.editor.previewPlayer(context)
+            val player = com.zellahq.app.editor.previewPlayer(context, multi = true) // this project has a fade
             player.addListener(
                 object : Player.Listener {
                     override fun onPlaybackStateChanged(state: Int) {

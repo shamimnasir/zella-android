@@ -2,6 +2,25 @@
 
 Mistakes worth not repeating. Newest first.
 
+## 2026-11-04: the two-track preview player never redraws after a paused seek
+
+Media3 1.10.1 `CompositionPlayer` with `MultipleInputVideoGraph` (needed for cross-fades) moved its
+position on a paused seek and drew nothing. The single-input player draws the new frame. It also sends
+nothing to an ImageReader, so a test that reads frames off it proves nothing about it. Measure with
+the single-input player, and check the two-track one in the real PlayerView.
+
+## 2026-11-04: export tests passed while preview and long edits failed
+
+Export does not need `setDurationUs`, the preview player does (it crashed on open). A three-clip test
+kept track 0 alive to the end and hid that Media3 takes the video length from track 0 (a real two-clip
+export lost its second clip). Test the preview separately, and test the shapes people make: two clips
+and one fade is the most common edit there is.
+
+## 2026-11-04: an emulator started with -no-audio cannot play video
+
+Media3 drives playback from the audio clock. With no audio output the preview never starts. Start the
+emulator with audio before concluding playback is broken.
+
 ## 2026-11-04: a permission silently adds a required hardware feature
 
 Asking for CAMERA made Play treat `android.hardware.camera` as required, which would hide Zella from

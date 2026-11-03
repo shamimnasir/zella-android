@@ -103,9 +103,11 @@ Camera not verified anywhere:
 
 ### Open in Phase 2 and 3
 
-- **A paused seek does not update the preview picture.** Seeks reach the player (logged), the playhead
-  moves, the frame stays. Playback works. Not fixed. Check `CompositionPlayer` seeking from the ENDED
-  state and while paused; write a test that reads the rendered frame after a paused seek.
+- Paused seek: FIXED for projects without fades (single-input player draws the new frame; pixel-checked
+  in `PausedSeekTest`). Projects with a fade need the two-track player, which never redraws after a paused
+  seek, so the editor shows a still read from the file while paused (checked in the UI: the frames shown
+  at 1.78 s and 3.51 s were the right ones). The still is the clip under the playhead, without the blend,
+  zoom or later looks. Playback always goes through the real compositor.
 - Playback on the emulator needs audio output: started with `-no-audio`, the preview never plays.
   Phones always have audio, but an output-less device would freeze the same way.
 - Reverse and Rewind render a backwards copy (`ReverseRenderer`), never run on a device yet.
