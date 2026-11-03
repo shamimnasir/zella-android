@@ -1,0 +1,32 @@
+flashes 31, beeps 30
+  flash at   3.403 s  sound  -18.3 ms
+  flash at   5.382 s  sound   +2.6 ms
+  flash at   7.378 s  sound   +6.6 ms
+  flash at   9.382 s  sound   +2.4 ms
+  flash at  11.381 s  sound   +3.4 ms
+  flash at  13.383 s  sound   +2.2 ms
+  flash at  15.385 s  sound   -0.3 ms
+  flash at  17.379 s  sound   +5.7 ms
+  flash at  19.387 s  sound   -2.3 ms
+  flash at  21.376 s  sound   +8.3 ms
+  flash at  23.388 s  sound   -3.0 ms
+  flash at  25.381 s  sound   +3.7 ms
+  flash at  27.387 s  sound   -2.4 ms
+  flash at  29.391 s  sound   -5.9 ms
+  flash at  31.397 s  sound  -12.5 ms
+  flash at  33.383 s  sound   +1.9 ms
+  flash at  35.384 s  sound   +0.6 ms
+  flash at  37.393 s  sound   -8.2 ms
+  flash at  39.381 s  sound   +3.8 ms
+  flash at  41.387 s  sound   -2.2 ms
+  flash at  43.382 s  sound   +2.6 ms
+  flash at  45.381 s  sound   +3.6 ms
+  flash at  47.387 s  sound   -2.1 ms
+  flash at  49.402 s  sound  -17.0 ms
+  flash at  51.387 s  sound   -2.4 ms
+  flash at  53.381 s  sound   +3.8 ms
+  flash at  55.378 s  sound   +6.9 ms
+  flash at  57.384 s  sound   +0.4 ms
+  flash at  59.383 s  sound   +1.8 ms
+  flash at  61.419 s  sound  -34.8 ms
+pairs 30  mean -1.7 ms  worst -34.8 ms  limit 40 ms

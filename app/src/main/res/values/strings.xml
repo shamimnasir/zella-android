@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Zella</string>
+    <string name="home_tagline">Record your screen or yourself. Everything stays on your phone.</string>
+    <string name="home_camera">Record with camera</string>
+    <string name="home_status">Editing and sharing arrive in the next updates.</string>
+    <plurals name="pro_week_chip">
+        <item quantity="one">Pro Week: %d day left</item>
+        <item quantity="other">Pro Week: %d days left</item>
+    </plurals>
+
+    <string name="rec_option_voice">Record my voice</string>
+    <string name="rec_option_phone_sound">Record phone sound (screen recordings only)</string>
+    <string name="rec_start">Record screen</string>
+    <string name="rec_pause">Pause</string>
+    <string name="rec_resume">Resume</string>
+    <string name="rec_stop">Stop</string>
+    <string name="rec_recording">Zella is recording</string>
+    <string name="rec_paused">Recording paused</string>
+    <string name="rec_saving">Saving your recording</string>
+    <string name="rec_channel">Recording</string>
+
+    <string name="rec_note_saved">Saved. You can find it below.</string>
+    <string name="rec_note_no_mic">Recorded without your voice. To add it next time, allow the microphone for Zella in your phone\'s Settings.</string>
+    <string name="rec_note_no_phone_sound">Phone sound could not be recorded on this phone, so the video has no app sound.</string>
+    <string name="rec_note_phone_sound_silent">Phone sound was silent the whole time. Some apps block other apps from recording their sound.</string>
+    <string name="rec_note_storage_low">Your phone is almost full. Free up at least 500 MB, then try again.</string>
+    <string name="rec_note_storage_full">Recording stopped because your phone was almost full. Everything up to that point is saved.</string>
+    <string name="rec_note_share_ended">Screen sharing was turned off, so the recording stopped. Everything up to that point is saved.</string>
+    <string name="rec_note_share_declined">Zella needs your OK to record the screen. Tap Record screen to try again.</string>
+    <string name="rec_note_camera_lost">The camera stopped or another app took it, so the recording stopped. Everything up to that point is saved.</string>
+    <string name="rec_note_failed">Something went wrong and the recording could not start. Please try again.</string>
+
+    <string name="cam_start">Start recording</string>
+    <string name="cam_use_front">Use front camera</string>
+    <string name="cam_use_back">Use back camera</string>
+    <string name="cam_back">Back</string>
+    <string name="cam_opening">Opening the camera</string>
+    <string name="cam_need_permission">Zella needs the camera to record you. You can allow it for Zella in your phone\'s Settings.</string>
+    <string name="cam_lost">The camera stopped, or another app is using it. Close other camera apps, then go back and try again.</string>
+
+    <string name="rec_list_title">Your recordings</string>
+    <string name="rec_list_empty">Nothing recorded yet.</string>
+    <string name="rec_list_item">%1$s, %2$d:%3$02d</string>
+    <string name="rec_list_recovered">Kept after Zella closed unexpectedly</string>
+</resources>
