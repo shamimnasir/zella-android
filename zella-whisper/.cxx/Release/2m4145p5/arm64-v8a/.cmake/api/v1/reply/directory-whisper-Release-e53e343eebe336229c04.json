@@ -1,0 +1,149 @@
+{
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"install"
+		],
+		"files" : 
+		[
+			"/Users/shamim/Desktop/zella-android/third_party/whisper.cpp/CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 212,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 219,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 239,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 247,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 268,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 276,
+				"parent" : 0
+			}
+		]
+	},
+	"installers" : 
+	[
+		{
+			"backtrace" : 1,
+			"component" : "Unspecified",
+			"destination" : "lib",
+			"paths" : 
+			[
+				"whisper/src/libwhisper.a"
+			],
+			"targetId" : "whisper::@63d3ec8989aed7458de8",
+			"targetIndex" : 4,
+			"type" : "target"
+		},
+		{
+			"backtrace" : 1,
+			"component" : "Unspecified",
+			"destination" : "include",
+			"paths" : 
+			[
+				"/Users/shamim/Desktop/zella-android/third_party/whisper.cpp/include/whisper.h"
+			],
+			"type" : "file"
+		},
+		{
+			"backtrace" : 2,
+			"component" : "Unspecified",
+			"destination" : "lib",
+			"paths" : 
+			[
+				"whisper/src/libparakeet.a"
+			],
+			"targetId" : "parakeet::@63d3ec8989aed7458de8",
+			"targetIndex" : 3,
+			"type" : "target"
+		},
+		{
+			"backtrace" : 2,
+			"component" : "Unspecified",
+			"destination" : "include",
+			"paths" : 
+			[
+				"/Users/shamim/Desktop/zella-android/third_party/whisper.cpp/include/parakeet.h"
+			],
+			"type" : "file"
+		},
+		{
+			"backtrace" : 3,
+			"component" : "Unspecified",
+			"destination" : "lib/cmake/whisper",
+			"paths" : 
+			[
+				"/Users/shamim/Desktop/zella-android/zella-whisper/.cxx/Release/2m4145p5/arm64-v8a/whisper/whisper-config.cmake",
+				"/Users/shamim/Desktop/zella-android/zella-whisper/.cxx/Release/2m4145p5/arm64-v8a/whisper/whisper-config-version.cmake"
+			],
+			"type" : "file"
+		},
+		{
+			"backtrace" : 4,
+			"component" : "Unspecified",
+			"destination" : "lib/pkgconfig",
+			"paths" : 
+			[
+				"/Users/shamim/Desktop/zella-android/zella-whisper/.cxx/Release/2m4145p5/arm64-v8a/whisper/whisper.pc"
+			],
+			"type" : "file"
+		},
+		{
+			"backtrace" : 5,
+			"component" : "Unspecified",
+			"destination" : "lib/cmake/parakeet",
+			"paths" : 
+			[
+				"/Users/shamim/Desktop/zella-android/zella-whisper/.cxx/Release/2m4145p5/arm64-v8a/whisper/parakeet-config.cmake",
+				"/Users/shamim/Desktop/zella-android/zella-whisper/.cxx/Release/2m4145p5/arm64-v8a/whisper/parakeet-config-version.cmake"
+			],
+			"type" : "file"
+		},
+		{
+			"backtrace" : 6,
+			"component" : "Unspecified",
+			"destination" : "lib/pkgconfig",
+			"paths" : 
+			[
+				"/Users/shamim/Desktop/zella-android/zella-whisper/.cxx/Release/2m4145p5/arm64-v8a/whisper/parakeet.pc"
+			],
+			"type" : "file"
+		}
+	],
+	"paths" : 
+	{
+		"build" : "whisper",
+		"source" : "/Users/shamim/Desktop/zella-android/third_party/whisper.cpp"
+	}
+}

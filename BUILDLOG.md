@@ -10,7 +10,8 @@ Read this and tasks/lessons.md at the start of every session.
 | 1 Capture | Screen and camera capture built and measured on the emulator. Exit gate NOT passed (see below). |
 | 2 Timeline and editor | Mostly built. Model, edits, undo, store and iPhone parity done; editor UI works on the emulator. Open items below. |
 | 3 Export and limits | Mostly built. Export service, gate at the boundary, gallery save, share. Open items below. |
-| 4 to 9 | Not started |
+| 4 Captions | Started. whisper.cpp v1.9.5 submodule and `zella-whisper` JNI module build (arm64, baseline ARMv8). Nothing else yet. |
+| 5 to 9 | Not started |
 
 ## Phase 0 evidence (2026-11-04)
 
@@ -119,6 +120,26 @@ Camera not verified anywhere:
   Worth fixing on the iPhone side.
 - How a `.zella` gets from Android into the iPhone app: the iPhone code has no zip import that I
   found. UNVERIFIED.
+
+## Phase 4: where it stopped (2026-11-04)
+
+Done: `third_party/whisper.cpp` (v1.9.5 submodule), `zella-whisper` module (CMake, JNI with word
+timestamps, progress, cancel, language detection; Kotlin `Whisper` wrapper). It compiles. It has NOT
+been run: no model loaded, no transcription measured.
+
+Next, in order:
+1. Get a model onto the emulator (ggml base q5_1 from huggingface.co/ggerganov/whisper.cpp, SHA-256
+   checked, kept out of git) and an instrumented test that transcribes English speech made with
+   macOS `say`. Measure time per minute of audio.
+2. Audio extraction per clip (decode, mono, resample to 16 kHz), map word times source to timeline
+   through trim, speed and transitions, 30 s windows with progress, keep finished windows.
+3. Words to cues, store in `project.captions` (iPhone preset names), caption editing UI, language
+   picker that persists (`captionLanguage`), caption drawing in preview and export (OverlayEffect).
+4. Model downloader (manifest, SHA-256, resumable, Wi-Fi prompt). DECISION: ggml models must be
+   hosted at models.zellahq.com; the iPhone's models there are CoreML and do not work here.
+5. Custom fonts (.ttf .otf .ttc .otc up to 160 MB, PostScript names like the iPhone).
+6. Gate: a real Bangla clip and a real English clip on a mid-range phone, measured. Needs a phone and a
+   real Bangla recording.
 
 ## Phase 1 exit gate: NOT passed
 

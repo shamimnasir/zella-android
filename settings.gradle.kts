@@ -13,4 +13,4 @@ dependencyResolutionManagement {
     }
 }
 rootProject.name = "zella-android"
-include(":app", ":zella-core", ":zella-ui", ":zella-render", ":zella-ai")
+include(":app", ":zella-core", ":zella-ui", ":zella-render", ":zella-ai", ":zella-whisper")

@@ -1,0 +1,218 @@
+{
+	"archive" : {},
+	"artifacts" : 
+	[
+		{
+			"path" : "whisper/src/libparakeet.a"
+		}
+	],
+	"backtrace" : 1,
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"add_library",
+			"install",
+			"target_link_libraries",
+			"add_compile_options",
+			"target_include_directories"
+		],
+		"files" : 
+		[
+			"/Users/shamim/Desktop/zella-android/third_party/whisper.cpp/src/CMakeLists.txt",
+			"/Users/shamim/Desktop/zella-android/third_party/whisper.cpp/CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 196,
+				"parent" : 0
+			},
+			{
+				"file" : 1
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 219,
+				"parent" : 2
+			},
+			{
+				"command" : 2,
+				"file" : 0,
+				"line" : 204,
+				"parent" : 0
+			},
+			{
+				"command" : 3,
+				"file" : 0,
+				"line" : 21,
+				"parent" : 0
+			},
+			{
+				"command" : 4,
+				"file" : 0,
+				"line" : 202,
+				"parent" : 0
+			}
+		]
+	},
+	"compileGroups" : 
+	[
+		{
+			"compileCommandFragments" : 
+			[
+				{
+					"fragment" : "-g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security   -O3 -DNDEBUG  -fPIC"
+				},
+				{
+					"backtrace" : 5,
+					"fragment" : "-Wmissing-declarations"
+				},
+				{
+					"backtrace" : 5,
+					"fragment" : "-Wmissing-noreturn"
+				},
+				{
+					"backtrace" : 5,
+					"fragment" : "-Wall"
+				},
+				{
+					"backtrace" : 5,
+					"fragment" : "-Wextra"
+				},
+				{
+					"backtrace" : 5,
+					"fragment" : "-Wpedantic"
+				},
+				{
+					"backtrace" : 5,
+					"fragment" : "-Wcast-qual"
+				},
+				{
+					"backtrace" : 5,
+					"fragment" : "-Wno-unused-function"
+				},
+				{
+					"backtrace" : 4,
+					"fragment" : "-pthread"
+				}
+			],
+			"defines" : 
+			[
+				{
+					"backtrace" : 4,
+					"define" : "GGML_USE_CPU"
+				},
+				{
+					"backtrace" : 0,
+					"define" : "PARAKEET_VERSION=\"1.9.5-dev\""
+				}
+			],
+			"includes" : 
+			[
+				{
+					"backtrace" : 6,
+					"path" : "/Users/shamim/Desktop/zella-android/third_party/whisper.cpp/src/."
+				},
+				{
+					"backtrace" : 6,
+					"path" : "/Users/shamim/Desktop/zella-android/third_party/whisper.cpp/src/../include"
+				},
+				{
+					"backtrace" : 4,
+					"path" : "/Users/shamim/Desktop/zella-android/third_party/whisper.cpp/ggml/src/../include"
+				}
+			],
+			"language" : "CXX",
+			"sourceIndexes" : 
+			[
+				2
+			],
+			"sysroot" : 
+			{
+				"path" : "/Users/shamim/Library/Android/sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/darwin-x86_64/sysroot"
+			}
+		}
+	],
+	"dependencies" : 
+	[
+		{
+			"backtrace" : 4,
+			"id" : "ggml-base::@1d562b45171badc9bf5f"
+		},
+		{
+			"backtrace" : 4,
+			"id" : "ggml::@1d562b45171badc9bf5f"
+		},
+		{
+			"backtrace" : 4,
+			"id" : "ggml-cpu::@1d562b45171badc9bf5f"
+		}
+	],
+	"id" : "parakeet::@63d3ec8989aed7458de8",
+	"install" : 
+	{
+		"destinations" : 
+		[
+			{
+				"backtrace" : 3,
+				"path" : "lib"
+			}
+		],
+		"prefix" : 
+		{
+			"path" : "/usr/local"
+		}
+	},
+	"name" : "parakeet",
+	"nameOnDisk" : "libparakeet.a",
+	"paths" : 
+	{
+		"build" : "whisper/src",
+		"source" : "/Users/shamim/Desktop/zella-android/third_party/whisper.cpp/src"
+	},
+	"sourceGroups" : 
+	[
+		{
+			"name" : "Header Files",
+			"sourceIndexes" : 
+			[
+				0,
+				1
+			]
+		},
+		{
+			"name" : "Source Files",
+			"sourceIndexes" : 
+			[
+				2
+			]
+		}
+	],
+	"sources" : 
+	[
+		{
+			"backtrace" : 1,
+			"path" : "/Users/shamim/Desktop/zella-android/third_party/whisper.cpp/include/parakeet.h",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"path" : "/Users/shamim/Desktop/zella-android/third_party/whisper.cpp/src/parakeet-arch.h",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "/Users/shamim/Desktop/zella-android/third_party/whisper.cpp/src/parakeet.cpp",
+			"sourceGroupIndex" : 1
+		}
+	],
+	"type" : "STATIC_LIBRARY"
+}

@@ -1,0 +1,75 @@
+{
+  "buildFiles": [
+    "/Users/shamim/Desktop/zella-android/third_party/whisper.cpp/CMakeLists.txt",
+    "/Users/shamim/Desktop/zella-android/third_party/whisper.cpp/ggml/CMakeLists.txt",
+    "/Users/shamim/Desktop/zella-android/third_party/whisper.cpp/ggml/src/CMakeLists.txt",
+    "/Users/shamim/Desktop/zella-android/third_party/whisper.cpp/ggml/src/ggml-cpu/CMakeLists.txt",
+    "/Users/shamim/Desktop/zella-android/third_party/whisper.cpp/src/CMakeLists.txt",
+    "/Users/shamim/Desktop/zella-android/zella-whisper/src/main/cpp/CMakeLists.txt"
+  ],
+  "cleanCommandsComponents": [
+    [
+      "/Users/shamim/Library/Android/sdk/cmake/3.22.1/bin/ninja",
+      "-C",
+      "/Users/shamim/Desktop/zella-android/zella-whisper/.cxx/Release/2m4145p5/arm64-v8a",
+      "clean"
+    ]
+  ],
+  "buildTargetsCommandComponents": [
+    "/Users/shamim/Library/Android/sdk/cmake/3.22.1/bin/ninja",
+    "-C",
+    "/Users/shamim/Desktop/zella-android/zella-whisper/.cxx/Release/2m4145p5/arm64-v8a",
+    "{LIST_OF_TARGETS_TO_BUILD}"
+  ],
+  "libraries": {
+    "ggml::@1d562b45171badc9bf5f": {
+      "toolchain": "toolchain",
+      "abi": "arm64-v8a",
+      "artifactName": "ggml",
+      "output": "/Users/shamim/Desktop/zella-android/zella-whisper/.cxx/Release/2m4145p5/arm64-v8a/whisper/ggml/src/libggml.a"
+    },
+    "ggml-base::@1d562b45171badc9bf5f": {
+      "toolchain": "toolchain",
+      "abi": "arm64-v8a",
+      "artifactName": "ggml-base",
+      "output": "/Users/shamim/Desktop/zella-android/zella-whisper/.cxx/Release/2m4145p5/arm64-v8a/whisper/ggml/src/libggml-base.a"
+    },
+    "ggml-cpu::@1d562b45171badc9bf5f": {
+      "toolchain": "toolchain",
+      "abi": "arm64-v8a",
+      "artifactName": "ggml-cpu",
+      "output": "/Users/shamim/Desktop/zella-android/zella-whisper/.cxx/Release/2m4145p5/arm64-v8a/whisper/ggml/src/libggml-cpu.a"
+    },
+    "parakeet::@63d3ec8989aed7458de8": {
+      "toolchain": "toolchain",
+      "abi": "arm64-v8a",
+      "artifactName": "parakeet",
+      "output": "/Users/shamim/Desktop/zella-android/zella-whisper/.cxx/Release/2m4145p5/arm64-v8a/whisper/src/libparakeet.a"
+    },
+    "whisper::@63d3ec8989aed7458de8": {
+      "toolchain": "toolchain",
+      "abi": "arm64-v8a",
+      "artifactName": "whisper",
+      "output": "/Users/shamim/Desktop/zella-android/zella-whisper/.cxx/Release/2m4145p5/arm64-v8a/whisper/src/libwhisper.a"
+    },
+    "zella_whisper::@6890427a1f51a3e7e1df": {
+      "toolchain": "toolchain",
+      "abi": "arm64-v8a",
+      "artifactName": "zella_whisper",
+      "output": "/Users/shamim/Desktop/zella-android/zella-whisper/build/intermediates/cxx/Release/2m4145p5/obj/arm64-v8a/libzella_whisper.so",
+      "runtimeFiles": []
+    }
+  },
+  "toolchains": {
+    "toolchain": {
+      "cCompilerExecutable": "/Users/shamim/Library/Android/sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/darwin-x86_64/bin/clang.lld",
+      "cppCompilerExecutable": "/Users/shamim/Library/Android/sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/darwin-x86_64/bin/clang++.lld"
+    }
+  },
+  "cFileExtensions": [
+    "c"
+  ],
+  "cppFileExtensions": [
+    "cpp"
+  ]
+}

@@ -38,6 +38,7 @@ dependencies {
     implementation(project(":zella-ui"))
     implementation(project(":zella-render"))
     implementation(project(":zella-ai"))
+    implementation(project(":zella-whisper"))
     implementation(platform(libs.compose.bom))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
