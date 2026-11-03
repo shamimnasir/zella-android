@@ -16,7 +16,7 @@ tasks.test {
     inputs.files(
         fileTree(rootProject.projectDir) {
             include("**/*.kt", "**/*.kts", "**/*.xml", "**/*.md", "**/*.toml", "**/*.yml", "**/*.properties")
-            exclude("**/build/**", ".gradle/**", ".git/**", ".idea/**")
+            exclude("**/build/**", ".gradle/**", ".git/**", ".idea/**", "third_party/**")
         },
     )
 }

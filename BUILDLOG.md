@@ -121,6 +121,15 @@ Camera not verified anywhere:
 - How a `.zella` gets from Android into the iPhone app: the iPhone code has no zip import that I
   found. UNVERIFIED.
 
+## Cloud session note (2026-11-03)
+
+The dash scan now skips `third_party` (whisper.cpp uses dashes upstream); that was what broke `main`
+at `c52c536`. In this cloud environment the network policy blocks `dl.google.com`, which serves the
+Android Gradle plugin, every AndroidX library and the Android SDK (maven.google.com redirects there).
+So `./gradlew test lint ktlintCheck assembleDebug` cannot run here. Only `zella-core` was checked:
+52 unit tests passed through a scratch build without the Android plugin, and a separate exact scan
+found no dashes outside `third_party`. CI on GitHub has to confirm the full build.
+
 ## Phase 4: where it stopped (2026-11-04)
 
 Done: `third_party/whisper.cpp` (v1.9.5 submodule), `zella-whisper` module (CMake, JNI with word

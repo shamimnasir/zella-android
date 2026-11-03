@@ -97,3 +97,9 @@ as Gradle test inputs, or a cached pass hides a new dash.
 ## 2026-11-04: a KDoc comment cannot contain a star followed by a slash
 
 A path like `res/values*/` inside `/** */` closes the comment early and breaks the build.
+
+## 2026-11-03: vendored code breaks repo-wide scans
+
+Adding `third_party/whisper.cpp` put upstream dashes into the `NoDashTest` scan and `main` went red,
+and the commit was pushed anyway. Scans skip `third_party` now. Run the full test task before every
+push, and exclude any new vendored folder from the house-rule scans in the same commit.

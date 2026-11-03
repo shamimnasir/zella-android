@@ -7,7 +7,7 @@ import java.io.File
 /** House rule: no em dashes or en dashes anywhere in source, copy or docs. */
 class NoDashTest {
     private val banned = listOf(0x2014.toChar(), 0x2013.toChar())
-    private val skipDirs = setOf("build", ".gradle", ".git", ".idea")
+    private val skipDirs = setOf("build", ".gradle", ".git", ".idea", "third_party")
     private val exts = setOf("kt", "kts", "xml", "md", "toml", "yml", "yaml", "properties", "txt", "json")
 
     @Test fun noEmOrEnDashesInTheRepo() {
