@@ -3,7 +3,7 @@
     <string name="app_name">Zella</string>
     <string name="home_tagline">Record your screen or yourself. Everything stays on your phone.</string>
     <string name="home_camera">Record with camera</string>
-    <string name="home_status">Editing and sharing arrive in the next updates.</string>
+    <string name="home_status">Everything you make stays on this phone until you share it.</string>
     <plurals name="pro_week_chip">
         <item quantity="one">Pro Week: %d day left</item>
         <item quantity="other">Pro Week: %d days left</item>
@@ -38,6 +38,90 @@
     <string name="cam_opening">Opening the camera</string>
     <string name="cam_need_permission">Zella needs the camera to record you. You can allow it for Zella in your phone\'s Settings.</string>
     <string name="cam_lost">The camera stopped, or another app is using it. Close other camera apps, then go back and try again.</string>
+
+    <!-- Editor -->
+    <string name="ed_back">Back</string>
+    <string name="ed_export">Export</string>
+    <string name="ed_empty">Add a clip to start.</string>
+    <plurals name="ed_missing_plural">
+        <item quantity="one">%d clip is missing its video file and shows as black.</item>
+        <item quantity="other">%d clips are missing their video files and show as black.</item>
+    </plurals>
+    <string name="ed_play">Play</string>
+    <string name="ed_pause">Pause</string>
+    <string name="ed_clip_label">Clip %1$d, %2$s</string>
+    <string name="ed_fade_chip">Fade</string>
+    <string name="ed_timeline_description">Timeline with %d clips. Drag left or right to move through the video.</string>
+    <string name="ed_split">Split here</string>
+    <string name="ed_delete">Delete clip</string>
+    <string name="ed_move_earlier">Move earlier</string>
+    <string name="ed_move_later">Move later</string>
+    <string name="ed_speed">Speed</string>
+    <string name="ed_volume">Volume</string>
+    <string name="ed_duplicate">Duplicate</string>
+    <string name="ed_replay">Play twice</string>
+    <string name="ed_rewind">Rewind</string>
+    <string name="ed_reverse">Play backwards</string>
+    <string name="ed_play_forward">Play forwards</string>
+    <string name="ed_add_fade">Fade into next clip</string>
+    <string name="ed_remove_fade">Remove fade</string>
+    <string name="ed_add_clip">Add clip</string>
+    <string name="ed_undo">Undo</string>
+    <string name="ed_redo">Redo</string>
+    <string name="ed_speed_half">Half speed</string>
+    <string name="ed_speed_normal">Normal speed</string>
+    <string name="ed_speed_faster">A bit faster</string>
+    <string name="ed_speed_double">Double speed</string>
+    <string name="ed_speed_triple">Triple speed</string>
+    <string name="ed_volume_mute">Mute</string>
+    <string name="ed_volume_half">Half volume</string>
+    <string name="ed_volume_full">Full volume</string>
+    <string name="ed_hint_pick">Tap a clip in the timeline to change it.</string>
+    <string name="ed_reversing">Making the backwards copy. It plays forwards until it is ready.</string>
+
+    <!-- Projects on the home screen -->
+    <string name="home_projects_title">Your projects</string>
+    <string name="home_new_project">New project from a video</string>
+    <string name="home_edit_recording">Edit</string>
+    <string name="home_project_item">%1$s, %2$s</string>
+    <string name="home_delete_project">Delete</string>
+    <string name="home_undo_delete">Bring it back</string>
+    <string name="home_deleted">Project deleted.</string>
+    <string name="home_import_project">Open a .zella project</string>
+    <string name="home_import_failed">That file is not a Zella project, or it is damaged.</string>
+    <string name="home_import_newer">That project was made with a newer version of Zella. Update Zella to open it.</string>
+    <string name="home_new_name">Video %s</string>
+
+    <!-- Export -->
+    <string name="ex_title">Export your video (%s)</string>
+    <string name="ex_where">Where is it going?</string>
+    <string name="ex_preset_tall">TikTok, Reels, Shorts</string>
+    <string name="ex_preset_wide">YouTube</string>
+    <string name="ex_preset_feed">Instagram feed</string>
+    <string name="ex_preset_square">Square</string>
+    <string name="ex_quality">Picture quality</string>
+    <string name="ex_1080">1080p, free</string>
+    <string name="ex_4k">4K, needs Pro</string>
+    <string name="ex_smoothness">Smoothness</string>
+    <string name="ex_30">Normal</string>
+    <string name="ex_60">Extra smooth, needs Pro</string>
+    <string name="ex_start">Export</string>
+    <string name="ex_running">Exporting, %d%%</string>
+    <string name="ex_hot">Your phone is hot, so it is working more slowly. The export will still finish.</string>
+    <string name="ex_cancel">Stop export</string>
+    <string name="ex_cancelled">Export stopped. Nothing was saved.</string>
+    <string name="ex_done">Done. Your video is ready.</string>
+    <string name="ex_save">Save to gallery</string>
+    <string name="ex_saved">Saved to your gallery, in Movies, Zella.</string>
+    <string name="ex_share">Share</string>
+    <string name="ex_channel">Exporting</string>
+    <string name="ex_failed_generic">The export could not start. Please try again.</string>
+    <string name="ex_needs_length">Free exports can be up to 2 minutes. This video is %s. Cut it shorter, or use Zella Pro for longer videos.</string>
+    <string name="ex_needs_4k">4K needs Zella Pro. 1080p is free forever.</string>
+    <string name="ex_needs_60">Extra smooth needs Zella Pro. Normal smoothness is free.</string>
+    <string name="ex_needs_other">This setting needs Zella Pro.</string>
+    <string name="ex_pro_later">Buying Zella Pro in the app arrives in a later update.</string>
+    <string name="ex_privacy">Exporting happens on this phone. Your video only leaves it when you share it.</string>
 
     <string name="rec_list_title">Your recordings</string>
     <string name="rec_list_empty">Nothing recorded yet.</string>

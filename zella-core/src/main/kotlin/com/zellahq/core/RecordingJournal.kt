@@ -17,6 +17,5 @@ class RecordingJournal(private val dir: File) {
     fun videoFor(journal: File) = File(journal.parentFile, journal.name.removeSuffix(SUFFIX) + ".mp4")
 
     /** Journals left by recordings that did not stop cleanly, oldest first. Only call when no recording runs. */
-    fun interrupted(): List<File> =
-        dir.listFiles { f -> f.name.endsWith(SUFFIX) }.orEmpty().sortedBy { it.lastModified() }
+    fun interrupted(): List<File> = dir.listFiles { f -> f.name.endsWith(SUFFIX) }.orEmpty().sortedBy { it.lastModified() }
 }

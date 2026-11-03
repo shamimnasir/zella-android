@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Only finished exports and shared project packages can be handed to another app. -->
+<paths>
+    <external-files-path name="exports" path="exports/" />
+    <external-files-path name="handoff" path="handoff/" />
+</paths>

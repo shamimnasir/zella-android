@@ -11,10 +11,12 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -31,6 +33,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -42,16 +45,23 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.core.content.ContextCompat
+import com.zellahq.app.editor.EditorScreen
+import com.zellahq.app.editor.Storage
+import com.zellahq.app.editor.Tool
+import com.zellahq.app.editor.mmss
+import com.zellahq.app.export.ExportScreen
 import com.zellahq.app.recording.CameraHub
 import com.zellahq.app.recording.RecordingNote
 import com.zellahq.app.recording.RecordingService
 import com.zellahq.app.recording.Remuxer
 import com.zellahq.core.EntitlementState
-import com.zellahq.core.Plan
 import com.zellahq.core.PremiumGate
 import com.zellahq.core.RecorderState
 import com.zellahq.core.RecordingJournal
 import com.zellahq.core.SampleJournal
+import com.zellahq.core.project.NewerFormatException
+import com.zellahq.core.project.Project
+import com.zellahq.core.project.duration
 import com.zellahq.ui.ZellaCard
 import com.zellahq.ui.ZellaChip
 import com.zellahq.ui.ZellaColors
@@ -60,11 +70,14 @@ import com.zellahq.ui.ZellaTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val state = loadEntitlement()
+        val state = Entitlements.load(this)
         // Debug builds only: start a test-pattern recording from adb, for the forced-kill test.
         if (BuildConfig.DEBUG && intent.getBooleanExtra("debug_pattern", false)) {
             ContextCompat.startForegroundService(
@@ -73,20 +86,7 @@ class MainActivity : ComponentActivity() {
                     .putExtra(RecordingService.EXTRA_MIC, true),
             )
         }
-        setContent { ZellaTheme { Home(state, System.currentTimeMillis(), recoveredNames()) } }
-    }
-
-    /** Install time is written once, on first launch, and never again. Purchases arrive in Phase 8. */
-    private fun loadEntitlement(): EntitlementState {
-        val prefs = getSharedPreferences("entitlement", Context.MODE_PRIVATE)
-        val now = System.currentTimeMillis()
-        val install =
-            prefs.getLong("install", 0L).takeIf { it > 0L }
-                ?: now.also { prefs.edit().putLong("install", it).apply() }
-        val seen = prefs.getLong("seen", install)
-        val state = PremiumGate.touch(EntitlementState(Plan.Free, install, seen), now)
-        prefs.edit().putLong("seen", state.lastSeenEpochMs).apply()
-        return state
+        setContent { ZellaTheme { Root(state, System.currentTimeMillis(), recoveredNames()) } }
     }
 
     /** Names of recordings that were rebuilt after Zella closed unexpectedly. */
@@ -124,19 +124,76 @@ private suspend fun recoverInterrupted(context: Context): Set<String> =
 
 private data class RecordingItem(val file: File, val seconds: Long, val recovered: Boolean)
 
+/** Which screen shows. Kept as a string so it survives rotation and process death. */
 @Composable
-private fun Home(
+private fun Root(
     entitlement: EntitlementState,
     nowMs: Long,
     recovered: Set<String>,
 ) {
     val context = LocalContext.current
-    val status by RecordingService.status.collectAsState()
+    var screen by rememberSaveable { mutableStateOf("home") }
+    // The "Record my voice" switch applies to screen and camera recordings alike.
     var voice by rememberSaveable { mutableStateOf(true) }
+    val status by RecordingService.status.collectAsState()
+    val store = remember { Storage.store(context) }
+    Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).systemBarsPadding()) {
+        when {
+            // A camera recording that is still running brings the camera screen back.
+            status.camera || screen == "camera" ->
+                Box(Modifier.padding(ZellaSpacing.M)) {
+                    BackHandler(enabled = status.state == RecorderState.Idle) { screen = "home" }
+                    CameraScreen(voice) { screen = "home" }
+                }
+            screen.startsWith("editor:") -> {
+                val p = remember(screen) { runCatching { store.load(screen.removePrefix("editor:")) }.getOrNull() }
+                if (p == null) {
+                    screen = "home"
+                } else {
+                    EditorScreen(p, onBack = {
+                        screen = "home"
+                    }, onExport = { screen = "export:${it.id}" })
+                }
+            }
+            screen.startsWith("export:") -> {
+                val p = remember(screen) { runCatching { store.load(screen.removePrefix("export:")) }.getOrNull() }
+                BackHandler { screen = "editor:${p?.id}" }
+                if (p == null) screen = "home" else ExportScreen(p) { screen = "editor:${p.id}" }
+            }
+            else ->
+                Home(
+                    entitlement,
+                    nowMs,
+                    recovered,
+                    voice,
+                    { voice = it },
+                    onCamera = { screen = "camera" },
+                    onOpen = { screen = "editor:$it" },
+                )
+        }
+    }
+}
+
+@Composable
+private fun Home(
+    entitlement: EntitlementState,
+    nowMs: Long,
+    recovered: Set<String>,
+    voice: Boolean,
+    onVoice: (Boolean) -> Unit,
+    onCamera: () -> Unit,
+    onOpen: (String) -> Unit,
+) {
+    val context = LocalContext.current
+    val status by RecordingService.status.collectAsState()
     var phoneSound by rememberSaveable { mutableStateOf(false) }
     var localNote by remember { mutableStateOf<Int?>(null) }
     var items by remember { mutableStateOf(emptyList<RecordingItem>()) }
-    var showCamera by rememberSaveable { mutableStateOf(false) }
+    val store = remember { Storage.store(context) }
+    var projects by remember { mutableStateOf(emptyList<Project>()) }
+    var refresh by remember { mutableIntStateOf(0) }
+    var deleted by remember { mutableStateOf<String?>(null) }
+    val newName = stringResource(R.string.home_new_name)
     // Zella installs on phones without a camera (screen recording still works), so only offer it when present.
     val hasCamera =
         remember {
@@ -144,12 +201,36 @@ private fun Home(
                 CameraHub.available(context).isNotEmpty()
         }
 
-    LaunchedEffect(status.state) {
+    LaunchedEffect(status.state, refresh) {
         if (status.state == RecorderState.Idle) {
             val now = recoverInterrupted(context)
             items = listRecordings(context, recovered + now)
+            projects = withContext(Dispatchers.IO) { store.list().projects.map { it.second } }
         }
     }
+
+    fun openNew(file: File) {
+        val stamp = SimpleDateFormat("d MMM, HH:mm", Locale.getDefault()).format(Date())
+        Storage.newProject(context, file, newName.format(stamp))?.let { onOpen(it.id) }
+    }
+
+    val videoPicker =
+        rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+            uri?.let { Storage.importUri(context, it) }?.let { openNew(it) }
+        }
+    val packagePicker =
+        rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+            if (uri == null) return@rememberLauncherForActivityResult
+            val tmp = File(context.cacheDir, "import.zella.zip")
+            localNote =
+                runCatching {
+                    context.contentResolver.openInputStream(uri)!!.use { i -> tmp.outputStream().use { i.copyTo(it) } }
+                    val p = store.import(tmp)
+                    onOpen(p.id)
+                    null
+                }.getOrElse { if (it is NewerFormatException) R.string.home_import_newer else R.string.home_import_failed }
+            tmp.delete()
+        }
 
     val projectionLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -193,87 +274,143 @@ private fun Home(
 
     fun send(action: String) = context.startService(RecordingService.command(context, action))
 
-    Column(
-        Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .systemBarsPadding()
-            .padding(ZellaSpacing.M),
+    // One scrolling list for the whole screen. A list nested inside a column hides whatever sits below it.
+    LazyColumn(
+        Modifier.fillMaxSize().padding(horizontal = ZellaSpacing.M),
         verticalArrangement = Arrangement.spacedBy(ZellaSpacing.M),
     ) {
-        // A camera recording that is still running brings the camera screen back.
-        if (showCamera || status.camera) {
-            BackHandler(enabled = status.state == RecorderState.Idle) { showCamera = false }
-            CameraScreen(voice) { showCamera = false }
-            return@Column
-        }
-        if (PremiumGate.isInProWeek(entitlement, nowMs)) {
-            val days = PremiumGate.proWeekDaysLeft(entitlement, nowMs)
-            ZellaChip(pluralStringResource(R.plurals.pro_week_chip, days, days))
-        }
-        Text(stringResource(R.string.home_tagline), color = MaterialTheme.colorScheme.onBackground)
-
-        when (status.state) {
-            RecorderState.Idle -> {
-                LabelledSwitch(stringResource(R.string.rec_option_voice), voice) { voice = it }
-                LabelledSwitch(stringResource(R.string.rec_option_phone_sound), phoneSound) { phoneSound = it }
-                ActionCard(ZellaColors.CardViolet, stringResource(R.string.rec_start)) { onRecord() }
-                if (hasCamera) {
-                    ActionCard(ZellaColors.CardCoral, stringResource(R.string.home_camera)) { showCamera = true }
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(ZellaSpacing.M)) {
+                if (PremiumGate.isInProWeek(entitlement, nowMs)) {
+                    val days = PremiumGate.proWeekDaysLeft(entitlement, nowMs)
+                    ZellaChip(pluralStringResource(R.plurals.pro_week_chip, days, days))
+                }
+                Text(stringResource(R.string.home_tagline), color = MaterialTheme.colorScheme.onBackground)
+                when (status.state) {
+                    RecorderState.Idle -> {
+                        LabelledSwitch(stringResource(R.string.rec_option_voice), voice) { onVoice(it) }
+                        LabelledSwitch(stringResource(R.string.rec_option_phone_sound), phoneSound) { phoneSound = it }
+                        ActionCard(ZellaColors.CardViolet, stringResource(R.string.rec_start)) { onRecord() }
+                        if (hasCamera) {
+                            ActionCard(
+                                ZellaColors.CardCoral,
+                                stringResource(R.string.home_camera),
+                            ) { onCamera() }
+                        }
+                        ActionCard(ZellaColors.CardSun, stringResource(R.string.home_new_project)) {
+                            videoPicker.launch(
+                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.VideoOnly),
+                            )
+                        }
+                    }
+                    RecorderState.Recording -> {
+                        Text(stringResource(R.string.rec_recording), color = MaterialTheme.colorScheme.onBackground)
+                        ActionCard(
+                            ZellaColors.CardSun,
+                            stringResource(R.string.rec_pause),
+                        ) { send(RecordingService.ACTION_PAUSE) }
+                        ActionCard(
+                            ZellaColors.CardCoral,
+                            stringResource(R.string.rec_stop),
+                        ) { send(RecordingService.ACTION_STOP) }
+                    }
+                    RecorderState.Paused -> {
+                        Text(stringResource(R.string.rec_paused), color = MaterialTheme.colorScheme.onBackground)
+                        ActionCard(
+                            ZellaColors.CardMint,
+                            stringResource(R.string.rec_resume),
+                        ) { send(RecordingService.ACTION_RESUME) }
+                        ActionCard(
+                            ZellaColors.CardCoral,
+                            stringResource(R.string.rec_stop),
+                        ) { send(RecordingService.ACTION_STOP) }
+                    }
+                    RecorderState.Stopping ->
+                        Text(
+                            stringResource(R.string.rec_saving),
+                            color = MaterialTheme.colorScheme.onBackground,
+                        )
+                }
+                localNote?.let { Text(stringResource(it), color = MaterialTheme.colorScheme.onBackground) }
+                if (status.state == RecorderState.Idle) {
+                    status.notes.forEach {
+                        Text(
+                            stringResource(noteText(it)),
+                            color = MaterialTheme.colorScheme.onBackground,
+                        )
+                    }
                 }
             }
-            RecorderState.Recording -> {
-                Text(stringResource(R.string.rec_recording), color = MaterialTheme.colorScheme.onBackground)
-                ActionCard(
-                    ZellaColors.CardSun,
-                    stringResource(R.string.rec_pause),
-                ) { send(RecordingService.ACTION_PAUSE) }
-                ActionCard(
-                    ZellaColors.CardCoral,
-                    stringResource(R.string.rec_stop),
-                ) { send(RecordingService.ACTION_STOP) }
-            }
-            RecorderState.Paused -> {
-                Text(stringResource(R.string.rec_paused), color = MaterialTheme.colorScheme.onBackground)
-                ActionCard(
-                    ZellaColors.CardMint,
-                    stringResource(R.string.rec_resume),
-                ) { send(RecordingService.ACTION_RESUME) }
-                ActionCard(
-                    ZellaColors.CardCoral,
-                    stringResource(R.string.rec_stop),
-                ) { send(RecordingService.ACTION_STOP) }
-            }
-            RecorderState.Stopping ->
-                Text(
-                    stringResource(R.string.rec_saving),
-                    color = MaterialTheme.colorScheme.onBackground,
-                )
         }
 
-        localNote?.let { Text(stringResource(it), color = MaterialTheme.colorScheme.onBackground) }
-        if (status.state == RecorderState.Idle) {
-            status.notes.forEach { Text(stringResource(noteText(it)), color = MaterialTheme.colorScheme.onBackground) }
+        item { Text(stringResource(R.string.home_projects_title), color = MaterialTheme.colorScheme.onBackground) }
+        deleted?.let { id ->
+            item {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(ZellaSpacing.S),
+                ) {
+                    Text(stringResource(R.string.home_deleted), color = MaterialTheme.colorScheme.onBackground)
+                    ActionChip(stringResource(R.string.home_undo_delete)) {
+                        store.restore(id)
+                        deleted = null
+                        refresh++
+                    }
+                }
+            }
+        }
+        items(projects, key = { "p" + it.id }) { p ->
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(ZellaSpacing.S),
+            ) {
+                ActionCard(
+                    ZellaColors.CardViolet,
+                    stringResource(R.string.home_project_item, p.name, mmss(p.duration)),
+                    Modifier.weight(1f),
+                ) {
+                    onOpen(p.id)
+                }
+                ActionChip(stringResource(R.string.home_delete_project)) {
+                    store.delete(p.id)
+                    deleted = p.id
+                    refresh++
+                }
+            }
+        }
+        item {
+            ActionChip(stringResource(R.string.home_import_project)) {
+                packagePicker.launch(arrayOf("application/zip", "application/octet-stream"))
+            }
         }
 
-        Text(stringResource(R.string.rec_list_title), color = MaterialTheme.colorScheme.onBackground)
+        item { Text(stringResource(R.string.rec_list_title), color = MaterialTheme.colorScheme.onBackground) }
         if (items.isEmpty()) {
-            Text(
-                stringResource(R.string.rec_list_empty),
-                color = MaterialTheme.colorScheme.onBackground,
-            )
-        }
-        LazyColumn(verticalArrangement = Arrangement.spacedBy(ZellaSpacing.S)) {
-            items(items, key = { it.file.name }) { item ->
-                val name = item.file.nameWithoutExtension
-                val main = stringResource(R.string.rec_list_item, name, item.seconds / 60, item.seconds % 60)
-                val label = if (item.recovered) main + "\n" + stringResource(R.string.rec_list_recovered) else main
-                ZellaCard(ZellaColors.CardMint, label, Modifier.fillMaxWidth())
+            item {
+                Text(stringResource(R.string.rec_list_empty), color = MaterialTheme.colorScheme.onBackground)
             }
         }
-        Text(stringResource(R.string.home_status), color = MaterialTheme.colorScheme.onBackground)
+        items(items, key = { "r" + it.file.name }) { item ->
+            val name = item.file.nameWithoutExtension
+            val main = stringResource(R.string.rec_list_item, name, item.seconds / 60, item.seconds % 60)
+            val label = if (item.recovered) main + "\n" + stringResource(R.string.rec_list_recovered) else main
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(ZellaSpacing.S),
+            ) {
+                ZellaCard(ZellaColors.CardMint, label, Modifier.weight(1f))
+                ActionChip(stringResource(R.string.home_edit_recording)) { openNew(item.file) }
+            }
+        }
+        item { Text(stringResource(R.string.home_status), color = MaterialTheme.colorScheme.onBackground) }
     }
 }
+
+@Composable
+private fun ActionChip(
+    label: String,
+    onClick: () -> Unit,
+) = Tool(label, null, onClick)
 
 @Composable
 private fun LabelledSwitch(
@@ -289,7 +426,8 @@ private fun LabelledSwitch(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        Text(label, color = MaterialTheme.colorScheme.onBackground)
+        // weight: a long label wraps instead of running under the switch.
+        Text(label, color = MaterialTheme.colorScheme.onBackground, modifier = Modifier.weight(1f).padding(end = ZellaSpacing.S))
         Switch(checked = checked, onCheckedChange = null)
     }
 }
@@ -298,8 +436,9 @@ private fun LabelledSwitch(
 internal fun ActionCard(
     color: androidx.compose.ui.graphics.Color,
     label: String,
+    modifier: Modifier = Modifier.fillMaxWidth(),
     onClick: () -> Unit,
-) = ZellaCard(color, label, Modifier.fillMaxWidth().clickable(role = Role.Button, onClick = onClick))
+) = ZellaCard(color, label, modifier.clickable(role = Role.Button, onClick = onClick))
 
 private fun granted(
     context: Context,

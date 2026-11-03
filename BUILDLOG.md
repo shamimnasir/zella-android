@@ -8,7 +8,9 @@ Read this and tasks/lessons.md at the start of every session.
 | --- | --- |
 | 0 Foundation | Built, exit gate PARTLY met (see below). Stopped for review. |
 | 1 Capture | Screen and camera capture built and measured on the emulator. Exit gate NOT passed (see below). |
-| 2 to 9 | Not started |
+| 2 Timeline and editor | Mostly built. Model, edits, undo, store and iPhone parity done; editor UI works on the emulator. Open items below. |
+| 3 Export and limits | Mostly built. Export service, gate at the boundary, gallery save, share. Open items below. |
+| 4 to 9 | Not started |
 
 ## Phase 0 evidence (2026-11-04)
 
@@ -83,6 +85,38 @@ Camera not verified anywhere:
 - 4K camera capture (Pro): not built. Capture is capped at 1080p.
 - A phone with no camera: the release APK now marks both camera features optional and the home screen hides "Record with camera" when no camera is found (confirmed shown on the emulator, which has cameras). The no-camera case itself was not run.
 - The remaining 2 to 4 dropped frames when switching apps may be emulator load. Measure on a phone.
+
+## Phase 2 and 3 evidence (2026-11-04, emulator and Mac only)
+
+| Check | Result |
+| --- | --- |
+| Reads iPhone projects | 3 fixtures written by the iPhone's own ZellaCore decode; duration 12.0 s and clip starts 0, 4, 6 match what the iPhone printed (`ConformanceTest`) |
+| Round trip keeps unknown fields | the iPhone fixture re-encodes to the same JSON, key for key (`ConformanceTest`) |
+| Edits match the iPhone | a 12-step edit script run by the iPhone's ProjectEditing and by Android lands on the same project after every step, all collections, to 1e-9 s (`EditParityTest`) |
+| The iPhone reads Android | the iPhone decoder opened all 12 Android-written projects with identical durations (`tools/ios-conformance`, run by hand on a Mac) |
+| Store | atomic save, snapshots, heal from snapshot, collapse guard, newer-format refusal, zip-slip refusal, recoverable delete (`ProjectStoreTest`) |
+| Export matches the timeline | 5,013 ms against 5,000 ms; two-clip fade 3,000 ms against 3,000 ms (`ExportRenderTest`) |
+| The fade really renders | pixel at mid-fade `#758804`, a red and green mix (`ExportRenderTest`) |
+| Gate at the boundary | a 4K render on a 1080p permit is refused and writes nothing (`ExportRenderTest`) |
+| Preview loads | the real preview player becomes ready with the timeline's length (`PreviewPlayerTest`) |
+| Real UI flow | split, fade, double speed, undo, redo, export, save to gallery, all by taps; autosave wrote the edits; the saved video plays and has both tracks |
+
+### Open in Phase 2 and 3
+
+- **A paused seek does not update the preview picture.** Seeks reach the player (logged), the playhead
+  moves, the frame stays. Playback works. Not fixed. Check `CompositionPlayer` seeking from the ENDED
+  state and while paused; write a test that reads the rendered frame after a paused seek.
+- Playback on the emulator needs audio output: started with `-no-audio`, the preview never plays.
+  Phones always have audio, but an output-less device would freeze the same way.
+- Reverse and Rewind render a backwards copy (`ReverseRenderer`), never run on a device yet.
+- Timeline scrub and playback frame-rate budgets: not measured (needs a phone).
+- Export on real encoders (Snapdragon, Dimensity, Exynos, Tensor): not run. Fallback is on.
+- In Pro Week the export screen still labels 4K "needs Pro" although it is allowed. Fix in Phase 8.
+- Tapping Edit on a recording makes a new project every time.
+- The iPhone's reorder does not move picture-in-picture clips; Android does (see `EditParityTest`).
+  Worth fixing on the iPhone side.
+- How a `.zella` gets from Android into the iPhone app: the iPhone code has no zip import that I
+  found. UNVERIFIED.
 
 ## Phase 1 exit gate: NOT passed
 

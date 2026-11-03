@@ -85,8 +85,7 @@ class RecordingService : Service() {
 
         fun recordingsDir(context: Context) = File(context.getExternalFilesDir(null), "recordings")
 
-        fun freeBytes(context: Context): Long =
-            recordingsDir(context).apply { mkdirs() }.let { StatFs(it.path).availableBytes }
+        fun freeBytes(context: Context): Long = recordingsDir(context).apply { mkdirs() }.let { StatFs(it.path).availableBytes }
 
         fun command(
             context: Context,
@@ -138,8 +137,7 @@ class RecordingService : Service() {
         return START_NOT_STICKY
     }
 
-    private fun hasMic() =
-        ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+    private fun hasMic() = ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
 
     private enum class Mode { Screen, Pattern, Camera }
 

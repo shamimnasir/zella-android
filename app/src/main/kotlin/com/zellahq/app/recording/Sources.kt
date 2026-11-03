@@ -55,6 +55,8 @@ class PatternSource(
     private val flashEveryMs: Long = 2_000,
     /** Wait before the first frame, like a real screen share does. Used to test track alignment. */
     private val startDelayMs: Long = 0,
+    /** Solid background, so render tests can tell clips apart by pixel colour. */
+    private val background: Int = Color.BLACK,
     private val onFlash: ((Long) -> Unit)? = null,
 ) : VideoSource {
     @Volatile private var running = false
@@ -82,7 +84,7 @@ class PatternSource(
                         canvas.drawColor(Color.WHITE)
                         lastFlash = slot
                     } else {
-                        canvas.drawColor(Color.BLACK)
+                        canvas.drawColor(background)
                         paint.color = Color.rgb(124, 108, 255)
                         canvas.drawText("frame $frame", width / 10f, height / 2f, paint)
                     }
