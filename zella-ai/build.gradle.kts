@@ -3,3 +3,9 @@ plugins {
 }
 
 kotlin { jvmToolchain(17) }
+
+dependencies {
+    implementation(libs.kotlinx.serialization.json)
+    testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.core)
+}

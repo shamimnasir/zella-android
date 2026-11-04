@@ -20,8 +20,8 @@ import com.zellahq.core.project.TransitionTypes
  * looks like, and how far this pixel has moved over to the incoming clip. The clip on the top track
  * puts that amount in its alpha; the one underneath stays opaque.
  *
- * One known difference: Luma Fade is driven by the outgoing clip's brightness on the iPhone. When the
- * outgoing clip is on the lower track, its picture is not available, so the incoming clip's is used.
+ * Each transition is rendered on its own (see TransitionBaker), with the outgoing clip always on top,
+ * so Luma Fade reads the outgoing clip's brightness exactly as the iPhone does.
  */
 @OptIn(UnstableApi::class)
 class TransitionEffect(

@@ -417,7 +417,7 @@ fun Project.remapTimes(map: (Double) -> Double): Project =
         soundBites = soundBites?.map { it.copy(atTime = map(it.atTime)) },
         extras =
             extras
-                .mapRawList("callouts") { it.retime("start", map) }
+                .mapRawList("callouts") { it.retime("start", map).retimeList("trackTimes", map) }
                 .mapRawList("overlayClips") { it.retime("start", map) }
                 .mapRawList("voiceWindows") { it.retime("start", map).retime("end", map) }
                 .mapReframeKeys(map),
@@ -478,7 +478,7 @@ fun Project.compactTimeline(
             }?.map { it.copy(atTime = map(it.atTime)) }?.ifEmpty { null },
         extras =
             extras
-                .filterRawList("callouts") { it.shrink(map) }
+                .filterRawList("callouts") { it.shrink(map)?.retimeList("trackTimes", map) }
                 .filterRawList("overlayClips") { it.shrink(map) }
                 .filterRawList("voiceWindows") { w ->
                     val s = map(w.num("start"))
@@ -515,7 +515,10 @@ private fun Project.remapByMidpoint(shift: (Double) -> Double): Project {
             extras
                 .mapRawList(
                     "callouts",
-                ) { o -> o.with("start", o.num("start") + mid(o.num("start"), o.num("start") + o.num("duration"))) }
+                ) { o ->
+                    val d = mid(o.num("start"), o.num("start") + o.num("duration"))
+                    o.with("start", o.num("start") + d).retimeList("trackTimes") { it + d }
+                }
                 .mapRawList(
                     "overlayClips",
                 ) { o -> o.with("start", o.num("start") + mid(o.num("start"), o.num("start") + o.num("duration"))) }
@@ -541,6 +544,15 @@ private fun JsonObject.retime(
     k: String,
     map: (Double) -> Double,
 ) = if (containsKey(k)) with(k, map(num(k))) else this
+
+/** A tracked path's times move with the content too, or the box drifts off what it is hiding. */
+private fun JsonObject.retimeList(
+    k: String,
+    map: (Double) -> Double,
+): JsonObject {
+    val list = this[k] as? JsonArray ?: return this
+    return JsonObject(this + (k to JsonArray(list.map { JsonPrimitive(map(it.jsonPrimitive.doubleOrNull ?: 0.0)) })))
+}
 
 /** Callout or picture-in-picture: shrink through a cut, drop when nothing is left. */
 private fun JsonObject.shrink(map: (Double) -> Double): JsonObject? {

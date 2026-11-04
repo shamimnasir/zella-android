@@ -139,12 +139,16 @@ object Polish {
     }
 
     /** A cross dissolve on about eight widely spaced joins, leaving any transition already there alone. */
-    fun placeDissolves(p: Project): Pair<Project, Int> {
+    fun placeDissolves(
+        p: Project,
+        /** Moves to leave room for: Make it Viral keeps space for its sounds under the cuts. */
+        reserve: Int = 0,
+    ): Pair<Project, Int> {
         var out = p
         var placed = 0
         val existing = p.transitions.orEmpty().size
         // The density cap decides how many fit, after the opener and the opening zoom have their place.
-        val budget = minOf(AutoEdit.MAX_DISSOLVES, maxOf(0, (p.duration * MAX_EFFECT_DENSITY).toInt() - 2))
+        val budget = minOf(AutoEdit.MAX_DISSOLVES, maxOf(0, (p.duration * MAX_EFFECT_DENSITY).toInt() - 2 - reserve))
         val room = (budget - existing).coerceAtLeast(0)
         for (i in AutoEdit.dissolveJoins(p.clips.size - 1, budget)) {
             if (placed >= room) break
@@ -294,6 +298,25 @@ object Polish {
 
     const val BUNDLE_GRADE = "Bright & Sunny"
 
+    /** The receipt, read from the finished project so it can only say what is really there. */
+    fun receiptOf(
+        p: Project,
+        silencesCut: Int,
+        silenceSeconds: Double,
+        fillersCut: Int,
+    ): PolishReceipt {
+        val zooms = p.zoomBlocks.orEmpty()
+        return PolishReceipt(
+            silencesCut,
+            silenceSeconds,
+            fillersCut,
+            p.transitions.orEmpty().size,
+            zooms.count { it.ownedBy(AUTO_OPENING) || it.ownedBy(AUTO_EMPHASIS) },
+            zooms.count { it.ownedBy(AUTO_INTERRUPT) },
+            p.soundBites.orEmpty().count { (it.extras["autoCut"] as? JsonPrimitive)?.booleanOrNull == true },
+        )
+    }
+
     /** Every move a viewer sees or hears, per second of video. */
     fun effectDensity(p: Project): Double {
         val d = p.duration
@@ -326,9 +349,9 @@ object Polish {
             out = out.copy(zoomBlocks = (all.take(i) + all.drop(i + 1)).ifEmpty { null })
             return true
         }
-        while (over() && dropLastSound()) Unit
         while (over() && dropLastZoom(AUTO_INTERRUPT)) Unit
         while (over() && dropLastZoom(AUTO_EMPHASIS)) Unit
+        while (over() && dropLastSound()) Unit
         while (over() && dropLastZoom(AUTO_OPENING)) Unit
         return out
     }

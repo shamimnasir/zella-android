@@ -57,6 +57,8 @@ class Exporter(
 ) {
     @Volatile private var transformer: Transformer? = null
 
+    @Volatile private var cancelled = false
+
     // The running export's result slot. Transformer.cancel() calls no listener, so cancel fills it.
     @Volatile private var pending: Pair<CountDownLatch, AtomicReference<ExportOutcome>>? = null
     private val thread = HandlerThread("export").apply { start() }
@@ -78,17 +80,35 @@ class Exporter(
             return ExportOutcome.Failed("These export settings were not approved.", null)
         }
         val canvas = canvasSize(project, settings.shortSide)
-        val built = builder.build(project, canvas)
+        var built = builder.build(project, canvas)
         if (built.missing.isNotEmpty()) {
             return ExportOutcome.Failed(
                 "${built.missing.size} clip(s) are missing their video file.",
                 null,
             )
         }
+        // Transitions the preview has not rendered at this size yet come first.
+        if (built.needsBake.isNotEmpty()) {
+            built.needsBake.forEachIndexed { n, join ->
+                if (cancelled) return ExportOutcome.Cancelled
+                TransitionBaker.bake(context, builder, project, join, canvas)
+                onProgress((n + 1) * 5 / built.needsBake.size)
+            }
+            built = builder.build(project, canvas)
+        }
+        if (cancelled) return ExportOutcome.Cancelled
         return run(built.composition, settings, out, onProgress)
     }
 
+    /** Renders any composition with no pricing check. Only for intermediates kept in the app's own cache. */
+    internal fun render(
+        composition: Composition,
+        settings: ExportSettings,
+        out: File,
+    ) = run(composition, settings, out) { }
+
     fun cancel() {
+        cancelled = true
         handler.post {
             transformer?.cancel()
             pending?.let { (latch, slot) ->

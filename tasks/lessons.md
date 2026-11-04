@@ -135,15 +135,17 @@ in one glance. For anything visual, write the sheet and open it.
 The clean-up test said the voice moved 44 ms. It had compared a 44.1 kHz export with a 48 kHz one sample
 by sample. The export rate follows the first sound in the mix, so check it before comparing.
 
-## 2026-11-04: Media3 two tracks: gaps must be the canvas size and media kinds must not mix
+## 2026-11-04: do not run a whole timeline through Media3's two-track compositor
 
-On two video tracks, Media3's own gap frames are 1 by 1. Every change of frame size rebuilds the
-pre-compositor texture pool under frames still queued, and from then on each picture is drawn 2 to 4
-frames ahead of its timestamp, with black frames at the end of clips. Burning the time into the frame
-before and after the compositor showed it in one picture. Use a black video item at the canvas size.
-And never let a track's first item lack a kind of media it declares: Media3 invents a silent track
-and crashes if the other sequence has not started (SequenceAssetLoader:343). Keep picture and sound on
-separate sequences on this path.
+Three faults in a row, each timing dependent. Its 1 by 1 gap frames rebuild the texture pool under
+queued frames, so pictures are drawn 2 to 4 frames ahead of their timestamps (burning the time into the
+frame before and after the compositor showed it in one picture). A track whose first item lacks a kind
+of media it declares makes Media3 invent a silent track and crash if the other sequence has not started
+(SequenceAssetLoader:343). And black frames still appeared at hard cuts, more under load, so a real phone
+would have behaved differently again. Each transition is now rendered on its own, two inputs and nothing
+else, and the main video is one track. Timing went from about 30 ms to 4 ms, and the preview no longer
+needs the multi-input graph or its still-frame workaround. After the second bug of one kind in a
+foreign component, stop patching and change the shape of the problem.
 
 ## 2026-11-04: read the POM before adding a dependency
 
@@ -163,3 +165,18 @@ pauses hid this for a whole phase.
 A gain on the whole composition lifted the music with the voice. Measured 3 dB over target, and the
 balance was wrong. Apply it per clip, ahead of the limiter, and correct once against the measured result.
 
+## 2026-11-04: look at one exported frame after every render change
+
+Every test passed while a Make it Viral export was black for seconds at a time, because nothing checked
+the picture was there. One PNG showed it. There is now a black frame scan in the one-tap tests. A receipt
+also claimed a sound that the density cap had removed: read receipts from the finished project.
+
+## 2026-11-04: Media3's GlProgram overwrites array uniforms
+
+`bindAttributesAndUniforms` writes its own zeros to the first element of any array uniform, so a blur rect
+set before it came out empty and the blur silently did nothing. Set arrays after binding. The OCR gate caught it.
+
+## 2026-11-04: copy bundled data through a temporary name
+
+Reinstalling during a copy left a 0 byte language file, and the reader refused to start from then on. A person
+killing the app on first use would hit the same thing, forever. Write to `.part`, then rename.

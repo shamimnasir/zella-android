@@ -26,14 +26,8 @@ fun appComposition(
         val s = com.zellahq.app.sound.Sounds
         s.effects(context).firstOrNull { it.id == id }?.let { s.file(context, it, "sfx") }
     }
-    blackVideo = {
-        val f = File(context.filesDir, "gap/black-10s.mp4")
-        if (!f.isFile) {
-            f.parentFile!!.mkdirs()
-            context.assets.open("gap/black-10s.mp4").use { i -> f.outputStream().use { i.copyTo(it) } }
-        }
-        f
-    }
+    transitionFile = { p, join, size -> TransitionBaker.cached(context, p, join, size) }
+    calloutEffects = { p, size -> com.zellahq.app.callouts.calloutEffects(p, size) }
     titleEffect = { p, size ->
         p.titles?.takeIf { it.isNotEmpty() }?.let { OverlayEffect(listOf(TitlesOverlay(context, it, size.width, size.height))) }
     }

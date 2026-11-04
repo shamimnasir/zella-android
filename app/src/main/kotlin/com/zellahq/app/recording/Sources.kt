@@ -58,6 +58,8 @@ class PatternSource(
     /** Solid background, so render tests can tell clips apart by pixel colour. */
     private val background: Int = Color.BLACK,
     private val onFlash: ((Long) -> Unit)? = null,
+    /** Draws the whole picture instead of the counter and flashes, for tests that need a known page. */
+    private val draw: ((android.graphics.Canvas, Long) -> Unit)? = null,
 ) : VideoSource {
     @Volatile private var running = false
     private var thread: Thread? = null
@@ -80,7 +82,10 @@ class PatternSource(
                     val slot = elapsedMs / flashEveryMs
                     val flash = elapsedMs % flashEveryMs < 1000 / fps && slot != lastFlash
                     val canvas = runCatching { surface.lockHardwareCanvas() }.getOrNull() ?: break
-                    if (flash) {
+                    if (draw != null) {
+                        canvas.drawColor(background)
+                        draw.invoke(canvas, frame)
+                    } else if (flash) {
                         canvas.drawColor(Color.WHITE)
                         lastFlash = slot
                     } else {
@@ -89,7 +94,7 @@ class PatternSource(
                         canvas.drawText("frame $frame", width / 10f, height / 2f, paint)
                     }
                     surface.unlockCanvasAndPost(canvas)
-                    if (flash) onFlash?.invoke(System.nanoTime())
+                    if (flash && draw == null) onFlash?.invoke(System.nanoTime())
                     frame++
                     Thread.sleep(1000L / fps)
                 }

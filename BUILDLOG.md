@@ -13,7 +13,8 @@ Read this and tasks/lessons.md at the start of every session.
 | 4 Captions | Built and measured on the emulator. Gate NOT passed (needs a phone and a real Bangla clip). |
 | 5 Looks, sound, text | Built and measured on the emulator. Open items below. |
 | 6 One-tap AI | Built and measured on the emulator. Open items below. |
-| 7 to 9 | In progress |
+| 7 Background, B-roll, Assistant, blur | In progress. Callouts, blur and the Assistant are built and measured on the emulator. |
+| 8 and 9 | Not started |
 
 ## Phase 0 evidence (2026-11-04)
 
@@ -179,7 +180,7 @@ Everything measured from the file a real export wrote, on `zella_p0`. Numbers in
 | Voice clean-up, hiss against the voice | -17.0 to -22.3 dB through the export; the voice stays within 0.83 ms of where it was | `SoundRenderTest`, `DenoiseHissTest` |
 
 | All 25 transitions | each starts exactly on the outgoing clip and ends exactly on the incoming one, with the outgoing clip on either track; middles looked at by eye | `TransitionRenderTest`, `docs/evidence/phase5-transitions.png` |
-| Frames against the timeline | single track: every one of 23 cuts within one frame. Two tracks: every change within 31 ms, no black frames, 4 runs out of 4 identical | `TimelineDriftTest` |
+| Frames against the timeline | every one of 23 cuts within one frame on a timeline with no transitions; with transitions (rendered ahead, see below) every colour change 3 ms or 4 ms from where it should be, no black frames, final length 29.11 s against 29.10 s |
 
 Sound found by this test and fixed: an export with clean-up on never finished (a 10 s clip grew past
 139 MB), loudness read 3 dB low so every video came out 3 dB hot, and the wet and dry voice were 10 ms
@@ -231,6 +232,23 @@ clips the brief asks for.
   engine. No isolation engine exists on Android.
 - The battery of 20 sample clips does not exist yet. Density and re-run gates were measured on one voice and on generated data.
 - The one-tap screens have been built but only exercised through tests, not by a person.
+
+## Phase 7 evidence (2026-11-04, emulator and Mac only)
+
+| Check | Result |
+| --- | --- |
+| Blur gate | `CalloutRenderTest`: a page with an access token is exported. The text reader reads the whole token. The scan finds it and places one blur, reported as `ghp_••• (36 chars)`. Export again: at 0.2, 2.0 and 3.8 s the reader finds `Access token:` and nothing after it, and the rest of the page stays readable. Same for pixelate. |
+| A box lands where it says | a blur at top-left 0.1, 0.1 over stripes: contrast 5 inside, 251 at the mirrored spot and at the right |
+| All 19 callout kinds | every one changes the export; contact sheet checked by eye |
+| Matching and planning against the iPhone | `SensitiveTextTest`: 132 match rows (22 lines, 6 settings) and 11 plan scenarios equal `tools/ios-conformance/sensitive.swift` run on the iPhone's own file |
+| The Assistant's wire format | `ClientsTest`: all six providers, key in a header and never the body or address, HTTPS only, plain words per failure |
+| The Assistant sends no video | `AssistantTest`: 11 tool rounds on a real editor against a pretend provider. Largest request 21.5 KB, all tool schemas and text. No path on the phone, no `file:`, no 400-character blob, no image block, no key in a body. The edits really landed in the project. Export asked first, and a "no" stopped it |
+| Keys | `AssistantTest`: read back through Android Keystore, absent from every shared_prefs file on disk, gone after remove. App backup is off |
+
+Not verified: no real provider has been called, since no key was available. Nothing on a phone. OCR speed
+on a phone is unknown; the scan has a 75 s budget and says so when it stops early. Reading is Latin script
+only (Tesseract `eng`), and the reader may miss small or fast text, which the screen says. Blend modes on
+callouts are kept in the file but drawn as normal.
 
 ## Phase 1 exit gate: NOT passed
 

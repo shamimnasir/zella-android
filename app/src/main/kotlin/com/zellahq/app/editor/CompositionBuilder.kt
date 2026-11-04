@@ -57,15 +57,19 @@ private fun even(v: Double) = (Math.round(v / 2) * 2).toInt()
  * tracks with gaps between them, so neighbours overlap by exactly the transition's overlap and the
  * compositor fades between them. Times come from the same Project.startTime the timeline uses.
  */
-private const val BLACK_VIDEO_MS = 10_000L
-
 @OptIn(UnstableApi::class)
 class CompositionBuilder(
     private val store: ProjectStore,
     /** Reversed copies, made ahead by [ReverseRenderer]. A clip without one plays forward. */
     private val reversedFile: (Clip) -> File? = { null },
 ) {
-    data class Built(val composition: Composition, val missing: List<Clip>, val needsReverse: List<Clip>)
+    data class Built(
+        val composition: Composition,
+        val missing: List<Clip>,
+        val needsReverse: List<Clip>,
+        /** Joins whose transition has not been rendered yet. Until then they play as a plain cut. */
+        val needsBake: List<Int>,
+    )
 
     fun build(
         p: Project,
@@ -73,10 +77,11 @@ class CompositionBuilder(
     ): Built {
         val missing = ArrayList<Clip>()
         val needsReverse = ArrayList<Clip>()
+        val needsBake = ArrayList<Int>()
         val fade = !p.transitions.isNullOrEmpty() && p.clips.size > 1
         val sequences =
             if (fade) {
-                twoTrackSequences(p, canvas, missing, needsReverse)
+                transitionSequences(p, canvas, missing, needsReverse, needsBake)
             } else {
                 // Declaring both track types makes Media3 fill silence for a clip without sound (a reversed copy).
                 val one = EditedMediaItemSequence.Builder(setOf(C.TRACK_TYPE_AUDIO, C.TRACK_TYPE_VIDEO))
@@ -164,12 +169,12 @@ class CompositionBuilder(
                 .setEffects(
                     Effects(
                         emptyList(),
-                        listOfNotNull(zoomEffect(p.zoomBlocks.orEmpty(), canvas), titleEffect(p, canvas), captionEffect(p, canvas)),
+                        listOfNotNull(zoomEffect(p.zoomBlocks.orEmpty(), canvas)) + calloutEffects(p, canvas) +
+                            listOfNotNull(titleEffect(p, canvas), captionEffect(p, canvas)),
                     ),
                 )
-                .apply { if (fade) setVideoCompositorSettings(CrossfadeSettings(p, canvas)) }
                 .build()
-        return Built(composition, missing, needsReverse)
+        return Built(composition, missing, needsReverse, needsBake)
     }
 
     /** A clip with its picture and sound together, for the single track path. */
@@ -186,17 +191,20 @@ class CompositionBuilder(
             .Builder(r.media)
             .setDurationUs(r.sourceUs)
             .setSpeed(speedProvider(clip, r.isReversedCopy))
-            .setEffects(Effects(audioEffects(p, clip, index), videoEffects(p, clip, index, canvas)))
+            .setEffects(Effects(audioEffects(p, clip, index), videoEffects(p, clip, canvas)))
             .build()
     }
 
     private class Resolved(val media: MediaItem, val file: File, val sourceUs: Long, val isReversedCopy: Boolean)
 
+    /** [cutHead] and [cutTail] take timeline seconds off the ends of the clip's trimmed range. */
     private fun resolved(
         p: Project,
         clip: Clip,
         missing: MutableList<Clip>,
         needsReverse: MutableList<Clip>,
+        cutHead: Double = 0.0,
+        cutTail: Double = 0.0,
     ): Resolved {
         val forward = store.resolve(clip.source, p.id)
         val reversed = if (clip.reversed) reversedFile(clip) else null
@@ -204,12 +212,9 @@ class CompositionBuilder(
         val file = reversed ?: forward
         if (!file.isFile && clip !in missing) missing += clip
         // A reversed copy holds only the trimmed range, already backwards, starting at zero.
-        val (fromUs, toUs) =
-            if (reversed != null) {
-                0L to (clip.trimmedDuration * 1e6).toLong()
-            } else {
-                (clip.trimStart * 1e6).toLong() to (clip.trimEnd * 1e6).toLong()
-            }
+        val base = if (reversed != null) 0.0 else clip.trimStart
+        val fromUs = ((base + cutHead * clip.speed) * 1e6).toLong()
+        val toUs = ((base + clip.trimmedDuration - cutTail * clip.speed) * 1e6).toLong()
         val media =
             MediaItem
                 .Builder()
@@ -228,19 +233,19 @@ class CompositionBuilder(
         return Resolved(media, file, sourceUs, reversed != null)
     }
 
+    /** Timeline seconds at this item's time zero, for anything that follows the project's clock. */
     private fun videoEffects(
         p: Project,
         clip: Clip,
-        index: Int,
         canvas: Size,
+        clockOffset: Double = 0.0,
     ): List<Effect> {
         val video = ArrayList<Effect>()
-        reframeEffect(p, clip, canvas)?.let { video += it }
+        reframeEffect(p, clip, canvas, clockOffset)?.let { video += it }
         // Fill the canvas, cropping the edges, like the iPhone's default fill mode.
         video += Presentation.createForWidthAndHeight(canvas.width, canvas.height, Presentation.LAYOUT_SCALE_TO_FIT_WITH_CROP)
         // The clip's look, colour board and imported LUT (the iPhone's ClipEffects), as one LUT.
         video += clipLook(clip, canvas)
-        transitionEffect(p, clip, index)?.let { video += it }
         return video
     }
 
@@ -249,6 +254,7 @@ class CompositionBuilder(
         p: Project,
         clip: Clip,
         canvas: Size,
+        clockOffset: Double,
     ): Effect? {
         val plan = p.extras["reframe"] as? kotlinx.serialization.json.JsonObject ?: return null
         val raw = plan["keys"] as? kotlinx.serialization.json.JsonArray ?: return null
@@ -271,7 +277,7 @@ class CompositionBuilder(
         val roomY = (1 - minOf(1.0, sourceAspect / canvasAspect)) / 2
         if (roomX <= 0 && roomY <= 0) return null
         return androidx.media3.effect.MatrixTransformation { us ->
-            val (cx, cy) = com.zellahq.core.auto.Reframe.centerAt(keys, us / 1e6)
+            val (cx, cy) = com.zellahq.core.auto.Reframe.centerAt(keys, clockOffset + us / 1e6)
             android.graphics.Matrix().apply {
                 setTranslate(
                     ((0.5 - cx).coerceIn(-roomX, roomX) * 2).toFloat(),
@@ -310,72 +316,154 @@ class CompositionBuilder(
     }
 
     /**
-     * Clips with a transition need two picture tracks, so neighbours can overlap. Picture and sound go
-     * on separate tracks here. When a track's first item has no sound Media3 invents a silent audio
-     * track for it, and crashes if the other track has not started yet (SequenceAssetLoader:343), which
-     * made exports fail at random on silent clips. Tracks with only one kind of media never go there.
+     * A project with transitions. The picture stays on one track: the clips with their overlaps taken
+     * off, and between them each transition as a short video rendered ahead by [TransitionBaker]. A join
+     * not rendered yet plays as a plain cut at its middle, so the length never changes. Media3's two
+     * track path was tried for this and dropped after three separate faults: pictures drawn ahead of
+     * their timestamps, random crashes on silent clips, and black frames at hard cuts.
+     *
+     * Sound overlaps at a transition, so it does use two tracks, sound only, which have none of those faults.
      */
-    private fun twoTrackSequences(
+    private fun transitionSequences(
         p: Project,
         canvas: Size,
         missing: MutableList<Clip>,
         needsReverse: MutableList<Clip>,
+        needsBake: MutableList<Int>,
     ): MutableList<EditedMediaItemSequence> {
-        val pictures = List(2) { EditedMediaItemSequence.Builder(setOf(C.TRACK_TYPE_VIDEO)) }
+        val picture = EditedMediaItemSequence.Builder(setOf(C.TRACK_TYPE_VIDEO))
         val sounds = List(2) { EditedMediaItemSequence.Builder(setOf(C.TRACK_TYPE_AUDIO)) }
-        val pictureAt = LongArray(2)
         val soundAt = LongArray(2)
         val heard = BooleanArray(2)
-        val trackOf = trackLayout(p)
-        p.clips.forEachIndexed { i, clip ->
-            val t = trackOf[i]
-            val startUs = (p.startTime(clip.id) * 1e6).toLong()
-            val lengthUs = (clip.timelineDuration * 1e6).toLong()
-            val r = resolved(p, clip, missing, needsReverse)
+        var track = 0
 
-            val gapMs = (startUs - pictureAt[t]) / 1000
-            if (gapMs > 0) {
-                addGap(pictures[t], gapMs, canvas)
-                pictureAt[t] += gapMs * 1000
+        fun segmentOf(i: Int) = if (p.transitionOverlap(i) > 0) transitionFile(p, i, canvas) else null
+        p.clips.forEachIndexed { i, clip ->
+            val overlapIn = if (i > 0) p.transitionOverlap(i - 1) else 0.0
+            val overlapOut = p.transitionOverlap(i)
+            val segmentIn = if (i > 0) segmentOf(i - 1) else null
+            val segmentOut = segmentOf(i)
+            // A rendered transition can be a frame shorter than asked. The clip after it starts that much
+            // earlier, or each join would pull everything after it forward: 3.4 ms a join, measured.
+            val cutHead = if (segmentIn != null) minOf(overlapIn, lengthOf(segmentIn)) else overlapIn / 2
+            val cutTail = if (segmentOut != null) overlapOut else overlapOut / 2
+            val body = resolved(p, clip, missing, needsReverse, cutHead, cutTail)
+            val offsetUs = (cutHead * clip.speed * 1e6).toLong()
+            picture.addItem(
+                EditedMediaItem
+                    .Builder(body.media)
+                    .setDurationUs(body.sourceUs)
+                    .setRemoveAudio(true)
+                    .setSpeed(speedProvider(clip, body.isReversedCopy, offsetUs))
+                    .setEffects(Effects(emptyList(), videoEffects(p, clip, canvas)))
+                    .build(),
+            )
+            if (overlapOut > 0) {
+                if (segmentOut != null) {
+                    val lengthUs = (minOf(overlapOut, lengthOf(segmentOut)) * 1e6).toLong()
+                    picture.addItem(
+                        EditedMediaItem
+                            .Builder(
+                                MediaItem
+                                    .Builder()
+                                    .setUri(Uri.fromFile(segmentOut))
+                                    .setClippingConfiguration(MediaItem.ClippingConfiguration.Builder().setEndPositionUs(lengthUs).build())
+                                    .build(),
+                            ).setDurationUs(lengthUs)
+                            .setRemoveAudio(true)
+                            .build(),
+                    )
+                } else {
+                    needsBake += i
+                }
             }
-            pictures[t].addItem(
+
+            // Sound keeps the clip's whole range and crosses over on the other track at a transition.
+            val whole = resolved(p, clip, missing, needsReverse)
+            if (hasSound(whole.file)) {
+                val startUs = (p.startTime(clip.id) * 1e6).toLong()
+                if (startUs > soundAt[track]) sounds[track].addGap(startUs - soundAt[track])
+                sounds[track].addItem(
+                    EditedMediaItem
+                        .Builder(whole.media)
+                        .setDurationUs(whole.sourceUs)
+                        .setRemoveVideo(true)
+                        .setSpeed(speedProvider(clip, whole.isReversedCopy))
+                        .setEffects(Effects(audioEffects(p, clip, i), emptyList()))
+                        .build(),
+                )
+                soundAt[track] = startUs + (clip.timelineDuration * 1e6).toLong()
+                heard[track] = true
+            }
+            if (overlapOut > 0) track = 1 - track
+        }
+        val out = mutableListOf(picture.build())
+        sounds.forEachIndexed { t, b -> if (heard[t]) out += b.build() }
+        return out
+    }
+
+    /**
+     * The composition for one transition, to be rendered to a short video: the end of one clip on top
+     * and the start of the next underneath, nothing else. Null while a source is not ready.
+     */
+    fun transitionComposition(
+        p: Project,
+        join: Int,
+        canvas: Size,
+    ): Composition? {
+        val a = p.clips.getOrNull(join) ?: return null
+        val b = p.clips.getOrNull(join + 1) ?: return null
+        val t = p.transitionAfter(a.id) ?: return null
+        val d = p.transitionOverlap(join)
+        if (d <= 0) return null
+        val missing = ArrayList<Clip>()
+        val waiting = ArrayList<Clip>()
+        val tail = resolved(p, a, missing, waiting, cutHead = a.timelineDuration - d)
+        val head = resolved(p, b, missing, waiting, cutTail = b.timelineDuration - d)
+        if (missing.isNotEmpty() || waiting.isNotEmpty()) return null
+        val clock = p.startTime(b.id)
+        val type = TransitionEffect.typeIndex(t.type)
+        val window = TransitionEffect.Window(type, 0.0, d)
+
+        fun item(
+            r: Resolved,
+            clip: Clip,
+            effect: TransitionEffect,
+        ) = EditedMediaItemSequence
+            .Builder(setOf(C.TRACK_TYPE_VIDEO))
+            .addItem(
                 EditedMediaItem
                     .Builder(r.media)
                     .setDurationUs(r.sourceUs)
                     .setRemoveAudio(true)
-                    .setSpeed(speedProvider(clip, r.isReversedCopy))
-                    .setEffects(Effects(emptyList(), videoEffects(p, clip, i, canvas)))
+                    .setSpeed(ConstantSpeed(clip.speed.toFloat()))
+                    .setEffects(Effects(emptyList(), videoEffects(p, clip, canvas, clock) + effect))
                     .build(),
-            )
-            pictureAt[t] += lengthUs
+            ).build()
+        return Composition
+            .Builder(
+                listOf(
+                    item(tail, a, TransitionEffect(null, window, isTop = true)),
+                    item(head, b, TransitionEffect(window, null, isTop = false)),
+                ),
+            ).setVideoCompositorSettings(
+                object : VideoCompositorSettings {
+                    override fun getOutputSize(inputSizes: List<Size>) = canvas
 
-            if (hasSound(r.file)) {
-                if (startUs > soundAt[t]) sounds[t].addGap(startUs - soundAt[t])
-                sounds[t].addItem(
-                    EditedMediaItem
-                        .Builder(r.media)
-                        .setDurationUs(r.sourceUs)
-                        .setRemoveVideo(true)
-                        .setSpeed(speedProvider(clip, r.isReversedCopy))
-                        .setEffects(Effects(audioEffects(p, clip, i), emptyList()))
-                        .build(),
-                )
-                soundAt[t] = startUs + lengthUs
-                heard[t] = true
-            }
-        }
-        // Media3 takes the video's length from the FIRST track. With two clips and a fade, track 0
-        // ends with clip 1 and clip 2 was cut off (export of a real edit, 2026-11-04). Pad track 0
-        // to the full timeline; its gaps are fully transparent in CrossfadeSettings.
-        val totalUs = (p.duration * 1e6).toLong()
-        if (pictureAt[0] < totalUs) {
-            val ms = (totalUs - pictureAt[0]) / 1000
-            if (ms > 0) addGap(pictures[0], ms, canvas)
-        }
-        val out = pictures.map { it.build() }.toMutableList()
-        sounds.forEachIndexed { t, b -> if (heard[t]) out += b.build() }
-        return out
+                    override fun getOverlaySettings(
+                        inputId: Int,
+                        presentationTimeUs: Long,
+                    ): OverlaySettings = StaticOverlaySettings.Builder().build()
+                },
+            ).build()
     }
+
+    /** The rendered video for a transition, or null until it exists. Set by the app, which has the cache. */
+    var transitionFile: (Project, Int, Size) -> File? = { _, _, _ -> null }
+
+    private val lengths = java.util.concurrent.ConcurrentHashMap<String, Double>()
+
+    private fun lengthOf(file: File) = lengths.getOrPut(file.path) { Storage.durationSeconds(file) ?: Double.MAX_VALUE }
 
     private val soundKnown = java.util.concurrent.ConcurrentHashMap<String, Boolean>()
 
@@ -395,86 +483,6 @@ class CompositionBuilder(
             }
         }
 
-    /**
-     * Empty time on a video track, as a short black video at the canvas size. Media3's own gap frames
-     * are 1 by 1, and on two tracks every change of frame size rebuilds the texture pool under frames
-     * still waiting to be composited: from then on each picture was drawn 2 to 4 frames early, and a
-     * clip's last frames came out black (timestamps burnt in before and after the compositor showed
-     * it). A black image item fixed that but then failed exports at random with "The surface has been
-     * released" when the input switched between image and video, so this stays video all the way.
-     */
-    private fun addGap(
-        track: EditedMediaItemSequence.Builder,
-        totalMs: Long,
-        canvas: Size,
-    ) {
-        val file = blackVideo()
-        var left = totalMs
-        while (left > 0) {
-            val ms = minOf(left, BLACK_VIDEO_MS)
-            val media =
-                MediaItem
-                    .Builder()
-                    .setUri(Uri.fromFile(file))
-                    .setClippingConfiguration(MediaItem.ClippingConfiguration.Builder().setEndPositionMs(ms).build())
-                    .build()
-            track.addItem(
-                EditedMediaItem
-                    .Builder(media)
-                    .setDurationUs(BLACK_VIDEO_MS * 1000)
-                    .setEffects(
-                        Effects(
-                            emptyList(),
-                            listOf(
-                                Presentation.createForWidthAndHeight(
-                                    canvas.width,
-                                    canvas.height,
-                                    Presentation.LAYOUT_SCALE_TO_FIT_WITH_CROP,
-                                ),
-                            ),
-                        ),
-                    ).build(),
-            )
-            left -= ms
-        }
-    }
-
-    /** The black video to fill empty time with. Set by the app, which has the assets. */
-    var blackVideo: () -> File = { error("set by appComposition") }
-
-    /**
-     * Which picture track each clip goes on. A plain cut stays on the same track and only a transition
-     * changes it, so a long take with a few dissolves does not start a decoder for every empty stretch.
-     */
-    private fun trackLayout(p: Project): IntArray {
-        val out = IntArray(p.clips.size)
-        for (i in 1 until p.clips.size) {
-            out[i] = if (p.transitionAfter(p.clips[i - 1].id) != null) 1 - out[i - 1] else out[i - 1]
-        }
-        return out
-    }
-
-    private fun transitionEffect(
-        p: Project,
-        clip: Clip,
-        index: Int,
-    ): Effect? {
-        val start = p.startTime(clip.id)
-        val incoming =
-            p.clips.getOrNull(index - 1)?.let { prev ->
-                val t = p.transitionAfter(prev.id) ?: return@let null
-                val d = p.transitionOverlap(index - 1)
-                if (d > 0) TransitionEffect.Window(TransitionEffect.typeIndex(t.type), start, d) else null
-            }
-        val outgoing =
-            p.transitionAfter(clip.id)?.let { t ->
-                val d = p.transitionOverlap(index)
-                if (d > 0) TransitionEffect.Window(TransitionEffect.typeIndex(t.type), start + clip.timelineDuration - d, d) else null
-            }
-        if (incoming == null && outgoing == null) return null
-        return TransitionEffect(incoming, outgoing, isTop = trackLayout(p)[index] == 0)
-    }
-
     private fun captionEffect(
         p: Project,
         canvas: Size,
@@ -484,6 +492,9 @@ class CompositionBuilder(
             listOf(com.zellahq.app.captions.CaptionOverlay(track, canvas.width, canvas.height, typeface(track))),
         )
     }
+
+    /** Blur boxes and drawn callouts, after the zoom so a box stays where it was put on the canvas. */
+    var calloutEffects: (Project, Size) -> List<Effect> = { _, _ -> emptyList() }
 
     /** The titles over the whole video. Set by the app, which has the fonts. */
     var titleEffect: (Project, Size) -> Effect? = { _, _ -> null }
@@ -504,6 +515,7 @@ class CompositionBuilder(
     private fun speedProvider(
         clip: Clip,
         reversedCopy: Boolean,
+        offsetUs: Long = 0,
     ): SpeedProvider {
         val ramp = clip.speedRamp
         if (ramp == null || reversedCopy) return ConstantSpeed(clip.speed.toFloat())
@@ -514,11 +526,11 @@ class CompositionBuilder(
         val avgInv = mult.sumOf { 1 / it } / n
         val speeds = mult.map { (it * clip.speed * avgInv).toFloat() }
         return object : SpeedProvider {
-            override fun getSpeed(timeUs: Long) = speeds[(timeUs / srcChunkUs).toInt().coerceIn(0, n - 1)]
+            override fun getSpeed(timeUs: Long) = speeds[((timeUs + offsetUs) / srcChunkUs).toInt().coerceIn(0, n - 1)]
 
             override fun getNextSpeedChangeTimeUs(timeUs: Long): Long {
-                val k = (timeUs / srcChunkUs).toInt() + 1
-                return if (k >= n) C.TIME_UNSET else (k * srcChunkUs).toLong()
+                val k = ((timeUs + offsetUs) / srcChunkUs).toInt() + 1
+                return if (k >= n) C.TIME_UNSET else (k * srcChunkUs).toLong() - offsetUs
             }
         }
     }
@@ -550,32 +562,6 @@ class CompositionBuilder(
             m.postScale(s.toFloat(), s.toFloat())
             m.postTranslate(ax, ay)
             m
-        }
-    }
-
-    /**
-     * Two tracks. Measured on the emulator (ExportRenderTest, 2026-11-04): track 0 draws ON TOP of
-     * track 1. Each transition's shape lives in [TransitionEffect], which writes it into the top
-     * clip's alpha; a track with nothing on it at this moment is fully transparent.
-     */
-    private inner class CrossfadeSettings(
-        private val p: Project,
-        private val canvas: Size,
-    ) : VideoCompositorSettings {
-        private val layout = trackLayout(p)
-
-        override fun getOutputSize(inputSizes: List<Size>) = canvas
-
-        override fun getOverlaySettings(
-            inputId: Int,
-            presentationTimeUs: Long,
-        ): OverlaySettings {
-            val t = presentationTimeUs / 1e6
-            val playing =
-                p.clips.withIndex().any { (i, c) ->
-                    layout[i] == inputId && t >= p.startTime(c.id) && t < p.startTime(c.id) + c.timelineDuration
-                }
-            return StaticOverlaySettings.Builder().setAlphaScale(if (playing) 1f else 0f).build()
         }
     }
 }

@@ -34,6 +34,7 @@ import com.zellahq.core.project.Project
 import com.zellahq.core.project.duration
 import com.zellahq.core.project.isoNow
 import com.zellahq.core.project.newId
+import com.zellahq.core.project.startTime
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeTrue
@@ -126,6 +127,12 @@ class AutoPolishRunTest {
             clips = listOf(clip),
         )
 
+    private fun layout(p: Project) =
+        p.clips.joinToString(" ") { c ->
+            val t = if (p.transitions.orEmpty().any { it.afterClipId == c.id }) "+" else ""
+            "%.3f(%.3f)%s".format(p.startTime(c.id), c.timelineDuration, t)
+        }
+
     private fun describe(p: Project) =
         "length %.1f s, %d clips, %d titles, %d transitions, %d zooms, %d sounds, %d beds, captions %d, density %.3f".format(
             p.duration, p.clips.size, p.titles.orEmpty().size, p.transitions.orEmpty().size, p.zoomBlocks.orEmpty().size,
@@ -148,6 +155,28 @@ class AutoPolishRunTest {
             }
         }
         return best
+    }
+
+    /** The test picture is grey with a white flash, so nothing in a finished video may be black. */
+    private fun blackFrames(f: File): List<Long> {
+        val ex = MediaExtractor().apply { setDataSource(f.path) }
+        val video = (0 until ex.trackCount).first { ex.getTrackFormat(it).getString(MediaFormat.KEY_MIME)!!.startsWith("video/") }
+        ex.selectTrack(video)
+        val times = ArrayList<Long>()
+        while (ex.sampleTime >= 0) {
+            times += ex.sampleTime
+            ex.advance()
+        }
+        ex.release()
+        val mmr = MediaMetadataRetriever().apply { setDataSource(f.path) }
+        val black = ArrayList<Long>()
+        for (t in times.sorted()) {
+            val b = mmr.getFrameAtTime(t, MediaMetadataRetriever.OPTION_CLOSEST) ?: continue
+            val c = b.getPixel(4, b.height / 3)
+            if (Color.red(c) < 25 && Color.green(c) < 25 && Color.blue(c) < 25) black += t / 1000
+        }
+        mmr.release()
+        return black
     }
 
     @Test fun autoPolishDoesWhatItSaidAndARunTwiceAddsNothing() {
@@ -185,6 +214,7 @@ class AutoPolishRunTest {
         assertEquals("zooms stack", p.zoomBlocks.orEmpty().size, q.zoomBlocks.orEmpty().size)
         assertEquals("music stacks", p.musicBeds.orEmpty().size, q.musicBeds.orEmpty().size)
 
+        log("layout ${layout(p)}")
         val out = export(p, "polish-after.mp4")
         val pauseAfter = longestPause(out)
         val lufs = AudioTestKit.decode(out).let { Loudness.integrated(it.channels, it.rate) }
@@ -206,6 +236,7 @@ class AutoPolishRunTest {
             ),
         )
         assertTrue("a long pause survived: $pauseAfter s", pauseAfter < 1.0)
+        assertEquals("black frames in the export", emptyList<Long>(), blackFrames(out))
         assertTrue("video length", abs(lenMs - p.duration * 1000) < 120)
         assertTrue("loudness $lufs", abs(lufs + 14) <= 3)
     }
@@ -218,13 +249,17 @@ class AutoPolishRunTest {
         assertEquals(PolishStep.plan(viral = true, reframing = false), r.executed)
         val p = r.project
         assertTrue("captions on", (p.captions?.cues?.size ?: 0) > 0)
+        assertTrue("a sound under the cuts", p.soundBites.orEmpty().isNotEmpty())
+        assertEquals("the receipt says what is there", p.soundBites.orEmpty().size, r.receipt.sounds)
         val preset = (p.captions!!.extras["preset"] as kotlinx.serialization.json.JsonPrimitive).content
         assertEquals("Beast", preset)
         assertTrue("strong words marked", p.captions!!.cues.flatMap { it.words }.any { it.emphasized == true })
         val fx = p.clips.first().extras["effects"] as kotlinx.serialization.json.JsonObject
         assertEquals(Polish.BUNDLE_GRADE, (fx["presetName"] as kotlinx.serialization.json.JsonPrimitive).content)
         assertTrue("density ${Polish.effectDensity(p)}", Polish.effectDensity(p) <= Polish.MAX_EFFECT_DENSITY)
+        log("viral layout ${layout(p)}")
         val out = export(p, "viral-after.mp4")
+        assertEquals("black frames in the export", emptyList<Long>(), blackFrames(out))
         val mmr = MediaMetadataRetriever().apply { setDataSource(out.path) }
         val frame = mmr.getFrameAtTime((p.duration * 0.5 * 1e6).toLong(), MediaMetadataRetriever.OPTION_CLOSEST)!!
         File(dir, "viral-frame.png").outputStream().use { frame.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it) }

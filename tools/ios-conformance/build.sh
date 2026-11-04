@@ -57,3 +57,15 @@ cp $W/sounds/sounds.json $D/sounds.json
 
 # Title looks: read out of the app target, which this build cannot compile.
 python3 $HERE/title-looks.py $REPO/ZellaiOS/App/Features/Editor/StudioSheet.swift $ROOT/app/src/main/assets/titles/looks.json
+
+# One-tap plans: the iPhone's planning functions on a fixed battery of inputs.
+mkdir -p $W/plans
+python3 $HERE/extract-plans.py $REPO/ZellaiOS/App/Features/Editor/EditorViewModel.swift $W/plans/plans.swift
+cp $HERE/plans-main.swift $W/plans/main.swift
+(cd $W/plans && xcrun swiftc -target arm64-apple-macos15 -swift-version 5 -I $W/mods -I $W/shim -Xcc -fmodule-map-file=$W/shim/module.modulemap \
+  -L $W -lZellaCore -lZellaMotion main.swift plans.swift -o run && DYLD_LIBRARY_PATH=$W ./run $FX/plans.json)
+
+# Sensitive text: the iPhone's matcher and blur planner on fixed inputs. This file stands alone.
+mkdir -p $W/sensitive && cp $HERE/sensitive.swift $W/sensitive/main.swift
+cp $REPO/ZellaiOS/Packages/ZellaKit/Sources/ZellaCore/SensitiveText.swift $W/sensitive/
+(cd $W/sensitive && xcrun swiftc -O main.swift SensitiveText.swift -o run && ./run > $ROOT/zella-core/src/test/resources/fixtures/ios/sensitive.json)

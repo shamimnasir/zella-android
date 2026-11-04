@@ -133,16 +133,6 @@ class EditorState(
     private val mutableMissing = MutableStateFlow(emptyList<String>())
     val missing: StateFlow<List<String>> = mutableMissing
 
-    private val mutableStill = MutableStateFlow<android.graphics.Bitmap?>(null)
-
-    /**
-     * A still of the frame under the playhead, shown over the preview while paused in a project with
-     * a fade. The two-track player does not draw a new frame after a paused seek (PausedSeekTest),
-     * so scrubbing would show a stale picture. Null when the player draws the right frame itself.
-     */
-    val still: StateFlow<android.graphics.Bitmap?> = mutableStill
-    private val stills = Executors.newSingleThreadExecutor()
-
     @Volatile private var stillRequest = 0
 
     /** Caption progress 0 to 1 while making captions, null otherwise. */
@@ -293,6 +283,12 @@ class EditorState(
         }, "analyse-sound").start()
     }
 
+    private val mutableBaking = MutableStateFlow(false)
+    private var bakingFor: Project? = null
+
+    /** True while transitions are being rendered; they play as plain cuts until then. */
+    val baking: StateFlow<Boolean> = mutableBaking
+
     private val mutableReversing = MutableStateFlow(false)
 
     /** True while a backwards copy is being made; the clip plays forwards until then. */
@@ -300,8 +296,7 @@ class EditorState(
 
     data class History(val canUndo: Boolean, val canRedo: Boolean)
 
-    private var multi = needsMulti(initial)
-    private val mutablePlayer = MutableStateFlow(previewPlayer(context, multi))
+    private val mutablePlayer = MutableStateFlow(previewPlayer(context))
 
     /** Changes when a project gains or loses its first transition; the preview view re-attaches. */
     val playerFlow: StateFlow<CompositionPlayer> = mutablePlayer
@@ -311,19 +306,12 @@ class EditorState(
         object : Player.Listener {
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 mutablePlaying.value = isPlaying
-                if (isPlaying) {
-                    mutableStill.value = null
-                } else {
-                    requestStill()
-                }
             }
 
             override fun onPlaybackStateChanged(state: Int) {
                 if (state == Player.STATE_ENDED) mutablePlaying.value = false
             }
         }
-
-    private fun needsMulti(p: Project) = !p.transitions.isNullOrEmpty() && p.clips.size > 1
 
     private val ticker =
         object : Runnable {
@@ -337,6 +325,11 @@ class EditorState(
         player.addListener(listener)
         rebuild()
         main.post(ticker)
+    }
+
+    /** Back to the main thread, for work that finished in the background. */
+    fun onMain(block: () -> Unit) {
+        main.post(block)
     }
 
     fun select(clipId: String?) {
@@ -380,24 +373,31 @@ class EditorState(
             player.clearMediaItems()
             return
         }
-        val wantMulti = needsMulti(p)
-        if (wantMulti != multi) {
-            multi = wantMulti
-            val old = player
-            mutablePlayer.value = previewPlayer(context, multi).also { it.addListener(listener) }
-            old.release()
-        }
         val built = builder.build(p)
         mutableMissing.value = built.missing.map { it.id }
         player.setComposition(built.composition, (position.value * 1000).toLong())
         player.prepare()
-        requestStill()
         // Clips marked reversed get their reversed copy made in the background, then the preview rebuilds.
         mutableReversing.value = built.needsReverse.isNotEmpty()
         if (built.needsReverse.isNotEmpty()) {
             io.execute {
                 built.needsReverse.forEach { ReverseRenderer.render(context, store, p.id, it) }
                 main.post { if (project.value == p) rebuild() }
+            }
+        } else if (built.needsBake.isNotEmpty() && p !== bakingFor) {
+            // Transitions play as plain cuts until their short videos are rendered.
+            bakingFor = p
+            mutableBaking.value = true
+            io.execute {
+                val canvas = canvasSize(p)
+                built.needsBake.forEach { join ->
+                    if (project.value === p || project.value == p) TransitionBaker.bake(context, builder, p, join, canvas)
+                }
+                main.post {
+                    bakingFor = null
+                    mutableBaking.value = false
+                    if (project.value == p) rebuild()
+                }
             }
         }
     }
@@ -416,32 +416,6 @@ class EditorState(
         val t = seconds.coerceIn(0.0, project.value.duration)
         mutablePosition.value = t
         player.seekTo((t * 1000).toLong())
-        requestStill()
-    }
-
-    /** Reads the frame under the playhead from the clip's file. Only the newest request is shown. */
-    private fun requestStill() {
-        if (!multi || player.isPlaying) {
-            mutableStill.value = null
-            return
-        }
-        val id = ++stillRequest
-        val p = project.value
-        val t = position.value
-        stills.execute {
-            if (id != stillRequest) return@execute // the person has already scrubbed on
-            val (clip, start) = p.clipAt(t) ?: return@execute
-            val local = (t - start).coerceAtLeast(0.0)
-            val sourceSec = if (clip.reversed) clip.trimEnd - local * clip.speed else clip.trimStart + local * clip.speed
-            val bmp =
-                runCatching {
-                    MediaMetadataRetriever().use { m ->
-                        m.setDataSource(store.resolve(clip.source, p.id).path)
-                        m.getScaledFrameAtTime((sourceSec * 1e6).toLong(), MediaMetadataRetriever.OPTION_CLOSEST, 720, 1280)
-                    }
-                }.getOrNull()
-            main.post { if (id == stillRequest) mutableStill.value = bmp }
-        }
     }
 
     fun release() {
@@ -449,24 +423,11 @@ class EditorState(
         saveNow()
         player.release()
         io.shutdown()
-        stills.shutdown()
     }
 }
 
-/**
- * The preview player. A cross-fade puts clips on two tracks, which needs the multiple-input video
- * graph (the default single-input graph refuses it). But with the multiple-input graph a seek while
- * paused never draws the new frame (PausedSeekTest, emulator, 2026-11-04). So: single-input unless
- * the project has a transition.
- */
-fun previewPlayer(
-    context: Context,
-    multi: Boolean,
-): CompositionPlayer =
-    CompositionPlayer
-        .Builder(context)
-        .apply { if (multi) setVideoGraphFactory(androidx.media3.effect.MultipleInputVideoGraph.Factory()) }
-        .build()
+/** The preview player. One picture track, whatever the project holds. */
+fun previewPlayer(context: Context): CompositionPlayer = CompositionPlayer.Builder(context).build()
 
 /** The caption font a track asks for: an imported font by its PostScript name, else bold system text. */
 fun captionTypeface(

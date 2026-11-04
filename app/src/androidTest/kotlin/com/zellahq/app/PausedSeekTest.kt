@@ -9,7 +9,6 @@ import android.util.Log
 import androidx.media3.common.Player
 import androidx.media3.common.util.Size
 import androidx.media3.common.util.UnstableApi
-import androidx.media3.effect.MultipleInputVideoGraph
 import androidx.media3.transformer.CompositionPlayer
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -122,33 +121,16 @@ class PausedSeekTest {
 
     private fun hex(c: Int?) = c?.let { String.format("#%06X", it and 0xFFFFFF) } ?: "none"
 
+    /** Every project now plays on the single picture track, with or without a transition. */
     @Test fun pausedSeekShowsTheNewFrame() {
-        val single = { CompositionPlayer.Builder(context).build() }
-        val multi = { CompositionPlayer.Builder(context).setVideoGraphFactory(MultipleInputVideoGraph.Factory()).build() }
-        val plain = project(fade = false)
-        val faded = project(fade = true)
-        val runs =
-            listOf(
-                Triple("single-input, no fade", single, plain),
-                Triple("multi-input, no fade", multi, plain),
-                Triple("multi-input, fade", multi, faded),
-            ).associate { (name, make, proj) -> name to colourAfterPausedSeek(make, proj, 3_000) }
-        runs.forEach { (k, v) -> Log.i("PausedSeekTest", "$k: newest ${hex(v.first)}, ${v.second} frames after the seek") }
-
-        val nudged =
-            colourAfterPausedSeek(multi, faded, 3_000) { pl ->
-                pl.volume = 0f
-                pl.play()
-                android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                    pl.pause()
-                    pl.seekTo(3_000)
-                    pl.volume = 1f
-                }, 250)
-            }
-        Log.i("PausedSeekTest", "multi-input, fade, play 250 ms then back: newest ${hex(nudged.first)}, ${nudged.second} frames")
-
-        val app = colourAfterPausedSeek({ com.zellahq.app.editor.previewPlayer(context, multi = false) }, plain, 3_000)
-        Log.i("PausedSeekTest", "app preview, no fade: newest ${hex(app.first)}, ${app.second} frames")
-        assertTrue("no-fade preview stayed on the old frame: ${hex(app.first)}", green(app.first))
+        val player = { com.zellahq.app.editor.previewPlayer(context) }
+        val plain = colourAfterPausedSeek(player, project(fade = false), 3_000)
+        val faded = colourAfterPausedSeek(player, project(fade = true), 3_000)
+        Log.i(
+            "PausedSeekTest",
+            "no fade: newest ${hex(plain.first)}, ${plain.second} frames. Fade: newest ${hex(faded.first)}, ${faded.second} frames",
+        )
+        assertTrue("no-fade preview stayed on the old frame: ${hex(plain.first)}", green(plain.first))
+        assertTrue("fade preview stayed on the old frame: ${hex(faded.first)}", green(faded.first))
     }
 }

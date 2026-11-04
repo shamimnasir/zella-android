@@ -58,7 +58,7 @@ class TransitionRenderTest {
         return f
     }
 
-    private fun clip(color: Int) = Clip(newId(), MediaRef.Absolute(picture(color).toURI().toString()), 2.0, trimEnd = 1.0)
+    private fun clip(color: Int) = Clip(newId(), MediaRef.Absolute(picture(color).toURI().toString()), 2.0, trimEnd = 1.6)
 
     private fun export(
         p: Project,
@@ -114,8 +114,9 @@ class TransitionRenderTest {
 
             fun frame(t: Double) = mmr.getFrameAtTime((t * 1e6).toLong(), MediaMetadataRetriever.OPTION_CLOSEST)!!
             val fromRed = Color.red(colours[i]) > 200
-            val (r0, g0) = rg(frame(join - 0.08))
-            val (r1, g1) = rg(frame(join + d + 0.08))
+            // Each clip plays alone for 0.6 s between transitions.
+            val (r0, g0) = rg(frame(join - 0.15))
+            val (r1, g1) = rg(frame(join + d + 0.15))
             val mid = frame(join + d / 2)
             val (rm, gm) = rg(mid)
             cells += name to mid

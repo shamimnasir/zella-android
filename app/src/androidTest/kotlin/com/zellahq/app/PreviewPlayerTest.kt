@@ -61,7 +61,7 @@ class PreviewPlayerTest {
         var durationMs = -1L
         var error: Throwable? = null
         InstrumentationRegistry.getInstrumentation().runOnMainSync {
-            val player = com.zellahq.app.editor.previewPlayer(context, multi = true) // this project has a fade
+            val player = com.zellahq.app.editor.previewPlayer(context)
             player.addListener(
                 object : Player.Listener {
                     override fun onPlaybackStateChanged(state: Int) {
@@ -130,7 +130,6 @@ class PreviewPlayerTest {
                 titles = listOf(look.title("Hello", 0.2)),
             )
         for ((name, p) in listOf("cuts" to plain, "transition" to plain.setTransition(clipA.id, "Spin", 0.5))) {
-            val multi = name == "transition"
             val composition =
                 com.zellahq.app.editor.appComposition(context, ProjectStore(File(context.filesDir, "projects-test"))).build(p).composition
             val ready = CountDownLatch(1)
@@ -138,7 +137,7 @@ class PreviewPlayerTest {
             var error: Throwable? = null
             lateinit var player: androidx.media3.transformer.CompositionPlayer
             InstrumentationRegistry.getInstrumentation().runOnMainSync {
-                player = com.zellahq.app.editor.previewPlayer(context, multi = multi)
+                player = com.zellahq.app.editor.previewPlayer(context)
                 player.addListener(
                     object : Player.Listener {
                         override fun onPlaybackStateChanged(state: Int) {

@@ -235,6 +235,7 @@
 
     <!-- Transitions -->
     <string name="ed_transition">Transition</string>
+    <string name="ed_baking">Getting your transitions ready. They play as plain cuts until then.</string>
     <string name="tr_title">How this clip joins the next one</string>
     <string name="tr_length">How long it takes</string>
     <string name="tr_short">Quick</string>
@@ -298,4 +299,47 @@
     <string name="rec_list_empty">Nothing recorded yet.</string>
     <string name="rec_list_item">%1$s, %2$d:%3$02d</string>
     <string name="rec_list_recovered">Kept after Zella closed unexpectedly</string>
+
+    <!-- Assistant. It reaches a provider the person chose, so nothing here may claim otherwise. -->
+    <string name="ed_assistant">Assistant</string>
+    <string name="as_network">The Assistant sends what you type and a short text summary of this project, including your caption text, to %1$s. It never sends your video or sound. Reading text on screen happens on this phone.</string>
+    <string name="as_setup">The Assistant is optional and uses your own key. Pick who answers, paste your key, then ask in plain words.</string>
+    <string name="as_provider">Who answers</string>
+    <string name="as_key">Your key</string>
+    <string name="as_key_saved">Key saved on this phone, encrypted. It only ever goes to %1$s.</string>
+    <string name="as_get_key">Get a key</string>
+    <string name="as_save_key">Save and check</string>
+    <string name="as_checking">Checking your key…</string>
+    <string name="as_key_ok">That key works.</string>
+    <string name="as_remove_key">Remove key</string>
+    <string name="as_model">Model name</string>
+    <string name="as_ask">Ask, for example: cut the silences and add captions</string>
+    <string name="as_send">Send</string>
+    <string name="as_stop">Stop</string>
+    <string name="as_settings">Assistant settings</string>
+    <string name="as_chat">Back to the chat</string>
+    <string name="as_working">Working: %1$s</string>
+    <string name="as_yes">Yes</string>
+    <string name="as_no">No</string>
+    <string name="as_clear">Clear chat</string>
+    <string name="as_offline">Could not reach the Assistant. Check your connection and try again.</string>
+
+    <!-- Callouts. -->
+    <string name="ed_callouts">Mark up</string>
+    <string name="co_add">Add at the playhead</string>
+    <string name="co_on_video">On this video</string>
+    <string name="co_none">Nothing marked up yet. Pick one above.</string>
+    <string name="co_words">Words on it</string>
+    <string name="co_left">Left and right</string>
+    <string name="co_up">Up and down</string>
+    <string name="co_wide">Width</string>
+    <string name="co_tall">Height</string>
+    <string name="co_long">How long</string>
+    <string name="co_remove">Remove</string>
+    <string name="co_hide_title">Hide private text</string>
+    <string name="co_hide_detail">Zella reads the words on screen on this phone, finds passwords, keys, emails and card numbers, and blurs them. It may miss small, fast or non-Latin text, so check the result.</string>
+    <string name="co_hide_words">Anything else to hide (optional)</string>
+    <string name="co_hide_blur">Find and blur</string>
+    <string name="co_hide_pixel">Find and pixelate</string>
+    <string name="co_reading">Reading the video…</string>
 </resources>

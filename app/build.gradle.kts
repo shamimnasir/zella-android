@@ -33,6 +33,46 @@ abstract class FetchCaptionModel : DefaultTask() {
     }
 }
 
+/** The other pinned model files, fetched once and never committed. */
+abstract class FetchModel : DefaultTask() {
+    @get:Input abstract val url: Property<String>
+
+    @get:Input abstract val assetPath: Property<String>
+
+    @get:Input abstract val sha256: Property<String>
+
+    @get:Internal abstract val cache: RegularFileProperty
+
+    @get:OutputDirectory abstract val outputDir: DirectoryProperty
+
+    @TaskAction
+    fun fetch() {
+        fun sha(f: File) = MessageDigest.getInstance("SHA-256").digest(f.readBytes()).joinToString("") { "%02x".format(it) }
+        val cached = cache.get().asFile
+        if (!cached.isFile || sha(cached) != sha256.get()) {
+            cached.parentFile.mkdirs()
+            URI(url.get()).toURL().openStream().use { i -> cached.outputStream().use { i.copyTo(it) } }
+            check(sha(cached) == sha256.get()) { "checksum mismatch for ${url.get()}: ${sha(cached)}" }
+        }
+        cached.copyTo(outputDir.get().file(assetPath.get()).asFile, overwrite = true)
+    }
+}
+
+val fetchReaderData by tasks.registering(FetchModel::class) {
+    url = "https://raw.githubusercontent.com/tesseract-ocr/tessdata_fast/4.1.0/eng.traineddata"
+    assetPath = "ocr/eng.traineddata"
+    sha256 = "7d4322bd2a7749724879683fc3912cb542f19906c83bcc1a52132556427170b2"
+    cache = rootProject.layout.projectDirectory.file(".models/eng.traineddata")
+}
+
+val fetchCutoutModel by tasks.registering(FetchModel::class) {
+    url = "https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_multiclass_256x256/float32/1/" +
+        "selfie_multiclass_256x256.tflite"
+    assetPath = "cutout/selfie_multiclass_256x256.tflite"
+    sha256 = "c6748b1253a99067ef71f7e26ca71096cd449baefa8f101900ea23016507e0e0"
+    cache = rootProject.layout.projectDirectory.file(".models/selfie_multiclass_256x256.tflite")
+}
+
 val fetchCaptionModel by tasks.registering(FetchCaptionModel::class) {
     fileName = "ggml-base-q5_1.bin"
     sha256 = "422f1ae452ade6f30a004d7e5c6a43195e4433bc370bf23fac9cc591f01a8898"
@@ -40,7 +80,11 @@ val fetchCaptionModel by tasks.registering(FetchCaptionModel::class) {
 }
 
 androidComponents {
-    onVariants { v -> v.sources.assets?.addGeneratedSourceDirectory(fetchCaptionModel, FetchCaptionModel::outputDir) }
+    onVariants { v ->
+        v.sources.assets?.addGeneratedSourceDirectory(fetchCaptionModel, FetchCaptionModel::outputDir)
+        v.sources.assets?.addGeneratedSourceDirectory(fetchReaderData, FetchModel::outputDir)
+        v.sources.assets?.addGeneratedSourceDirectory(fetchCutoutModel, FetchModel::outputDir)
+    }
 }
 
 android {
@@ -66,7 +110,7 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
     kotlinOptions { jvmTarget = "17" }
-    androidResources { noCompress += "bin" }
+    androidResources { noCompress += listOf("bin", "tflite", "traineddata") }
     buildFeatures {
         compose = true
         buildConfig = true
@@ -89,6 +133,8 @@ dependencies {
     implementation(libs.media3.effect)
     implementation(libs.media3.exoplayer)
     implementation(libs.media3.ui)
+    implementation(libs.tesseract4android)
+    implementation(libs.litert)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.test.runner)
     androidTestImplementation(libs.androidx.test.ext.junit)

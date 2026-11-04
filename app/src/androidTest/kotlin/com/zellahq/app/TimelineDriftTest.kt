@@ -55,7 +55,7 @@ class TimelineDriftTest {
         return f
     }
 
-    /** The same with a transition on every join, which puts clips on two tracks. Glitch Cut changes clip exactly at its middle. */
+    /** The same with a transition on every join, each rendered ahead. Glitch Cut changes clip exactly at its middle. */
     @Test fun framesStayOnTheTimelineOnTwoTracks() {
         val sources = listOf(picture(Color.RED), picture(Color.GREEN))
         var p =
