@@ -132,13 +132,28 @@ private fun Root(
     recovered: Set<String>,
 ) {
     val context = LocalContext.current
-    var screen by rememberSaveable { mutableStateOf("home") }
+    var screen by rememberSaveable { mutableStateOf(if (Onboarding.isDone(context)) "home" else "welcome") }
+    // Refunds and restored purchases arrive here: what Google Play says, at every start.
+    androidx.compose.runtime.DisposableEffect(Unit) {
+        val play = com.zellahq.app.billing.PlayStore(context)
+        play.connect()
+        onDispose { play.close() }
+    }
     // The "Record my voice" switch applies to screen and camera recordings alike.
     var voice by rememberSaveable { mutableStateOf(true) }
     val status by RecordingService.status.collectAsState()
     val store = remember { Storage.store(context) }
     Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).systemBarsPadding()) {
         when {
+            screen == "welcome" ->
+                OnboardingScreen {
+                    Onboarding.finish(context)
+                    screen = "home"
+                }
+            screen == "plans" -> {
+                BackHandler { screen = "home" }
+                com.zellahq.app.billing.PlansScreen { screen = "home" }
+            }
             // A camera recording that is still running brings the camera screen back.
             status.camera || screen == "camera" ->
                 Box(Modifier.padding(ZellaSpacing.M)) {
@@ -169,6 +184,7 @@ private fun Root(
                     { voice = it },
                     onCamera = { screen = "camera" },
                     onOpen = { screen = "editor:$it" },
+                    onPlans = { screen = "plans" },
                 )
         }
     }
@@ -183,6 +199,7 @@ private fun Home(
     onVoice: (Boolean) -> Unit,
     onCamera: () -> Unit,
     onOpen: (String) -> Unit,
+    onPlans: () -> Unit,
 ) {
     val context = LocalContext.current
     val status by RecordingService.status.collectAsState()
@@ -285,6 +302,7 @@ private fun Home(
                     val days = PremiumGate.proWeekDaysLeft(entitlement, nowMs)
                     ZellaChip(pluralStringResource(R.plurals.pro_week_chip, days, days))
                 }
+                com.zellahq.app.editor.Tool(stringResource(R.string.pl_open), onClick = onPlans)
                 Text(stringResource(R.string.home_tagline), color = MaterialTheme.colorScheme.onBackground)
                 when (status.state) {
                     RecorderState.Idle -> {

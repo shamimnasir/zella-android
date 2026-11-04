@@ -1,3 +1,5 @@
+@file:Suppress("ktlint:standard:max-line-length")
+
 package com.zellahq.app.export
 
 import android.content.Intent
@@ -59,6 +61,8 @@ fun ExportScreen(
     var fps by remember { mutableIntStateOf(30) }
     var saved by remember { mutableStateOf(false) }
     var format by remember { mutableStateOf(Formats.VIDEO) }
+    var bitrate by remember { mutableStateOf<Int?>(null) }
+    var also by remember { mutableStateOf(emptySet<com.zellahq.core.project.Aspect>()) }
     val status by ExportService.status.collectAsState()
     DisposableEffect(Unit) { onDispose { ExportService.reset() } }
 
@@ -69,6 +73,8 @@ fun ExportScreen(
                 durationSeconds = project.duration,
                 height = shortSide,
                 fps = fps,
+                customBitrate = bitrate != null,
+                multiAspectQueue = also.isNotEmpty(),
                 usesFounderGrade = com.zellahq.app.looks.Looks.usesFounderGrade(context, project),
             ),
             Entitlements.load(context),
@@ -131,6 +137,39 @@ fun ExportScreen(
             Tool(stringResource(R.string.ex_60), if (fps == 60) ZellaColors.CardSun else null) { fps = 60 }
         }
 
+        // Pro's extras are shown to Pro only, so nothing here is a dead end for a free export.
+        if (PremiumGate.isPro(Entitlements.load(context), System.currentTimeMillis())) {
+            Text(stringResource(R.string.ex_file_size), color = MaterialTheme.colorScheme.onBackground)
+            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(ZellaSpacing.S)) {
+                listOf(
+                    null to R.string.ex_size_auto,
+                    4_000_000 to R.string.ex_size_small,
+                    16_000_000 to R.string.ex_size_high,
+                    40_000_000 to R.string.ex_size_highest,
+                ).forEach {
+                        (v, label) ->
+                    Tool(stringResource(label), if (bitrate == v) ZellaColors.CardSun else null) { bitrate = v }
+                }
+            }
+            if (format == Formats.VIDEO) {
+                Text(stringResource(R.string.ex_also), color = MaterialTheme.colorScheme.onBackground)
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(ZellaSpacing.S)) {
+                    listOf(
+                        com.zellahq.core.project.Aspect.Vertical to R.string.au_vertical,
+                        com.zellahq.core.project.Aspect.Square to R.string.au_square,
+                        com.zellahq.core.project.Aspect.Landscape to R.string.au_wide,
+                    )
+                        .filter { it.first != project.aspect }
+                        .forEach { (a, label) ->
+                            Tool(
+                                stringResource(label),
+                                if (a in also) ZellaColors.CardSun else null,
+                            ) { also = if (a in also) also - a else also + a }
+                        }
+                }
+            }
+        }
+
         when (val s = status) {
             is ExportStatus.Running -> {
                 Text(stringResource(R.string.ex_running, s.percent), color = MaterialTheme.colorScheme.onBackground)
@@ -147,7 +186,7 @@ fun ExportScreen(
                     Tool(
                         stringResource(R.string.ex_save),
                         ZellaColors.CardMint,
-                    ) { saved = ExportService.saveToGallery(context, s.file) }
+                    ) { saved = (listOf(s.file) + s.more).map { ExportService.saveToGallery(context, it) }.all { it } }
                 } else {
                     Text(stringResource(R.string.ex_saved), color = MaterialTheme.colorScheme.onBackground)
                 }
@@ -183,7 +222,12 @@ fun ExportScreen(
                                 .putExtra(ExportService.EXTRA_PROJECT, project.id)
                                 .putExtra(ExportService.EXTRA_SHORT_SIDE, shortSide)
                                 .putExtra(ExportService.EXTRA_FPS, fps)
-                                .putExtra(ExportService.EXTRA_FORMAT, format),
+                                .putExtra(ExportService.EXTRA_FORMAT, format)
+                                .putExtra(ExportService.EXTRA_BITRATE, bitrate ?: 0)
+                                .putStringArrayListExtra(
+                                    ExportService.EXTRA_ALSO,
+                                    ArrayList(if (format == Formats.VIDEO) also.map { it.raw } else emptyList()),
+                                ),
                         )
                     }
                 }

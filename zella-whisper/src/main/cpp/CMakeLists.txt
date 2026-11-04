@@ -18,6 +18,8 @@ add_subdirectory(${WHISPER_DIR} whisper EXCLUDE_FROM_ALL)
 
 add_library(zella_whisper SHARED whisper_jni.cpp)
 target_link_libraries(zella_whisper PRIVATE whisper log android)
+# Google Play requires 16 KB page support for native code.
+target_link_options(zella_whisper PRIVATE "-Wl,-z,max-page-size=16384")
 if (NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_options(zella_whisper PRIVATE -O3)
 endif ()
@@ -32,3 +34,4 @@ target_include_directories(zella_audio PRIVATE ${RNNOISE_DIR} ${RNNOISE_DIR}/inc
 target_compile_definitions(zella_audio PRIVATE HAVE_CONFIG_H)
 target_compile_options(zella_audio PRIVATE -O3 -Wno-everything)
 target_link_libraries(zella_audio PRIVATE m log)
+target_link_options(zella_audio PRIVATE "-Wl,-z,max-page-size=16384")

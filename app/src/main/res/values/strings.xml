@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Zella</string>
-    <string name="home_tagline">Record your screen or yourself. Everything stays on your phone.</string>
+    <string name="home_tagline">Record your screen or yourself, then edit it right here.</string>
     <string name="home_camera">Record with camera</string>
-    <string name="home_status">Everything you make stays on this phone until you share it.</string>
+    <string name="home_status">Your videos stay on this phone until you share them. A few optional extras use the internet, and each one says so where you turn it on.</string>
     <plurals name="pro_week_chip">
         <item quantity="one">Pro Week: %d day left</item>
         <item quantity="other">Pro Week: %d days left</item>
@@ -447,7 +447,7 @@
     <string name="snd_level_music">Music</string>
     <string name="snd_level_effects">Sound effects</string>
     <string name="snd_level_overlay">Picture in picture %1$d</string>
-    <string name="snd_clip_note">Above 100%% lifts a quiet take. Very loud takes may be held back so they do not crackle.</string>
+    <string name="snd_clip_note">Above full volume lifts a quiet take. Very loud takes may be held back so they do not crackle.</string>
     <string name="snd_beat">Punch to the beat</string>
     <string name="snd_beat_detail">Finds the beats in your music, or in the clip if there is no music, and gives the picture a small punch on each one.</string>
     <string name="snd_beat_soft">Gentle</string>
@@ -475,4 +475,53 @@
     <string name="ex_format_gif">GIF picture</string>
     <string name="ex_format_sound">Sound only</string>
     <string name="ex_format_gif_note">A GIF has no sound and few colours. It suits a short loop of a few seconds.</string>
+
+    <!-- Plans. Prices come from Google Play, never from this file. -->
+    <string name="pl_open">Plans</string>
+    <string name="pl_title">Zella plans</string>
+    <string name="pl_free">Free, for good</string>
+    <string name="pl_free_detail">The complete editor and all the AI, with no watermark. Exports up to 2 minutes at up to 1080p.</string>
+    <string name="pl_pro">Zella Pro</string>
+    <string name="pl_pro_detail">One payment, no subscription. Longer exports, 4K, 60 frames a second, your own quality setting, exporting several shapes at once, saved looks, and the tools for changing things over time, colouring one area and speed curves.</string>
+    <string name="pl_founder">Zella Founder</string>
+    <string name="pl_founder_detail">One payment. Everything in Pro, three colour grades only Founders have, and every future major version free.</string>
+    <string name="pl_buy">Buy for %1$s</string>
+    <string name="pl_have">You have this</string>
+    <string name="pl_week">Pro Week: you have the full Pro set for %1$d more days. Nothing charges you. It ends by itself and Zella stays free.</string>
+    <string name="pl_restore">Restore purchases</string>
+    <string name="pl_restored_none">No purchases were found on this Google account.</string>
+    <string name="pl_restored">Your purchases are back.</string>
+    <string name="pl_unavailable">Google Play cannot be reached right now, so prices cannot be shown. Everything free keeps working.</string>
+    <string name="pl_pending">Your payment is waiting. Zella unlocks this when Google Play confirms it.</string>
+    <string name="pl_separate">Bought Zella on iPhone or Mac? Apple and Google keep purchases apart, so that purchase does not unlock Android. Android is sold on its own, at the same price.</string>
+    <string name="pl_needs_pro">This needs Zella Pro.</string>
+    <string name="pl_back">Back</string>
+
+    <!-- First run. -->
+    <string name="ob_welcome">Welcome to Zella</string>
+    <string name="ob_welcome_detail">Record your screen or yourself, let Zella cut it, and share a video. Free, with no watermark and no account.</string>
+    <string name="ob_how">How it works</string>
+    <string name="ob_how_1">Record, or pick a video you already have.</string>
+    <string name="ob_how_2">Tap Auto-Polish, and Zella cuts the silences, cleans your voice and frames you.</string>
+    <string name="ob_how_3">Add captions, a look or music if you like, then export.</string>
+    <string name="ob_private">What stays on your phone</string>
+    <string name="ob_private_detail">Recording, captions, cutting, removing the background and exporting all happen on this phone. Your video is not sent anywhere.</string>
+    <string name="ob_private_extras">Three optional things use the internet, and each says so when you use it: the Assistant, if you add your own key (it sends your words and a short text summary, including captions); stock video clips (it sends a search word); and bigger caption downloads.</string>
+    <string name="ob_free">What is free</string>
+    <string name="ob_free_detail">Everything in the editor and all the AI, for good. Exports up to 2 minutes at up to 1080p.</string>
+    <string name="ob_week">For your first 7 days you also get the full Pro set, with nothing to pay. It ends by itself and Zella stays free.</string>
+    <string name="ob_next">Next</string>
+    <string name="ob_start">Start</string>
+    <string name="ob_skip">Skip</string>
+    <string name="ed_group_ai">Do it for me</string>
+    <string name="ed_group_cut">Cut</string>
+    <string name="ed_group_words">Words</string>
+    <string name="ed_group_sound">Sound</string>
+    <string name="ed_group_picture">Picture</string>
+    <string name="ex_file_size">File size and quality</string>
+    <string name="ex_size_auto">Let Zella choose</string>
+    <string name="ex_size_small">Smaller file</string>
+    <string name="ex_size_high">Higher quality</string>
+    <string name="ex_size_highest">Highest quality</string>
+    <string name="ex_also">Also export as</string>
 </resources>

@@ -1,5 +1,6 @@
 import java.net.URI
 import java.security.MessageDigest
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
@@ -98,11 +99,30 @@ android {
         versionName = "0.0.1"
         ndk { abiFilters += "arm64-v8a" }
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        // The public key from Play Console, for checking purchases on the phone. Not a secret.
+        // Set zella.playKey in ~/.gradle/gradle.properties or local.properties before a release.
+        val localProps = Properties().apply { rootProject.file("local.properties").takeIf { it.isFile }?.inputStream()?.use { load(it) } }
+        val playKey = (findProperty("zella.playKey") as String?) ?: localProps.getProperty("zella.playKey") ?: ""
+        buildConfigField("String", "PLAY_KEY", "\"$playKey\"")
     }
     buildTypes {
         release {
             isMinifyEnabled = true
-            // Signing config is a placeholder: supply keystore.properties locally, never commit it.
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            // keystore.properties stays on your machine and is never committed. Without it the build
+            // is unsigned, which is fine for checking R8 and useless for Play.
+            val keys = rootProject.file("keystore.properties")
+            if (keys.isFile) {
+                val props = Properties().apply { keys.inputStream().use { load(it) } }
+                signingConfig =
+                    signingConfigs.create("release") {
+                        storeFile = rootProject.file(props.getProperty("storeFile"))
+                        storePassword = props.getProperty("storePassword")
+                        keyAlias = props.getProperty("keyAlias")
+                        keyPassword = props.getProperty("keyPassword")
+                    }
+            }
         }
     }
     compileOptions {
@@ -133,6 +153,7 @@ dependencies {
     implementation(libs.media3.effect)
     implementation(libs.media3.exoplayer)
     implementation(libs.media3.ui)
+    implementation(libs.play.billing)
     implementation(libs.tesseract4android)
     implementation(libs.litert)
     testImplementation(libs.junit)

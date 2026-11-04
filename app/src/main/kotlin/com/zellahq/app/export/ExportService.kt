@@ -43,7 +43,7 @@ sealed interface ExportStatus {
 
     data class Running(val percent: Int, val hot: Boolean) : ExportStatus
 
-    data class Done(val file: File, val seconds: Double) : ExportStatus
+    data class Done(val file: File, val seconds: Double, val more: List<File> = emptyList()) : ExportStatus
 
     data class Blocked(val needs: List<ProFeature>) : ExportStatus
 
@@ -63,6 +63,10 @@ class ExportService : Service() {
         const val EXTRA_SHORT_SIDE = "short"
         const val EXTRA_FPS = "fps"
         const val EXTRA_FORMAT = "format"
+        const val EXTRA_BITRATE = "bitrate"
+
+        /** The other shapes to export as well, by their stored names. Pro: the multi-aspect queue. */
+        const val EXTRA_ALSO = "also"
         const val ACTION_CANCEL = "cancel"
         private const val CHANNEL = "export"
         private const val ID = 2
@@ -117,6 +121,8 @@ class ExportService : Service() {
 
     private var exporter: Exporter? = null
 
+    @Volatile private var exporterCancelled = false
+
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(
@@ -125,6 +131,7 @@ class ExportService : Service() {
         startId: Int,
     ): Int {
         if (intent?.action == ACTION_CANCEL) {
+            exporterCancelled = true
             exporter?.cancel()
             return START_NOT_STICKY
         }
@@ -134,6 +141,7 @@ class ExportService : Service() {
             ExportSettings(
                 shortSide = intent.getIntExtra(EXTRA_SHORT_SIDE, 1080),
                 fps = intent.getIntExtra(EXTRA_FPS, 30),
+                bitrate = intent.getIntExtra(EXTRA_BITRATE, 0).takeIf { it > 0 },
             )
         val type =
             if (Build.VERSION.SDK_INT >= 35) {
@@ -145,8 +153,10 @@ class ExportService : Service() {
         // (Android 15) became "type none", which Android refuses (crash on the emulator, 2026-11-04).
         startForeground(ID, notification(0), type)
         mutableStatus.value = ExportStatus.Running(0, false)
+        exporterCancelled = false
         val format = intent.getStringExtra(EXTRA_FORMAT) ?: Formats.VIDEO
-        Thread({ run(projectId, settings, format) }, "export").start()
+        val also = intent.getStringArrayListExtra(EXTRA_ALSO).orEmpty()
+        Thread({ run(projectId, settings, format, also) }, "export").start()
         return START_NOT_STICKY
     }
 
@@ -154,6 +164,7 @@ class ExportService : Service() {
         projectId: String,
         settings: ExportSettings,
         format: String,
+        also: List<String>,
     ) {
         val store = Storage.store(this)
         val result =
@@ -165,6 +176,8 @@ class ExportService : Service() {
                         durationSeconds = project.duration,
                         height = settings.shortSide,
                         fps = settings.fps,
+                        customBitrate = settings.bitrate != null,
+                        multiAspectQueue = also.isNotEmpty(),
                         usesFounderGrade = com.zellahq.app.looks.Looks.usesFounderGrade(this, project),
                     )
                 when (val d = PremiumGate.authorize(request, Entitlements.load(this), System.currentTimeMillis())) {
@@ -198,7 +211,24 @@ class ExportService : Service() {
                                     getSystemService(NotificationManager::class.java).notify(ID, notification(pct))
                                 }
                         ) {
-                            is ExportOutcome.Done -> convert(o, format)
+                            is ExportOutcome.Done -> {
+                                val first = convert(o, format)
+                                // The same video again in each other shape, each with the permit the gate gave.
+                                val more =
+                                    if (first !is ExportStatus.Done) {
+                                        emptyList()
+                                    } else {
+                                        also.mapNotNull { raw ->
+                                            val aspect = com.zellahq.core.project.Aspect.of(raw)
+                                            if (aspect == project.aspect || exporterCancelled) return@mapNotNull null
+                                            val f =
+                                                File(Storage.exports(this), "$safe-${aspect.raw}-${System.currentTimeMillis() / 1000}.mp4")
+                                            val x = e.export(project.copy(aspect = aspect, platformPresetId = null), d.permit, settings, f)
+                                            (x as? ExportOutcome.Done)?.file
+                                        }
+                                    }
+                                if (first is ExportStatus.Done) first.copy(more = more) else first
+                            }
                             is ExportOutcome.Failed -> ExportStatus.Failed(o.message)
                             ExportOutcome.Cancelled -> ExportStatus.Cancelled
                         }.also { e.release() }

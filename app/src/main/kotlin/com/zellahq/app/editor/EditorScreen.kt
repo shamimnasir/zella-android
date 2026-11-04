@@ -38,6 +38,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -87,6 +88,15 @@ private enum class Sheet {
     Motion,
 }
 
+/** The editor's five groups of tools. */
+private enum class ToolGroup(val label: Int) {
+    Ai(R.string.ed_group_ai),
+    Cut(R.string.ed_group_cut),
+    Words(R.string.ed_group_words),
+    Sound(R.string.ed_group_sound),
+    Picture(R.string.ed_group_picture),
+}
+
 @OptIn(UnstableApi::class)
 @Composable
 fun EditorScreen(
@@ -107,6 +117,7 @@ fun EditorScreen(
     val currentPlayer by state.playerFlow.collectAsState()
     val baking by state.baking.collectAsState()
     var sheet by remember { mutableStateOf(Sheet.None) }
+    var group by remember { mutableStateOf(ToolGroup.Ai) }
     val selected = project.clips.firstOrNull { it.id == selectedId }
     val store = remember { Storage.store(context) }
 
@@ -150,11 +161,34 @@ fun EditorScreen(
         }
 
         Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
+            var playerView by remember { mutableStateOf<PlayerView?>(null) }
+            // A panel opening resizes the picture. Handing the surface over again makes a paused player draw on it.
+            val reattach =
+                remember {
+                    Runnable {
+                        playerView?.let { v ->
+                            val p = v.player
+                            v.player = null
+                            v.player = p
+                        }
+                    }
+                }
             AndroidView(
-                modifier = Modifier.aspectRatio(project.aspect.ratio.toFloat()),
+                // A panel opening resizes the picture, and a paused player then shows black until told to redraw.
+                modifier =
+                    Modifier.aspectRatio(project.aspect.ratio.toFloat()).onSizeChanged {
+                        playerView?.let { v ->
+                            v.removeCallbacks(reattach)
+                            v.postDelayed(reattach, 250)
+                        }
+                    },
                 factory = { ctx ->
-                    PlayerView(ctx).apply {
+                    PlayerView(ctx).also { playerView = it }.apply {
                         useController = false
+                        // The default shutter is an opaque black sheet that only lifts on a "first frame" event,
+                        // which a paused composition does not send again. It hid the picture after every edit.
+                        setShutterBackgroundColor(android.graphics.Color.TRANSPARENT)
+                        setKeepContentOnPlayerReset(true)
                         resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
                         layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
                     }
@@ -217,87 +251,90 @@ fun EditorScreen(
             },
         )
 
-        // Every tool is a labelled word. Tools that need a clip act on the picked one.
+        // Every tool is a labelled word. Tools sit in five groups, so a beginner is never scrolling through thirty.
+        // Tools that need a clip act on the picked one.
         Row(
             Modifier.horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(ZellaSpacing.S),
         ) {
-            Tool(stringResource(R.string.ed_captions), if (sheet == Sheet.Captions) ZellaColors.CardSun else ZellaColors.CardMint) {
-                sheet = if (sheet == Sheet.Captions) Sheet.None else Sheet.Captions
-            }
-            Tool(stringResource(R.string.ed_auto), if (sheet == Sheet.Auto) ZellaColors.CardSun else ZellaColors.CardMint) {
-                sheet = if (sheet == Sheet.Auto) Sheet.None else Sheet.Auto
-            }
-            Tool(stringResource(R.string.ed_text), if (sheet == Sheet.Text) ZellaColors.CardSun else null) {
-                sheet = if (sheet == Sheet.Text) Sheet.None else Sheet.Text
-            }
-            Tool(stringResource(R.string.ed_sound), if (sheet == Sheet.Sound) ZellaColors.CardSun else null) {
-                sheet = if (sheet == Sheet.Sound) Sheet.None else Sheet.Sound
-            }
-            Tool(stringResource(R.string.ed_background), if (sheet == Sheet.Background) ZellaColors.CardSun else null) {
-                sheet = if (sheet == Sheet.Background) Sheet.None else Sheet.Background
-            }
-            Tool(stringResource(R.string.ed_pip), if (sheet == Sheet.Pip) ZellaColors.CardSun else null) {
-                sheet = if (sheet == Sheet.Pip) Sheet.None else Sheet.Pip
-            }
-            Tool(stringResource(R.string.ed_broll), if (sheet == Sheet.BRoll) ZellaColors.CardSun else null) {
-                sheet = if (sheet == Sheet.BRoll) Sheet.None else Sheet.BRoll
-            }
-            Tool(stringResource(R.string.ed_callouts), if (sheet == Sheet.Callouts) ZellaColors.CardSun else null) {
-                sheet = if (sheet == Sheet.Callouts) Sheet.None else Sheet.Callouts
-            }
-            Tool(stringResource(R.string.ed_assistant), if (sheet == Sheet.Assistant) ZellaColors.CardSun else ZellaColors.CardViolet) {
-                sheet = if (sheet == Sheet.Assistant) Sheet.None else Sheet.Assistant
-            }
-            Tool(stringResource(R.string.ed_split)) { state.edit("split") { it.split(position) } }
-            if (selected != null) {
-                val index = project.clips.indexOf(selected)
-                Tool(stringResource(R.string.ed_delete), ZellaColors.CardCoral) {
-                    state.edit("delete") { it.rippleDelete(selected.id) }
+            ToolGroup.entries.forEach { g ->
+                Tool(stringResource(g.label), if (group == g) ZellaColors.CardViolet else null) {
+                    group = g
+                    sheet = Sheet.None
                 }
-                if (index > 0) {
-                    Tool(
-                        stringResource(R.string.ed_move_earlier),
-                    ) { state.edit("move") { it.move(selected.id, index - 1) } }
-                }
-                if (index < project.clips.size - 1) {
-                    Tool(stringResource(R.string.ed_move_later)) {
-                        state.edit("move") { it.move(selected.id, index + 1) }
-                    }
-                }
-                Tool(stringResource(R.string.ed_look), if (sheet == Sheet.Look) ZellaColors.CardSun else null) {
-                    sheet = if (sheet == Sheet.Look) Sheet.None else Sheet.Look
-                }
-                Tool(
-                    stringResource(R.string.ed_speed),
-                ) { sheet = if (sheet == Sheet.Speed) Sheet.None else Sheet.Speed }
-                Tool(
-                    stringResource(R.string.ed_volume),
-                ) { sheet = if (sheet == Sheet.Volume) Sheet.None else Sheet.Volume }
-                Tool(stringResource(R.string.ed_effects), if (sheet == Sheet.Effects) ZellaColors.CardSun else null) {
-                    sheet = if (sheet == Sheet.Effects) Sheet.None else Sheet.Effects
-                }
-                Tool(stringResource(R.string.ed_motion), if (sheet == Sheet.Motion) ZellaColors.CardSun else null) {
-                    sheet = if (sheet == Sheet.Motion) Sheet.None else Sheet.Motion
-                }
-                Tool(stringResource(R.string.ed_freeze)) { state.freezeFrame(position) }
-                Tool(stringResource(R.string.ed_duplicate)) { state.edit("duplicate") { it.duplicate(selected.id) } }
-                Tool(stringResource(R.string.ed_replay)) { state.edit("replay") { it.instantReplay(selected.id) } }
-                Tool(stringResource(R.string.ed_rewind)) { state.edit("rewind") { it.rewind(selected.id) } }
-                Tool(stringResource(if (selected.reversed) R.string.ed_play_forward else R.string.ed_reverse)) {
-                    state.edit("reverse") { it.reverse(selected.id) }
-                }
-                if (index < project.clips.size - 1) {
-                    Tool(stringResource(R.string.ed_transition), if (sheet == Sheet.Transition) ZellaColors.CardSun else null) {
-                        sheet = if (sheet == Sheet.Transition) Sheet.None else Sheet.Transition
-                    }
-                }
-            }
-            Tool(stringResource(R.string.ed_add_clip)) {
-                picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.VideoOnly))
             }
             if (history.canUndo) Tool(stringResource(R.string.ed_undo)) { state.undo() }
             if (history.canRedo) Tool(stringResource(R.string.ed_redo)) { state.redo() }
+        }
+
+        @Composable
+        fun SheetTool(
+            label: Int,
+            which: Sheet,
+            colour: Color? = null,
+        ) {
+            Tool(stringResource(label), if (sheet == which) ZellaColors.CardSun else colour) {
+                sheet = if (sheet == which) Sheet.None else which
+            }
+        }
+        Row(
+            Modifier.horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(ZellaSpacing.S),
+        ) {
+            val index = selected?.let { project.clips.indexOf(it) } ?: -1
+            when (group) {
+                ToolGroup.Ai -> {
+                    SheetTool(R.string.ed_auto, Sheet.Auto, ZellaColors.CardMint)
+                    SheetTool(R.string.ed_assistant, Sheet.Assistant, ZellaColors.CardViolet)
+                    SheetTool(R.string.ed_broll, Sheet.BRoll)
+                }
+                ToolGroup.Cut -> {
+                    Tool(stringResource(R.string.ed_split)) { state.edit("split") { it.split(position) } }
+                    if (selected != null) {
+                        Tool(stringResource(R.string.ed_delete), ZellaColors.CardCoral) {
+                            state.edit("delete") { it.rippleDelete(selected.id) }
+                        }
+                        if (index > 0) {
+                            Tool(
+                                stringResource(R.string.ed_move_earlier),
+                            ) { state.edit("move") { it.move(selected.id, index - 1) } }
+                        }
+                        if (index < project.clips.size - 1) {
+                            Tool(stringResource(R.string.ed_move_later)) { state.edit("move") { it.move(selected.id, index + 1) } }
+                        }
+                        SheetTool(R.string.ed_speed, Sheet.Speed)
+                        Tool(stringResource(R.string.ed_freeze)) { state.freezeFrame(position) }
+                        Tool(stringResource(R.string.ed_duplicate)) { state.edit("duplicate") { it.duplicate(selected.id) } }
+                        Tool(stringResource(R.string.ed_replay)) { state.edit("replay") { it.instantReplay(selected.id) } }
+                        Tool(stringResource(R.string.ed_rewind)) { state.edit("rewind") { it.rewind(selected.id) } }
+                        Tool(stringResource(if (selected.reversed) R.string.ed_play_forward else R.string.ed_reverse)) {
+                            state.edit("reverse") { it.reverse(selected.id) }
+                        }
+                        if (index < project.clips.size - 1) SheetTool(R.string.ed_transition, Sheet.Transition)
+                    }
+                    Tool(stringResource(R.string.ed_add_clip)) {
+                        picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.VideoOnly))
+                    }
+                }
+                ToolGroup.Words -> {
+                    SheetTool(R.string.ed_captions, Sheet.Captions, ZellaColors.CardMint)
+                    SheetTool(R.string.ed_text, Sheet.Text)
+                    SheetTool(R.string.ed_callouts, Sheet.Callouts)
+                }
+                ToolGroup.Sound -> {
+                    SheetTool(R.string.ed_sound, Sheet.Sound, ZellaColors.CardMint)
+                    if (selected != null) SheetTool(R.string.ed_volume, Sheet.Volume)
+                }
+                ToolGroup.Picture -> {
+                    if (selected != null) SheetTool(R.string.ed_look, Sheet.Look, ZellaColors.CardMint)
+                    SheetTool(R.string.ed_background, Sheet.Background)
+                    if (selected != null) {
+                        SheetTool(R.string.ed_effects, Sheet.Effects)
+                        SheetTool(R.string.ed_motion, Sheet.Motion)
+                    }
+                    SheetTool(R.string.ed_pip, Sheet.Pip)
+                }
+            }
         }
 
         if (sheet == Sheet.Captions) {
