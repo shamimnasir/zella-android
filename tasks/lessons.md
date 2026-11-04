@@ -180,3 +180,23 @@ set before it came out empty and the blur silently did nothing. Set arrays after
 
 Reinstalling during a copy left a 0 byte language file, and the reader refused to start from then on. A person
 killing the app on first use would hit the same thing, forever. Write to `.part`, then rename.
+
+## 2026-11-04: depth tools are hidden, not refused
+
+I wired keyframes, masks and ramps into the export gate because the brief said Pro. The iPhone's law says the
+opposite and for a good reason: a project that uses them still exports on every tier, so Pro Week ending can
+never hold anyone's finished work back. Read the iPhone's gate before adding a line to this one.
+
+## 2026-11-04: a shader value set but not used is a crash
+
+Media3's GlProgram throws on a uniform the compiler optimised out. The message only says frame processing failed.
+
+## 2026-11-04: a look stores effects that are already baked
+
+`applyLook` copies the look's `special` onto the clip, so reading it back and applying it again would make Film
+Noir black and white twice. Apply only what differs from the look.
+
+## 2026-11-04: read models on real footage with a variant sheet before tuning
+
+Holes in faces and phantom people looked like a weak model. They were my input and output handling. A sheet of
+four variants on two real clips settled it in one run.

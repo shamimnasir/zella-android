@@ -22,6 +22,7 @@ import com.zellahq.core.project.UndoStack
 import com.zellahq.core.project.append
 import com.zellahq.core.project.clipAt
 import com.zellahq.core.project.duration
+import com.zellahq.core.project.insertFreeze
 import com.zellahq.core.project.isoNow
 import com.zellahq.core.project.newId
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -366,6 +367,21 @@ class EditorState(
     }
 
     fun saveNow() = save(project.value)
+
+    /** Freeze frame: holds the picture at [at] for two seconds, with no sound. One undo removes it. */
+    fun freezeFrame(at: Double) {
+        val start = project.value
+        Thread({
+            val f = runCatching { com.zellahq.app.depth.Stills.freeze(context, start, at) }.getOrNull()
+            if (f != null) {
+                main.post {
+                    edit(
+                        "freeze",
+                    ) { it.insertFreeze(f.toURI().toString(), at, com.zellahq.app.depth.Stills.FREEZE_SECONDS) }
+                }
+            }
+        }, "freeze").start()
+    }
 
     /** How far along finding the person is, or null. The clip plays as it was until this finishes. */
     private val mutableFinding = MutableStateFlow<Float?>(null)

@@ -138,6 +138,7 @@ fun AutoPanel(
             }
         }
         Text(stringResource(R.string.au_stays_on_phone), color = text)
+        com.zellahq.app.depth.SavedLooks(state, project)
     }
 }
 

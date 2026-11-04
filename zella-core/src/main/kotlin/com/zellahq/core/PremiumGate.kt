@@ -26,7 +26,6 @@ data class ExportRequest(
     val transparentBackground: Boolean = false,
     val customBitrate: Boolean = false,
     val multiAspectQueue: Boolean = false,
-    val usesDepthTools: Boolean = false,
     val usesFounderGrade: Boolean = false,
 )
 
@@ -38,6 +37,7 @@ enum class ProFeature(val title: String) {
     CustomBitrate("Custom bitrate"),
     MultiAspect("Multi-aspect export queue"),
     DepthTools("Depth toolset"),
+    SaveTemplates("Saving your own templates"),
     FounderGrade("Founder colour grades"),
 }
 
@@ -90,6 +90,22 @@ object PremiumGate {
         nowEpochMs: Long,
     ): EntitlementState = state.copy(lastSeenEpochMs = maxOf(state.lastSeenEpochMs, nowEpochMs))
 
+    /**
+     * The depth tools (keyframe curves, masks, speed ramps) are shown only to Pro. This gates showing
+     * them and nothing else: a project that already uses them still exports on every tier, the iPhone's
+     * rule, so nobody's finished work is ever held back when Pro Week ends.
+     */
+    fun showsDepthTools(
+        state: EntitlementState,
+        nowEpochMs: Long,
+    ) = isPro(state, nowEpochMs)
+
+    /** Using a saved template is free. Saving your own is Pro. */
+    fun canSaveTemplates(
+        state: EntitlementState,
+        nowEpochMs: Long,
+    ) = isPro(state, nowEpochMs)
+
     fun requiredFeatures(request: ExportRequest): List<ProFeature> =
         buildList {
             if (request.durationSeconds > MAX_FREE_EXPORT_SECONDS) add(ProFeature.Length)
@@ -98,7 +114,6 @@ object PremiumGate {
             if (request.transparentBackground) add(ProFeature.Transparent)
             if (request.customBitrate) add(ProFeature.CustomBitrate)
             if (request.multiAspectQueue) add(ProFeature.MultiAspect)
-            if (request.usesDepthTools) add(ProFeature.DepthTools)
         }
 
     /** The only way to get an [ExportPermit]. Call this at the render boundary. */

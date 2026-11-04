@@ -60,6 +60,7 @@ fun TitlesPanel(
     }
 
     Column(verticalArrangement = Arrangement.spacedBy(ZellaSpacing.S)) {
+        CardRow(state)
         OutlinedTextField(
             value = draft,
             onValueChange = {
@@ -203,6 +204,40 @@ private fun MotionPicker(
                     set(TextMotionPhase(p.id))
                 }
             }
+        }
+    }
+}
+
+/** An intro or outro card: a plain background the length of the card, with words over it. */
+@Composable
+private fun CardRow(state: EditorState) {
+    val context = LocalContext.current
+    val text = MaterialTheme.colorScheme.onBackground
+    var style by remember { mutableStateOf(com.zellahq.app.depth.Cards.Style.Dark) }
+    var busy by remember { mutableStateOf(false) }
+    val thanks = stringResource(R.string.tt_card_default_outro)
+
+    fun add(atEnd: Boolean) {
+        busy = true
+        val start = state.project.value
+        Thread({
+            val out = runCatching { com.zellahq.app.depth.Cards.add(context, start, atEnd, style, if (atEnd) thanks else null) }.getOrNull()
+            state.onMain {
+                busy = false
+                if (out != null) state.edit("card") { out }
+            }
+        }, "card").start()
+    }
+    Text(stringResource(R.string.tt_cards), color = text)
+    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(ZellaSpacing.S)) {
+        listOf(
+            com.zellahq.app.depth.Cards.Style.Dark to R.string.tt_card_dark,
+            com.zellahq.app.depth.Cards.Style.Light to R.string.tt_card_light,
+            com.zellahq.app.depth.Cards.Style.Brand to R.string.tt_card_brand,
+        ).forEach { (k, label) -> Tool(stringResource(label), if (style == k) ZellaColors.CardSun else null) { style = k } }
+        if (!busy) {
+            Tool(stringResource(R.string.tt_card_intro), ZellaColors.CardMint) { add(false) }
+            Tool(stringResource(R.string.tt_card_outro), ZellaColors.CardMint) { add(true) }
         }
     }
 }

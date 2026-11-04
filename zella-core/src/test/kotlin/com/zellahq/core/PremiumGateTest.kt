@@ -48,7 +48,6 @@ class PremiumGateTest {
                 transparentBackground = true,
                 customBitrate = true,
                 multiAspectQueue = true,
-                usesDepthTools = true,
             )
         assertTrue(allowed(r, free(), install + 6 * day))
     }

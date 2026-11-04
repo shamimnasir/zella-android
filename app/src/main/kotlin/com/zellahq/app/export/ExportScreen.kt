@@ -58,13 +58,19 @@ fun ExportScreen(
     var shortSide by remember { mutableIntStateOf(1080) }
     var fps by remember { mutableIntStateOf(30) }
     var saved by remember { mutableStateOf(false) }
+    var format by remember { mutableStateOf(Formats.VIDEO) }
     val status by ExportService.status.collectAsState()
     DisposableEffect(Unit) { onDispose { ExportService.reset() } }
 
     // The same question the service will ask, so the screen shows the real answer before Export is tapped.
     val decision =
         PremiumGate.authorize(
-            ExportRequest(durationSeconds = project.duration, height = shortSide, fps = fps),
+            ExportRequest(
+                durationSeconds = project.duration,
+                height = shortSide,
+                fps = fps,
+                usesFounderGrade = com.zellahq.app.looks.Looks.usesFounderGrade(context, project),
+            ),
             Entitlements.load(context),
             System.currentTimeMillis(),
         )
@@ -94,6 +100,19 @@ fun ExportScreen(
                 ) { setPreset(p) }
             }
         }
+
+        Text(stringResource(R.string.ex_format), color = MaterialTheme.colorScheme.onBackground)
+        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(ZellaSpacing.S)) {
+            listOf(
+                Formats.VIDEO to R.string.ex_format_video,
+                Formats.GIF to R.string.ex_format_gif,
+                Formats.SOUND to R.string.ex_format_sound,
+            ).forEach {
+                    (f, label) ->
+                Tool(stringResource(label), if (format == f) ZellaColors.CardSun else null) { format = f }
+            }
+        }
+        if (format == Formats.GIF) Text(stringResource(R.string.ex_format_gif_note), color = MaterialTheme.colorScheme.onBackground)
 
         Text(stringResource(R.string.ex_quality), color = MaterialTheme.colorScheme.onBackground)
         Row(horizontalArrangement = Arrangement.spacedBy(ZellaSpacing.S)) {
@@ -163,7 +182,8 @@ fun ExportScreen(
                             Intent(context, ExportService::class.java)
                                 .putExtra(ExportService.EXTRA_PROJECT, project.id)
                                 .putExtra(ExportService.EXTRA_SHORT_SIDE, shortSide)
-                                .putExtra(ExportService.EXTRA_FPS, fps),
+                                .putExtra(ExportService.EXTRA_FPS, fps)
+                                .putExtra(ExportService.EXTRA_FORMAT, format),
                         )
                     }
                 }

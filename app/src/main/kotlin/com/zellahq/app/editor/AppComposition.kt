@@ -27,6 +27,7 @@ fun appComposition(
         s.effects(context).firstOrNull { it.id == id }?.let { s.file(context, it, "sfx") }
     }
     transitionFile = { p, join, size -> TransitionBaker.cached(context, p, join, size) }
+    clipSpecial = { com.zellahq.app.looks.Looks.extraSpecial(context, it) }
     matteFile = { v -> com.zellahq.app.cutout.MatteBaker.fileFor(context, v).takeIf { it.isFile && it.length() > 0 } }
     calloutEffects = { p, size -> com.zellahq.app.callouts.calloutEffects(p, size) }
     titleEffect = { p, size ->

@@ -20,11 +20,14 @@ import com.zellahq.app.broll.StockProvider
 import com.zellahq.app.callouts.ScreenReader
 import com.zellahq.app.callouts.findSensitiveText
 import com.zellahq.app.cutout.BackgroundPainter
+import com.zellahq.app.depth.Cards
+import com.zellahq.app.depth.Stills
 import com.zellahq.app.editor.EditorState
 import com.zellahq.app.editor.Storage
 import com.zellahq.app.export.ExportService
 import com.zellahq.app.export.ExportStatus
 import com.zellahq.app.looks.Looks
+import com.zellahq.app.sound.BeatSync
 import com.zellahq.app.sound.Sounds
 import com.zellahq.core.PremiumGate
 import com.zellahq.core.audio.VoiceChain
@@ -39,6 +42,7 @@ import com.zellahq.core.project.BackgroundChoice
 import com.zellahq.core.project.Callout
 import com.zellahq.core.project.CalloutKind
 import com.zellahq.core.project.Clip
+import com.zellahq.core.project.KeyProperty
 import com.zellahq.core.project.MediaRef
 import com.zellahq.core.project.MusicBed
 import com.zellahq.core.project.Project
@@ -47,10 +51,16 @@ import com.zellahq.core.project.TitleLook
 import com.zellahq.core.project.TransitionTypes
 import com.zellahq.core.project.ZoomBlock
 import com.zellahq.core.project.addCallouts
+import com.zellahq.core.project.addKeyframe
 import com.zellahq.core.project.callouts
 import com.zellahq.core.project.clipAt
+import com.zellahq.core.project.colorAdjustOf
+import com.zellahq.core.project.cutWords
 import com.zellahq.core.project.duration
+import com.zellahq.core.project.effects
+import com.zellahq.core.project.insertFreeze
 import com.zellahq.core.project.latestOverlayStart
+import com.zellahq.core.project.mapClipById
 import com.zellahq.core.project.move
 import com.zellahq.core.project.newId
 import com.zellahq.core.project.newTitle
@@ -61,10 +71,17 @@ import com.zellahq.core.project.setBackgroundEverywhere
 import com.zellahq.core.project.setSpeed
 import com.zellahq.core.project.setTransition
 import com.zellahq.core.project.setVolume
+import com.zellahq.core.project.special
 import com.zellahq.core.project.split
+import com.zellahq.core.project.spokenWords
 import com.zellahq.core.project.startTime
+import com.zellahq.core.project.transform
 import com.zellahq.core.project.transitionAfter
+import com.zellahq.core.project.withColorAdjust
 import com.zellahq.core.project.withField
+import com.zellahq.core.project.withOpacity
+import com.zellahq.core.project.withSpecial
+import com.zellahq.core.project.withTransform
 import com.zellahq.core.sensitive.SensitiveBlurPlanner
 import com.zellahq.core.sensitive.SensitiveMatcher
 import kotlinx.coroutines.Dispatchers
@@ -964,6 +981,243 @@ fun assistantTools(
         )
         add(
             Tool(
+                "set_color_adjustment",
+                "Adjust colour on the selected clip. Only given fields change. exposure -2 to 2, brightness -1 to 1, contrast and saturation and highlights 0 to 2, temperature 2000 to 10000, tint -100 to 100, shadows -1 to 1.",
+                obj(
+                    listOf(
+                        "exposure",
+                        "brightness",
+                        "contrast",
+                        "saturation",
+                        "temperature",
+                        "tint",
+                        "highlights",
+                        "shadows",
+                    ).associateWith {
+                        prop("number", it)
+                    },
+                ),
+            ) { a ->
+                val c = selected() ?: return@Tool noClips
+                val o = colorAdjustOf(c.effects["colorAdjustments"])
+                val n =
+                    o.copy(
+                        exposure = a.num("exposure") ?: o.exposure,
+                        brightness = a.num("brightness") ?: o.brightness,
+                        contrast = a.num("contrast") ?: o.contrast,
+                        saturation = a.num("saturation") ?: o.saturation,
+                        temperature = a.num("temperature") ?: o.temperature,
+                        tint = a.num("tint") ?: o.tint,
+                        highlights = a.num("highlights") ?: o.highlights,
+                        shadows = a.num("shadows") ?: o.shadows,
+                    )
+                if (n == o) return@Tool ToolResult("No adjustment fields given.", true)
+                state.edit("colour") { p -> p.mapClipById(c.id) { it.withColorAdjust(n) } }
+                ToolResult("Colour adjusted.")
+            },
+        )
+        add(
+            Tool(
+                "set_special_effect",
+                "Set effects on the selected clip. Amounts are 0 to 1. Only given fields change.",
+                obj(
+                    mapOf(
+                        "black_and_white" to prop("boolean", "Black and white."),
+                        "vignette" to prop("number", "Dark corners."),
+                        "grain" to prop("number", "Film grain."),
+                        "glow" to prop("number", "Glow."),
+                        "pixelate" to prop("number", "Pixels."),
+                        "chromatic_aberration" to prop("number", "Colour fringe."),
+                        "blur" to prop("number", "Blur radius."),
+                        "letterbox" to prop("boolean", "Movie bars."),
+                    ),
+                ),
+            ) { a ->
+                val c = selected() ?: return@Tool noClips
+                val o = c.special
+                val n =
+                    o.copy(
+                        blackAndWhite = a.bool("black_and_white") ?: o.blackAndWhite,
+                        vignette = a.num("vignette") ?: o.vignette,
+                        grain = a.num("grain") ?: o.grain,
+                        glow = a.num("glow") ?: o.glow,
+                        pixelate = a.num("pixelate") ?: o.pixelate,
+                        chromatic = a.num("chromatic_aberration") ?: o.chromatic,
+                        blur = a.num("blur") ?: o.blur,
+                        letterbox = a.bool("letterbox") ?: o.letterbox,
+                    )
+                if (n == o) return@Tool ToolResult("No effect fields given.", true)
+                state.edit("effect") { p -> p.mapClipById(c.id) { it.withSpecial(n) } }
+                ToolResult("Effects set.")
+            },
+        )
+        add(
+            Tool(
+                "set_transform",
+                "Place the selected clip. Only given fields change. scale 1 fits, position_x and position_y are fractions of the canvas, -0.5 to 0.5, rotation in degrees.",
+                obj(
+                    mapOf(
+                        "scale" to prop("number", "Size."),
+                        "position_x" to prop("number", "Left and right."),
+                        "position_y" to prop("number", "Up and down."),
+                        "rotation" to prop("number", "Degrees."),
+                    ),
+                ),
+            ) { a ->
+                val c = selected() ?: return@Tool noClips
+                val o = c.transform
+                val n =
+                    o.copy(
+                        x = a.num("position_x") ?: o.x,
+                        y = a.num("position_y") ?: o.y,
+                        rotation = a.num("rotation") ?: o.rotation,
+                        scale = a.num("scale") ?: o.scale,
+                    )
+                if (n == o) return@Tool ToolResult("No transform fields given.", true)
+                state.edit("place") { p -> p.mapClipById(c.id) { it.withTransform(n) } }
+                ToolResult("Clip placed.")
+            },
+        )
+        add(
+            Tool(
+                "set_opacity",
+                "Set the selected clip's opacity, 0 to 1.",
+                obj(mapOf("opacity" to prop("number", "0 clear, 1 solid.")), listOf("opacity")),
+            ) { a ->
+                val c = selected() ?: return@Tool noClips
+                val v = a.num("opacity") ?: return@Tool bad("opacity")
+                state.edit("see through") { p -> p.mapClipById(c.id) { it.withOpacity(v) } }
+                ToolResult("Opacity set to ${fmt(v.coerceIn(0.0, 1.0))}.")
+            },
+        )
+        add(
+            Tool(
+                "set_keyframe",
+                "Add a keyframe at the playhead on the selected clip.",
+                obj(
+                    mapOf(
+                        "property" to enumProp(KeyProperty.entries.map { it.raw }, "What changes."),
+                        "value" to prop("number", "Scale 0.2 to 3, Opacity 0 to 1, Position -0.5 to 0.5, Rotation in degrees."),
+                    ),
+                    listOf("property", "value"),
+                ),
+            ) { a ->
+                val c = selected() ?: return@Tool noClips
+                val k = KeyProperty.entries.firstOrNull { it.raw == a.str("property") } ?: return@Tool bad("property")
+                val v = a.num("value") ?: return@Tool bad("value")
+                val local = (state.position.value - project().startTime(c.id)).coerceIn(0.0, c.timelineDuration)
+                state.edit("point") { p -> p.mapClipById(c.id) { it.addKeyframe(k, local, v) } }
+                ToolResult("Keyframe: ${k.raw} is ${fmt(v)} at ${fmt(local)}s into the clip.")
+            },
+        )
+        add(
+            Tool(
+                "set_speed_ramp",
+                "Apply a speed curve to the selected clip, keeping its length.",
+                obj(
+                    mapOf("ramp" to enumProp(listOf("None", "Slow-Fast-Slow", "Fast-Slow-Fast", "Ramp Up", "Ramp Down"), "Curve.")),
+                    listOf("ramp"),
+                ),
+            ) { a ->
+                val c = selected() ?: return@Tool noClips
+                val r =
+                    a.str("ramp")?.takeIf {
+                        it in listOf("None", "Slow-Fast-Slow", "Fast-Slow-Fast", "Ramp Up", "Ramp Down")
+                    } ?: return@Tool bad("ramp")
+                state.edit("speed ramp") { p ->
+                    p.mapClipById(
+                        c.id,
+                    ) { x ->
+                        x.copy(
+                            extras = JsonObject(if (r == "None") x.extras - "speedRamp" else x.extras + ("speedRamp" to JsonPrimitive(r))),
+                        )
+                    }
+                }
+                ToolResult(if (r == "None") "Speed curve removed." else "Speed curve set to $r.")
+            },
+        )
+        add(
+            Tool(
+                "apply_beat_sync",
+                "Find the beats in the music, or the clip if there is none, and give the picture a small punch on each.",
+                obj(mapOf("strength" to prop("number", "0 to 1 (default 0.5)."))),
+            ) { a ->
+                if (project().clips.isEmpty()) return@Tool noClips
+                val p = project()
+                val (out, n) = withContext(Dispatchers.Default) { BeatSync.apply(context, p, a.num("strength") ?: 0.5) }
+                if (n == 0) return@Tool ToolResult("No clear beats were found.")
+                state.edit("beat sync") { out }
+                ToolResult("$n beats synced.")
+            },
+        )
+        add(
+            Tool("clear_beat_sync", "Remove the beat punches.", emptyParams()) {
+                state.edit("beat sync") { BeatSync.clear(it) }
+                ToolResult("Beat punches removed.")
+            },
+        )
+        add(
+            Tool(
+                "add_intro_card",
+                "Add an intro card at the start. style: dark, light or brand.",
+                obj(
+                    mapOf(
+                        "text" to prop("string", "Words (optional)."),
+                        "style" to enumProp(listOf("dark", "light", "brand"), "Style."),
+                        "seconds" to prop("number", "Length, default 3."),
+                    ),
+                ),
+            ) { a -> card(context, state, false, a) },
+        )
+        add(
+            Tool(
+                "add_outro_card",
+                "Add an outro card at the end. style: dark, light or brand.",
+                obj(
+                    mapOf(
+                        "text" to prop("string", "Words (optional)."),
+                        "style" to enumProp(listOf("dark", "light", "brand"), "Style."),
+                        "seconds" to prop("number", "Length, default 3."),
+                    ),
+                ),
+            ) { a -> card(context, state, true, a) },
+        )
+        add(
+            Tool(
+                "freeze_frame",
+                "Hold the picture at the playhead for two seconds, with no sound.",
+                emptyParams(),
+            ) {
+                if (project().clips.isEmpty()) return@Tool noClips
+                val p = project()
+                val at = state.position.value
+                val f = withContext(Dispatchers.IO) { Stills.freeze(context, p, at) } ?: return@Tool ToolResult("That frame could not be read.", true)
+                state.edit("freeze") { it.insertFreeze(f.toURI().toString(), at, Stills.FREEZE_SECONDS) }
+                ToolResult("Froze the picture at ${fmt(at)}s for ${fmt(Stills.FREEZE_SECONDS)}s.")
+            },
+        )
+        add(
+            Tool(
+                "cut_words",
+                "Cut spoken words from the video. Pass the exact phrase. Everything after moves up.",
+                obj(mapOf("phrase" to prop("string", "The words to cut, as said.")), listOf("phrase")),
+            ) { a ->
+                val phrase = a.str("phrase")?.trim()?.lowercase()?.split(Regex("\\s+"))?.filter { it.isNotEmpty() } ?: return@Tool bad("phrase")
+                if (words() == null) return@Tool ToolResult("No speech was found.", true)
+                val all = project().spokenWords()
+
+                fun clean(s: String) = s.lowercase().trim { !it.isLetterOrDigit() }
+                val at =
+                    (0..(all.size - phrase.size)).firstOrNull {
+                            i ->
+                        phrase.indices.all { clean(all[i + it].text) == clean(phrase[it]) }
+                    } ?: return@Tool ToolResult("Those words were not found in that order.", true)
+                state.edit("cut words") { it.cutWords((at until at + phrase.size).toSet()) }
+                ToolResult("Cut \"${phrase.joinToString(" ")}\" at ${fmt(all[at].start)}s.")
+            },
+        )
+        add(
+            Tool(
                 "describe_frame",
                 "Look at a frame on this phone: faces and brightness. Use to judge framing or exposure. It does not read text: use find_text_on_screen for that.",
                 obj(mapOf("seconds" to prop("number", "Timeline time (default the playhead)."))),
@@ -1040,6 +1294,23 @@ fun assistantTools(
             },
         )
     }
+}
+
+private suspend fun card(
+    context: Context,
+    state: EditorState,
+    atEnd: Boolean,
+    a: Args,
+): ToolResult {
+    val p = state.project.value
+    val style = Cards.Style.entries.firstOrNull { it.name.equals(a.str("style"), true) } ?: Cards.Style.Dark
+    val words = a.str("text") ?: if (atEnd) "Thanks for watching" else null
+    val out =
+        withContext(Dispatchers.IO) {
+            Cards.add(context, p, atEnd, style, words, a.num("seconds") ?: 3.0)
+        } ?: return ToolResult("The card could not be made.", true)
+    state.edit("card") { out }
+    return ToolResult(if (atEnd) "Outro card added." else "Intro card added.")
 }
 
 private fun motion(

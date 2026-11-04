@@ -69,3 +69,8 @@ cp $HERE/plans-main.swift $W/plans/main.swift
 mkdir -p $W/sensitive && cp $HERE/sensitive.swift $W/sensitive/main.swift
 cp $REPO/ZellaiOS/Packages/ZellaKit/Sources/ZellaCore/SensitiveText.swift $W/sensitive/
 (cd $W/sensitive && xcrun swiftc -O main.swift SensitiveText.swift -o run && ./run > $ROOT/zella-core/src/test/resources/fixtures/ios/sensitive.json)
+
+# Keyframes and beat punches: the iPhone's own maths on fixed inputs.
+mkdir -p $W/depth && cp $HERE/depth.swift $W/depth/main.swift
+cp $REPO/ZellaiOS/Packages/ZellaKit/Sources/ZellaCore/{Keyframe,BeatSync}.swift $W/depth/
+(cd $W/depth && xcrun swiftc -swift-version 5 main.swift Keyframe.swift BeatSync.swift -o run && ./run > $ROOT/zella-core/src/test/resources/fixtures/ios/depth.json)

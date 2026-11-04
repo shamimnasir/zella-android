@@ -10,19 +10,10 @@ import android.graphics.LinearGradient
 import android.graphics.Paint
 import android.graphics.Shader
 import android.graphics.Typeface
-import android.net.Uri
 import android.text.Layout
 import android.text.StaticLayout
 import android.text.TextPaint
-import androidx.media3.common.MediaItem
-import androidx.media3.transformer.Composition
-import androidx.media3.transformer.EditedMediaItem
-import androidx.media3.transformer.EditedMediaItemSequence
-import com.zellahq.app.editor.ExportOutcome
-import com.zellahq.app.editor.ExportSettings
-import com.zellahq.app.editor.Exporter
 import com.zellahq.app.editor.Storage
-import com.zellahq.app.editor.appComposition
 import com.zellahq.core.auto.BRoll
 import com.zellahq.core.auto.StockClip
 import com.zellahq.core.project.Aspect
@@ -200,26 +191,6 @@ class BRollMaker(private val context: Context) {
         return b
     }
 
-    /** A still as a short silent video file. */
-    private fun encode(
-        png: File,
-        seconds: Double,
-        out: File,
-        shortSide: Int,
-    ): Boolean {
-        val builder = appComposition(context, Storage.store(context))
-        val item =
-            EditedMediaItem
-                .Builder(MediaItem.Builder().setUri(Uri.fromFile(png)).setImageDurationMs((seconds * 1000).toLong()).build())
-                .setFrameRate(30)
-                .build()
-        val composition =
-            Composition.Builder(
-                EditedMediaItemSequence.Builder(setOf(androidx.media3.common.C.TRACK_TYPE_VIDEO)).addItem(item).build(),
-            ).build()
-        return Exporter(context, builder).render(composition, ExportSettings(shortSide), out) is ExportOutcome.Done
-    }
-
     /** Word cards, on this phone, no network. */
     fun cards(
         p: Project,
@@ -241,7 +212,7 @@ class BRollMaker(private val context: Context) {
                     val bmp = card(pl.keyword, w, h)
                     png.outputStream().use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
                     bmp.recycle()
-                    val ok = encode(png, BRoll.CARD_SECONDS, mp4, minOf(w, h))
+                    val ok = com.zellahq.app.depth.Stills.encode(context, png, BRoll.CARD_SECONDS, mp4, minOf(w, h))
                     png.delete()
                     if (!ok) return@mapNotNull null
                 }

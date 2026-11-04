@@ -68,7 +68,24 @@ import com.zellahq.ui.ZellaColors
 import com.zellahq.ui.ZellaRadius
 import com.zellahq.ui.ZellaSpacing
 
-private enum class Sheet { None, Speed, Volume, Captions, Look, Sound, Text, Transition, Auto, Callouts, Assistant, Background, BRoll }
+private enum class Sheet {
+    None,
+    Speed,
+    Volume,
+    Captions,
+    Look,
+    Sound,
+    Text,
+    Transition,
+    Auto,
+    Callouts,
+    Assistant,
+    Background,
+    BRoll,
+    Pip,
+    Effects,
+    Motion,
+}
 
 @OptIn(UnstableApi::class)
 @Composable
@@ -220,6 +237,9 @@ fun EditorScreen(
             Tool(stringResource(R.string.ed_background), if (sheet == Sheet.Background) ZellaColors.CardSun else null) {
                 sheet = if (sheet == Sheet.Background) Sheet.None else Sheet.Background
             }
+            Tool(stringResource(R.string.ed_pip), if (sheet == Sheet.Pip) ZellaColors.CardSun else null) {
+                sheet = if (sheet == Sheet.Pip) Sheet.None else Sheet.Pip
+            }
             Tool(stringResource(R.string.ed_broll), if (sheet == Sheet.BRoll) ZellaColors.CardSun else null) {
                 sheet = if (sheet == Sheet.BRoll) Sheet.None else Sheet.BRoll
             }
@@ -254,6 +274,13 @@ fun EditorScreen(
                 Tool(
                     stringResource(R.string.ed_volume),
                 ) { sheet = if (sheet == Sheet.Volume) Sheet.None else Sheet.Volume }
+                Tool(stringResource(R.string.ed_effects), if (sheet == Sheet.Effects) ZellaColors.CardSun else null) {
+                    sheet = if (sheet == Sheet.Effects) Sheet.None else Sheet.Effects
+                }
+                Tool(stringResource(R.string.ed_motion), if (sheet == Sheet.Motion) ZellaColors.CardSun else null) {
+                    sheet = if (sheet == Sheet.Motion) Sheet.None else Sheet.Motion
+                }
+                Tool(stringResource(R.string.ed_freeze)) { state.freezeFrame(position) }
                 Tool(stringResource(R.string.ed_duplicate)) { state.edit("duplicate") { it.duplicate(selected.id) } }
                 Tool(stringResource(R.string.ed_replay)) { state.edit("replay") { it.instantReplay(selected.id) } }
                 Tool(stringResource(R.string.ed_rewind)) { state.edit("rewind") { it.rewind(selected.id) } }
@@ -302,6 +329,21 @@ fun EditorScreen(
         if (sheet == Sheet.BRoll) {
             androidx.compose.foundation.layout.Box(Modifier.heightIn(max = 320.dp).verticalScroll(rememberScrollState())) {
                 com.zellahq.app.broll.BRollPanel(state, project, selectedId)
+            }
+        }
+        if (sheet == Sheet.Pip) {
+            androidx.compose.foundation.layout.Box(Modifier.heightIn(max = 340.dp).verticalScroll(rememberScrollState())) {
+                com.zellahq.app.depth.PipPanel(state, project, position)
+            }
+        }
+        if (selected != null && sheet == Sheet.Effects) {
+            androidx.compose.foundation.layout.Box(Modifier.heightIn(max = 340.dp).verticalScroll(rememberScrollState())) {
+                com.zellahq.app.depth.EffectsPanel(state, selected)
+            }
+        }
+        if (selected != null && sheet == Sheet.Motion) {
+            androidx.compose.foundation.layout.Box(Modifier.heightIn(max = 340.dp).verticalScroll(rememberScrollState())) {
+                com.zellahq.app.depth.MotionPanel(state, project, selected, position)
             }
         }
         if (sheet == Sheet.Callouts) {

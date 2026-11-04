@@ -245,10 +245,24 @@ clips the brief asks for.
 | The Assistant sends no video | `AssistantTest`: 11 tool rounds on a real editor against a pretend provider. Largest request 21.5 KB, all tool schemas and text. No path on the phone, no `file:`, no 400-character blob, no image block, no key in a body. The edits really landed in the project. Export asked first, and a "no" stopped it |
 | Keys | `AssistantTest`: read back through Android Keystore, absent from every shared_prefs file on disk, gone after remove. App backup is off |
 
+| Cutout on real people | `CutoutRenderTest`: Tears of Steel (three people, moving) and a still portrait, contact sheets checked by eye. Faces whole, no phantom shapes. Getting there took a variant sheet: the model wants a letterboxed frame at -1 to 1, and gives raw scores that need a softmax |
+| Edge stability | a still person under camera noise, share of edge pixels that change by over 20 percent between frames, median: 6.14 with no hold, 3.17 at 0.5, 2.46 at 0.75 (shipped), 2.25 at 0.9. Three people moving: 21.35 with no hold, 16.86 at 0.75, most of which is real movement |
+| Backgrounds | blur, colour, black, your photo, all 40 of the iPhone's procedural backgrounds with its exact values. Moving ones do change over time. On the emulator 180 frames took 22 s to work out |
+| Word cards and stock | `BRollRenderTest`: cards land on their words, everything after moves up, the speaker comes back. A stand-in stock site saw only `mountain`, `ocean` and the key, over HTTPS, no caption line, no file name |
+
+| Depth tools | `DepthRenderTest` through real exports: a moved clip lands at 0.75, 0.75, uncovered space black. A keyframed square reads 0.499, 0.651, 0.799 (wanted 0.5, 0.65, 0.8). Half opacity reads 126 of 255. A mask greys the inside and leaves white outside, and flips. All 8 effects change the picture. Freeze holds a moving bar still for 2 s, then it moves on. All tested on the free plan long after Pro Week: they export, the iPhone's rule |
+| Curves and punches against the iPhone | `DepthTest` equals `tools/ios-conformance/depth.swift` on Apple's own curves, tracks and beat punches |
+| Picture in picture | shows where it says and only while it should; a circle leaves its corners; the main video stays under it. Its sound joins the mix (not measured yet) |
+| GIF and sound only | GIF89a at 480 wide, 3.84 s, the colours came through. The sound file has one audio track. MOV is not offered: Android has no writer for it |
+
 Not verified: no real provider has been called, since no key was available. Nothing on a phone. OCR speed
 on a phone is unknown; the scan has a 75 s budget and says so when it stops early. Reading is Latin script
 only (Tesseract `eng`), and the reader may miss small or fast text, which the screen says. Blend modes on
-callouts are kept in the file but drawn as normal.
+callouts are kept in the file but drawn as normal. The stock path has never reached a real site. Transparent
+export is not built, since Android has no ready alpha video path; its Pro line stays in the gate unused. The
+person cutout has no live camera preview yet. Colour sliders use plain formulas, which are not the same maths
+as the iPhone's Core Image filters, so a project moved between them may differ slightly. A look's dark corners
+and blur do not sit inside a mask's area.
 
 ## Phase 1 exit gate: NOT passed
 

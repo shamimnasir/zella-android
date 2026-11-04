@@ -258,11 +258,11 @@ fun Project.setSpeed(
         }.invalidatePolishedAudio()
 }
 
-/** 0 mutes, 1 is unchanged. Matches the iPhone clamp. */
+/** 0 mutes, 1 is unchanged, up to 2 lifts a quiet take. Matches the iPhone's setClipVolume. */
 fun Project.setVolume(
     clipId: String,
     volume: Double,
-) = mapClip(clipId) { it.copy(volume = volume.coerceIn(0.0, 1.0)) }.invalidatePolishedAudio()
+) = mapClip(clipId) { it.copy(volume = volume.coerceIn(0.0, 2.0)) }.invalidatePolishedAudio()
 
 fun Project.reverse(clipId: String) = mapClip(clipId) { it.copy(reversed = !it.reversed) }.invalidatePolishedAudio()
 

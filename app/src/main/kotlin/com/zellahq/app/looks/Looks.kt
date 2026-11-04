@@ -16,7 +16,10 @@ import androidx.media3.effect.SingleColorLut
 import com.zellahq.core.looks.ColorBoard
 import com.zellahq.core.looks.Lut
 import com.zellahq.core.project.Clip
+import com.zellahq.core.project.mask
 import com.zellahq.core.project.newId
+import com.zellahq.core.project.special
+import com.zellahq.core.project.withEffect
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
@@ -94,6 +97,35 @@ object Looks {
 
     private fun effects(clip: Clip) = clip.extras["effects"] as? JsonObject
 
+    /**
+     * A look stores its own effects on the clip and has them baked into its LUT and drawn in [effects].
+     * Only what the person changed since then is added, or Film Noir would go black and white twice.
+     */
+    fun extraSpecial(
+        context: Context,
+        clip: Clip,
+    ): com.zellahq.core.project.SpecialEffects {
+        val now = clip.special
+        val look = byName(context, presetName(clip)) ?: return now
+        val base = clip.withEffect("special", look.effects["special"]).special
+        return com.zellahq.core.project.SpecialEffects(
+            now.blackAndWhite && !base.blackAndWhite,
+            if (now.vignette != base.vignette) now.vignette else 0.0,
+            if (now.grain != base.grain) now.grain else 0.0,
+            if (now.glow != base.glow) now.glow else 0.0,
+            if (now.pixelate != base.pixelate) now.pixelate else 0.0,
+            if (now.chromatic != base.chromatic) now.chromatic else 0.0,
+            if (now.blur != base.blur) now.blur else 0.0,
+            now.letterbox && !base.letterbox,
+        )
+    }
+
+    /** True when any clip wears a Founder grade: the export boundary asks this. */
+    fun usesFounderGrade(
+        context: Context,
+        p: com.zellahq.core.project.Project,
+    ) = p.clips.any { c -> byName(context, presetName(c))?.founder == true }
+
     fun presetName(clip: Clip) = effects(clip)?.get("presetName")?.jsonPrimitive?.contentOrNull
 
     fun intensity(clip: Clip) = effects(clip)?.get("gradeIntensity")?.jsonPrimitive?.floatOrNull ?: 1f
@@ -138,6 +170,28 @@ object Looks {
         val fx = effects(clip) ?: return null
         val look = byName(context, presetName(clip))
         var lut: Lut? = look?.let { lut(context, it).atIntensity(intensity(clip)) }
+        // Exposure and the rest, only as far as they differ from what the look baked in.
+        val adjust = com.zellahq.core.project.colorAdjustOf(fx["colorAdjustments"])
+        val bakedAdjust = com.zellahq.core.project.colorAdjustOf(look?.effects?.get("colorAdjustments"))
+        if (adjust != bakedAdjust) {
+            val delta =
+                com.zellahq.core.project.ColorAdjust(
+                    adjust.exposure - bakedAdjust.exposure,
+                    adjust.brightness - bakedAdjust.brightness,
+                    1 + adjust.contrast - bakedAdjust.contrast,
+                    1 + adjust.saturation - bakedAdjust.saturation,
+                    6500 + adjust.temperature - bakedAdjust.temperature,
+                    adjust.tint - bakedAdjust.tint,
+                    1 + adjust.highlights - bakedAdjust.highlights,
+                    adjust.shadows - bakedAdjust.shadows,
+                )
+            lut =
+                (lut ?: Lut.identity()).then { c ->
+                    val o = c.copyOf()
+                    delta.apply(o)
+                    o
+                }
+        }
         // A colour board the person changed after picking the look: the look's own board is already baked in.
         val board = board(fx["colorBoard"])
         val baked = look?.let { board(it.effects["colorBoard"]) } ?: ColorBoard()
@@ -170,7 +224,10 @@ object Looks {
         height: Int,
     ): List<Effect> {
         val out = ArrayList<Effect>()
-        clipLut(context, clip)?.let { out += media3(it) }
+        val mask = clip.mask
+        clipLut(context, clip)?.let { out += if (mask != null) com.zellahq.app.depth.MaskedGradeEffect(it, mask) else media3(it) }
+        // The look's blur and dark corners cover the whole picture, so they cannot sit inside a mask's area.
+        if (mask != null) return out
         val look = byName(context, presetName(clip)) ?: return out
         val t = intensity(clip)
         if (look.blur > 0.01f) out += androidx.media3.effect.GaussianBlur(look.blur * t * 4)

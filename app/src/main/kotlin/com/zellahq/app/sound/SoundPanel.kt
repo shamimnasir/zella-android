@@ -1,3 +1,5 @@
+@file:Suppress("ktlint:standard:max-line-length")
+
 package com.zellahq.app.sound
 
 import androidx.compose.foundation.clickable
@@ -31,6 +33,9 @@ import com.zellahq.core.project.MusicBed
 import com.zellahq.core.project.Project
 import com.zellahq.core.project.SoundBite
 import com.zellahq.core.project.newId
+import com.zellahq.core.project.overlays
+import com.zellahq.core.project.setVolume
+import com.zellahq.core.project.updateOverlay
 import com.zellahq.ui.ZellaColors
 import com.zellahq.ui.ZellaSpacing
 import kotlinx.serialization.json.JsonObject
@@ -55,6 +60,8 @@ fun SoundPanel(
     val bed = project.musicBeds?.firstOrNull()
 
     Column(verticalArrangement = Arrangement.spacedBy(ZellaSpacing.S)) {
+        Levels(state, project, selected)
+        BeatPunch(state)
         Text(stringResource(R.string.snd_music), color = text)
         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(ZellaSpacing.S)) {
             music.forEach { m ->
@@ -156,4 +163,118 @@ fun SoundPanel(
         }
         gain?.let { Text(stringResource(R.string.snd_even_done, "%+.1f".format(it)), color = text) }
     }
+}
+
+/** The Audio tool: the clip, the music, the effects and each picture-in-picture, on one screen. */
+@Composable
+private fun Levels(
+    state: EditorState,
+    project: Project,
+    selected: Clip?,
+) {
+    val text = MaterialTheme.colorScheme.onBackground
+
+    @Composable
+    fun Level(
+        label: String,
+        value: Double,
+        max: Float,
+        onChange: (Double) -> Unit,
+    ) {
+        Text("$label: ${(value * 100).toInt()}%", color = text)
+        androidx.compose.material3.Slider(value = value.toFloat().coerceIn(0f, max), onValueChange = {
+            onChange(it.toDouble())
+        }, valueRange = 0f..max)
+    }
+    Text(stringResource(R.string.snd_levels), color = text)
+    selected?.let { c ->
+        Level(stringResource(R.string.snd_level_clip), c.volume, 2f) { v -> state.edit("volume") { it.setVolume(c.id, v) } }
+        Text(stringResource(R.string.snd_clip_note), color = text)
+    }
+    project.musicBeds?.firstOrNull()?.let { b ->
+        Level(
+            stringResource(R.string.snd_level_music),
+            b.volume,
+            1f,
+        ) { v ->
+            state.edit("music volume") { p ->
+                p.copy(
+                    musicBeds =
+                        p.musicBeds?.map {
+                            it.copy(volume = v)
+                        },
+                )
+            }
+        }
+    }
+    project.soundBites?.firstOrNull()?.let { b ->
+        Level(
+            stringResource(R.string.snd_level_effects),
+            b.volume,
+            1f,
+        ) { v ->
+            state.edit("effects volume") { p ->
+                p.copy(
+                    soundBites =
+                        p.soundBites?.map {
+                            it.copy(volume = v)
+                        },
+                )
+            }
+        }
+    }
+    project.overlays.forEachIndexed { i, o ->
+        Level(
+            stringResource(R.string.snd_level_overlay, i + 1),
+            o.volume,
+            1f,
+        ) { v ->
+            state.edit("overlay volume") { p ->
+                p.updateOverlay(o.id) {
+                    it.with("volume" to JsonPrimitive(v))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun BeatPunch(state: EditorState) {
+    val context = LocalContext.current
+    val text = MaterialTheme.colorScheme.onBackground
+    var busy by remember { mutableStateOf(false) }
+    var note by remember { mutableStateOf<Int?>(null) }
+    var found by remember { mutableStateOf(0) }
+
+    fun go(strength: Double) {
+        busy = true
+        note = null
+        val start = state.project.value
+        Thread({
+            val out = runCatching { BeatSync.apply(context, start, strength) }.getOrNull()
+            state.onMain {
+                busy = false
+                if (out != null && out.second > 0) {
+                    found = out.second
+                    note = R.string.snd_beat_done
+                    state.edit("beat sync") { out.first }
+                } else {
+                    note = R.string.snd_beat_none
+                }
+            }
+        }, "beats").start()
+    }
+    Text(stringResource(R.string.snd_beat), color = text)
+    Text(stringResource(R.string.snd_beat_detail), color = text)
+    if (busy) {
+        Text(stringResource(R.string.snd_beat_finding), color = text)
+    } else {
+        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(ZellaSpacing.S)) {
+            Tool(stringResource(R.string.snd_beat_soft)) { go(0.25) }
+            Tool(stringResource(R.string.snd_beat_mid)) { go(0.5) }
+            Tool(stringResource(R.string.snd_beat_hard)) { go(1.0) }
+            Tool(stringResource(R.string.snd_beat_clear), ZellaColors.CardCoral) { state.edit("beat sync") { BeatSync.clear(it) } }
+        }
+    }
+    note?.let { Text(stringResource(it, found), color = text) }
 }

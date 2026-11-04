@@ -62,6 +62,7 @@ class ExportService : Service() {
         const val EXTRA_PROJECT = "project"
         const val EXTRA_SHORT_SIDE = "short"
         const val EXTRA_FPS = "fps"
+        const val EXTRA_FORMAT = "format"
         const val ACTION_CANCEL = "cancel"
         private const val CHANNEL = "export"
         private const val ID = 2
@@ -79,17 +80,23 @@ class ExportService : Service() {
             file: File,
         ): Boolean =
             runCatching {
+                val (collection, folder) =
+                    when (file.extension) {
+                        "gif" -> MediaStore.Images.Media.EXTERNAL_CONTENT_URI to "Pictures/Zella"
+                        "m4a" -> MediaStore.Audio.Media.EXTERNAL_CONTENT_URI to "Music/Zella"
+                        else -> MediaStore.Video.Media.EXTERNAL_CONTENT_URI to "Movies/Zella"
+                    }
                 val values =
                     ContentValues().apply {
-                        put(MediaStore.Video.Media.DISPLAY_NAME, file.name)
-                        put(MediaStore.Video.Media.MIME_TYPE, "video/mp4")
-                        put(MediaStore.Video.Media.RELATIVE_PATH, "Movies/Zella")
-                        put(MediaStore.Video.Media.IS_PENDING, 1)
+                        put(MediaStore.MediaColumns.DISPLAY_NAME, file.name)
+                        put(MediaStore.MediaColumns.MIME_TYPE, Formats.mime(file))
+                        put(MediaStore.MediaColumns.RELATIVE_PATH, folder)
+                        put(MediaStore.MediaColumns.IS_PENDING, 1)
                     }
-                val uri = context.contentResolver.insert(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, values)!!
+                val uri = context.contentResolver.insert(collection, values)!!
                 context.contentResolver.openOutputStream(uri)!!.use { o -> file.inputStream().use { it.copyTo(o) } }
                 values.clear()
-                values.put(MediaStore.Video.Media.IS_PENDING, 0)
+                values.put(MediaStore.MediaColumns.IS_PENDING, 0)
                 context.contentResolver.update(uri, values, null, null)
                 true
             }.getOrDefault(false)
@@ -101,7 +108,7 @@ class ExportService : Service() {
             val uri = FileProvider.getUriForFile(context, "${context.packageName}.files", file)
             val send =
                 Intent(Intent.ACTION_SEND)
-                    .setType("video/mp4")
+                    .setType(Formats.mime(file))
                     .putExtra(Intent.EXTRA_STREAM, uri)
                     .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             return Intent.createChooser(send, context.getString(R.string.ex_share))
@@ -138,13 +145,15 @@ class ExportService : Service() {
         // (Android 15) became "type none", which Android refuses (crash on the emulator, 2026-11-04).
         startForeground(ID, notification(0), type)
         mutableStatus.value = ExportStatus.Running(0, false)
-        Thread({ run(projectId, settings) }, "export").start()
+        val format = intent.getStringExtra(EXTRA_FORMAT) ?: Formats.VIDEO
+        Thread({ run(projectId, settings, format) }, "export").start()
         return START_NOT_STICKY
     }
 
     private fun run(
         projectId: String,
         settings: ExportSettings,
+        format: String,
     ) {
         val store = Storage.store(this)
         val result =
@@ -152,7 +161,12 @@ class ExportService : Service() {
                 val project = store.load(projectId)
                 // The decision is made here, at the render boundary, from stored facts only.
                 val request =
-                    ExportRequest(durationSeconds = project.duration, height = settings.shortSide, fps = settings.fps)
+                    ExportRequest(
+                        durationSeconds = project.duration,
+                        height = settings.shortSide,
+                        fps = settings.fps,
+                        usesFounderGrade = com.zellahq.app.looks.Looks.usesFounderGrade(this, project),
+                    )
                 when (val d = PremiumGate.authorize(request, Entitlements.load(this), System.currentTimeMillis())) {
                     is ExportDecision.Blocked -> ExportStatus.Blocked(d.needs)
                     is ExportDecision.Allowed -> {
@@ -184,7 +198,7 @@ class ExportService : Service() {
                                     getSystemService(NotificationManager::class.java).notify(ID, notification(pct))
                                 }
                         ) {
-                            is ExportOutcome.Done -> ExportStatus.Done(o.file, o.result.approximateDurationMs / 1000.0)
+                            is ExportOutcome.Done -> convert(o, format)
                             is ExportOutcome.Failed -> ExportStatus.Failed(o.message)
                             ExportOutcome.Cancelled -> ExportStatus.Cancelled
                         }.also { e.release() }
@@ -195,6 +209,19 @@ class ExportService : Service() {
         mutableStatus.value = result
         ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
         stopSelf()
+    }
+
+    /** A GIF or sound-only file is made from the finished video, so it holds exactly what the video holds. */
+    private fun convert(
+        o: ExportOutcome.Done,
+        format: String,
+    ): ExportStatus {
+        val seconds = o.result.approximateDurationMs / 1000.0
+        if (format == Formats.VIDEO) return ExportStatus.Done(o.file, seconds)
+        val out = File(o.file.parentFile, o.file.nameWithoutExtension + if (format == Formats.GIF) ".gif" else ".m4a")
+        val ok = if (format == Formats.GIF) Formats.gif(o.file, out) else Formats.soundOnly(o.file, out)
+        o.file.delete()
+        return if (ok) ExportStatus.Done(out, seconds) else ExportStatus.Failed(getString(R.string.ex_failed_generic))
     }
 
     private fun notification(percent: Int): Notification {

@@ -1,3 +1,5 @@
+@file:Suppress("ktlint:standard:max-line-length")
+
 package com.zellahq.app.captions
 
 import androidx.compose.foundation.clickable
@@ -33,6 +35,8 @@ import com.zellahq.app.editor.mmss
 import com.zellahq.core.captions.CaptionBuilder
 import com.zellahq.core.project.CaptionCue
 import com.zellahq.core.project.Project
+import com.zellahq.core.project.cutWords
+import com.zellahq.core.project.spokenWords
 import com.zellahq.ui.ZellaColors
 import com.zellahq.ui.ZellaSpacing
 import kotlinx.serialization.json.JsonObject
@@ -134,6 +138,7 @@ fun CaptionsPanel(
         FontRow(state, track)
         BetterModels()
 
+        TranscriptEditor(state, project)
         Text(stringResource(R.string.cap_edit_hint), color = text)
         // The cues as a list of words: tap one to fix it.
         Column(verticalArrangement = Arrangement.spacedBy(ZellaSpacing.S)) {
@@ -282,5 +287,38 @@ private fun BetterModels() {
             },
             dismissButton = { Tool(stringResource(R.string.cap_cancel)) { askData = null } },
         )
+    }
+}
+
+/** Edit the video by editing the words: tap the words to lose, and the video they were spoken in goes too. */
+@Composable
+private fun TranscriptEditor(
+    state: EditorState,
+    project: Project,
+) {
+    val color = MaterialTheme.colorScheme.onBackground
+    var open by remember { mutableStateOf(false) }
+    var picked by remember(project.captions) { mutableStateOf(emptySet<Int>()) }
+    Tool(stringResource(if (open) R.string.cap_text_close else R.string.cap_text_open), if (open) ZellaColors.CardSun else null) {
+        open = !open
+    }
+    if (!open) return
+    Text(stringResource(R.string.cap_text_detail), color = color)
+    val words = project.spokenWords()
+    @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+    androidx.compose.foundation.layout.FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(ZellaSpacing.S),
+        verticalArrangement = Arrangement.spacedBy(ZellaSpacing.S),
+    ) {
+        words.take(1500).forEachIndexed { i, w ->
+            Tool(w.text, if (i in picked) ZellaColors.CardCoral else null) { picked = if (i in picked) picked - i else picked + i }
+        }
+    }
+    if (picked.isNotEmpty()) {
+        Tool(stringResource(R.string.cap_text_cut, picked.size), ZellaColors.CardCoral) {
+            val cut = picked
+            state.edit("cut words") { it.cutWords(cut) }
+            picked = emptySet()
+        }
     }
 }

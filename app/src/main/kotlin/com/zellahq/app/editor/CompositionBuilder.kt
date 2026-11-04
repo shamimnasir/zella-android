@@ -31,9 +31,14 @@ import com.zellahq.core.project.ProjectStore
 import com.zellahq.core.project.ZoomBlock
 import com.zellahq.core.project.background
 import com.zellahq.core.project.duration
+import com.zellahq.core.project.keyframes
+import com.zellahq.core.project.opacity
+import com.zellahq.core.project.overlays
 import com.zellahq.core.project.rampMultiplier
 import com.zellahq.core.project.sourceTimeAt
+import com.zellahq.core.project.special
 import com.zellahq.core.project.startTime
+import com.zellahq.core.project.transform
 import com.zellahq.core.project.transitionAfter
 import com.zellahq.core.project.transitionOverlap
 import java.io.File
@@ -131,6 +136,35 @@ class CompositionBuilder(
             sequences += b.build()
         }
 
+        // Each picture-in-picture clip's own sound, on an audio-only track.
+        p.overlays.forEach { o ->
+            if (o.audioMuted || o.volume <= 0.0) return@forEach
+            val file = o.source?.let { store.resolve(it, p.id) }?.takeIf { it.isFile } ?: return@forEach
+            if (o.start >= total || !hasSound(file)) return@forEach
+            val played = minOf(o.duration, total - o.start)
+            if (played <= 0.05) return@forEach
+            val b = EditedMediaItemSequence.Builder(setOf(C.TRACK_TYPE_AUDIO))
+            if (o.start > 0) b.addGap((o.start * 1e6).toLong())
+            val media =
+                MediaItem
+                    .Builder()
+                    .setUri(Uri.fromFile(file))
+                    .setClippingConfiguration(
+                        MediaItem.ClippingConfiguration.Builder().setStartPositionUs(
+                            (o.sourceOffset * 1e6).toLong(),
+                        ).setEndPositionUs(((o.sourceOffset + played) * 1e6).toLong()).build(),
+                    ).build()
+            b.addItem(
+                EditedMediaItem
+                    .Builder(media)
+                    .setDurationUs((o.sourceDuration * 1e6).toLong())
+                    .setRemoveVideo(true)
+                    .setEffects(Effects(listOf(GainProcessor { o.volume.coerceIn(0.0, 1.0).toFloat() }), emptyList()))
+                    .build(),
+            )
+            sequences += b.build()
+        }
+
         // Sound effects share tracks where they do not overlap: every track is a player of its own,
         // and Make it Viral can place many effects.
         val effects =
@@ -173,7 +207,7 @@ class CompositionBuilder(
                 .setEffects(
                     Effects(
                         emptyList(),
-                        listOfNotNull(zoomEffect(p.zoomBlocks.orEmpty(), canvas)) + calloutEffects(p, canvas) +
+                        listOfNotNull(zoomEffect(p.zoomBlocks.orEmpty(), canvas)) + pipEffect(p, canvas) + calloutEffects(p, canvas) +
                             listOfNotNull(titleEffect(p, canvas), captionEffect(p, canvas)),
                     ),
                 )
@@ -258,6 +292,16 @@ class CompositionBuilder(
         video += Presentation.createForWidthAndHeight(canvas.width, canvas.height, Presentation.LAYOUT_SCALE_TO_FIT_WITH_CROP)
         // The clip's look, colour board and imported LUT (the iPhone's ClipEffects), as one LUT.
         video += clipLook(clip, canvas)
+        val start = p.startTime(clip.id)
+        val special = clipSpecial(clip)
+        if (!special.isPlain) video += com.zellahq.app.depth.SpecialEffect(special) { us -> clockOffset + us / 1e6 }
+        val keys = clip.keyframes
+        if (!keys.isEmpty || !clip.transform.isIdentity || clip.opacity < 0.999) {
+            video +=
+                com.zellahq.app.depth.ClipTransformEffect(clip.transform, clip.opacity, keys) { us ->
+                    (clockOffset + us / 1e6 - start).coerceAtLeast(0.0)
+                }
+        }
         return video
     }
 
@@ -521,6 +565,25 @@ class CompositionBuilder(
             listOf(com.zellahq.app.captions.CaptionOverlay(track, canvas.width, canvas.height, typeface(track))),
         )
     }
+
+    private fun pipEffect(
+        p: Project,
+        canvas: Size,
+    ): List<Effect> {
+        val list = p.overlays
+        if (list.isEmpty()) return emptyList()
+        val pip =
+            com.zellahq.app.depth.PipOverlay(list, { o ->
+                o.source?.let {
+                        s ->
+                    store.resolve(s, p.id).takeIf { it.isFile }
+                }
+            }, canvas.width, canvas.height)
+        return listOf(androidx.media3.effect.OverlayEffect(listOf(pip)))
+    }
+
+    /** The clip's effects beyond those its look already baked in. Set by the app, which has the looks. */
+    var clipSpecial: (Clip) -> com.zellahq.core.project.SpecialEffects = { it.special }
 
     /** The worked-out person mask for a source file, or null until it is made. Set by the app. */
     var matteFile: (java.io.File) -> java.io.File? = { null }
