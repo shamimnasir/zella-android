@@ -359,4 +359,15 @@
     <string name="bg_soft">Soft</string>
     <string name="bg_medium">Medium</string>
     <string name="bg_strong">Strong</string>
+
+    <!-- Cutaways. Stock clips reach a site, so this screen says what goes there. -->
+    <string name="ed_broll">Cutaways</string>
+    <string name="br_detail">A cutaway is a short shot dropped in over a word you say. Zella picks words from your captions, so make captions first.</string>
+    <string name="br_cards">Add word cards</string>
+    <string name="br_cards_note">Made on this phone with no network. Each card is a generated picture with the word on it, not stock footage.</string>
+    <string name="br_stock_title">Stock video clips (optional)</string>
+    <string name="br_stock_network">Sends only each search word and your own free key to %1$s, then downloads the clip it finds. It never sends your video. Check the licence on the site before you publish.</string>
+    <string name="br_stock">Add stock clips</string>
+    <string name="br_working">Making cutaways…</string>
+    <string name="br_remove">Remove %1$d cutaways</string>
 </resources>

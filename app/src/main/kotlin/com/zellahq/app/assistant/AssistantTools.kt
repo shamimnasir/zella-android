@@ -15,8 +15,11 @@ import com.zellahq.ai.emptyParams
 import com.zellahq.ai.enumProp
 import com.zellahq.ai.obj
 import com.zellahq.ai.prop
+import com.zellahq.app.broll.BRollMaker
+import com.zellahq.app.broll.StockProvider
 import com.zellahq.app.callouts.ScreenReader
 import com.zellahq.app.callouts.findSensitiveText
+import com.zellahq.app.cutout.BackgroundPainter
 import com.zellahq.app.editor.EditorState
 import com.zellahq.app.editor.Storage
 import com.zellahq.app.export.ExportService
@@ -25,12 +28,14 @@ import com.zellahq.app.looks.Looks
 import com.zellahq.app.sound.Sounds
 import com.zellahq.core.PremiumGate
 import com.zellahq.core.audio.VoiceChain
+import com.zellahq.core.auto.BRoll
 import com.zellahq.core.captions.CaptionBuilder
 import com.zellahq.core.motion.TextAnimationSpec
 import com.zellahq.core.motion.TextMotionCatalog
 import com.zellahq.core.motion.TextMotionPhase
 import com.zellahq.core.motion.TextMotionPhaseKind
 import com.zellahq.core.project.Aspect
+import com.zellahq.core.project.BackgroundChoice
 import com.zellahq.core.project.Callout
 import com.zellahq.core.project.CalloutKind
 import com.zellahq.core.project.Clip
@@ -52,6 +57,7 @@ import com.zellahq.core.project.newTitle
 import com.zellahq.core.project.position
 import com.zellahq.core.project.removeTransition
 import com.zellahq.core.project.rippleDelete
+import com.zellahq.core.project.setBackgroundEverywhere
 import com.zellahq.core.project.setSpeed
 import com.zellahq.core.project.setTransition
 import com.zellahq.core.project.setVolume
@@ -867,6 +873,93 @@ fun assistantTools(
                     ) { findSensitiveText(context, p, m, a.num("start"), a.num("end"), a.str("style") == "pixelate") }
                 if (report.callouts.isNotEmpty()) state.edit("blur") { it.addCallouts(report.callouts) }
                 ToolResult(report.text)
+            },
+        )
+        add(
+            Tool(
+                "remove_background",
+                "Replace what is behind the person with a finished backdrop, on the whole video. Worked out on this phone.",
+                emptyParams(),
+            ) {
+                if (project().clips.isEmpty()) return@Tool noClips
+                state.edit("background") { it.setBackgroundEverywhere(BackgroundChoice.REMOVED) }
+                ToolResult(
+                    "Background replaced on all ${project().clips.size} clips. Finding the person takes a moment; the preview changes when it is done.",
+                )
+            },
+        )
+        add(
+            Tool(
+                "set_background",
+                "Replace the background on the whole video. style: blur, cutout (black or a colour), color, or preset.",
+                obj(
+                    mapOf(
+                        "style" to enumProp(listOf("blur", "cutout", "color", "preset"), "Background style."),
+                        "blur_radius" to prop("number", "For blur (default 18)."),
+                        "color_hex" to prop("string", "#RRGGBB for color or cutout."),
+                        "preset_id" to enumProp((BackgroundPainter.images + BackgroundPainter.videos).map { it.id }, "For preset."),
+                    ),
+                    listOf("style"),
+                ),
+            ) { a ->
+                val style = a.str("style")?.takeIf { it in listOf("blur", "cutout", "color", "preset") } ?: return@Tool bad("style")
+                if (style == "preset" &&
+                    (BackgroundPainter.images + BackgroundPainter.videos).none {
+                        it.id == a.str("preset_id")
+                    }
+                ) {
+                    return@Tool bad("preset_id")
+                }
+                if (project().clips.isEmpty()) return@Tool noClips
+                val choice = BackgroundChoice(style, a.num("blur_radius"), a.str("color_hex"), null, a.str("preset_id"))
+                state.edit("background") { it.setBackgroundEverywhere(choice) }
+                ToolResult(
+                    "Background set to $style on all ${project().clips.size} clips. Finding the person takes a moment; the preview changes when it is done.",
+                )
+            },
+        )
+        add(
+            Tool("clear_background", "Put the original background back on the whole video.", emptyParams()) {
+                state.edit("background") { it.setBackgroundEverywhere(null) }
+                ToolResult("Original background restored.")
+            },
+        )
+        add(
+            Tool(
+                "add_word_cards",
+                "Add short full-screen cutaway cards, each showing a key word from the captions. Made on this phone with no network. These are generated cards, not stock footage.",
+                emptyParams(),
+            ) {
+                if (words() == null) return@Tool ToolResult("No speech was found to pick words from.", true)
+                val p = project()
+                val sel = state.selected.value
+                val r = withContext(Dispatchers.IO) { BRollMaker(context).cards(p, sel) }
+                if (r.placed > 0) state.edit("cutaways") { r.project }
+                ToolResult(r.note, r.placed == 0)
+            },
+        )
+        add(
+            Tool(
+                "add_stock_broll",
+                "Add stock video cutaways matched to words in the captions, from the person's own Pexels or Pixabay key. Only each search word is sent, never the video. If no key is saved, tell them to add one in the Cutaways panel.",
+                obj(mapOf("provider" to enumProp(StockProvider.entries.map { it.raw }, "Stock site (default pexels)."))),
+            ) { a ->
+                val provider = StockProvider.entries.firstOrNull { it.raw == a.str("provider") } ?: StockProvider.Pexels
+                val key = AssistantKeys(context).getNamed(provider.raw) ?: return@Tool ToolResult("There is no ${provider.displayName} key saved. They can add a free one in the Cutaways panel.", true)
+                if (words() == null) return@Tool ToolResult("No speech was found to pick words from.", true)
+                val p = project()
+                val sel = state.selected.value
+                val r = withContext(Dispatchers.IO) { BRollMaker(context).stock(p, sel, provider, key) }
+                if (r.placed > 0) state.edit("cutaways") { r.project }
+                ToolResult(r.note, r.placed == 0)
+            },
+        )
+        add(
+            Tool("remove_broll", "Remove every cutaway Auto B-Roll added. Regular clips are untouched.", emptyParams()) {
+                val (out, n) = BRoll.removeAll(project())
+                if (n == 0) return@Tool ToolResult("There are no cutaways on the timeline.")
+                state.edit("remove cutaways") { out }
+                ToolResult("Removed $n cutaways.")
             },
         )
         add(

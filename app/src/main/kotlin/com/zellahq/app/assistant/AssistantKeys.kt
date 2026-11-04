@@ -41,15 +41,27 @@ class AssistantKeys(context: Context) {
     fun set(
         kind: ProviderKind,
         key: String,
+    ) = setNamed(kind.raw, key)
+
+    fun get(kind: ProviderKind) = getNamed(kind.raw)
+
+    fun has(kind: ProviderKind) = hasNamed(kind.raw)
+
+    fun remove(kind: ProviderKind) = removeNamed(kind.raw)
+
+    /** The same protection for the stock video sites' keys. */
+    fun setNamed(
+        name: String,
+        key: String,
     ) {
         val c = Cipher.getInstance(TRANSFORM)
         c.init(Cipher.ENCRYPT_MODE, master())
         val blob = c.iv + c.doFinal(key.toByteArray())
-        prefs.edit().putString(kind.raw, Base64.encodeToString(blob, Base64.NO_WRAP)).apply()
+        prefs.edit().putString(name, Base64.encodeToString(blob, Base64.NO_WRAP)).apply()
     }
 
-    fun get(kind: ProviderKind): String? {
-        val blob = prefs.getString(kind.raw, null)?.let { Base64.decode(it, Base64.NO_WRAP) } ?: return null
+    fun getNamed(name: String): String? {
+        val blob = prefs.getString(name, null)?.let { Base64.decode(it, Base64.NO_WRAP) } ?: return null
         return runCatching {
             val c = Cipher.getInstance(TRANSFORM)
             c.init(Cipher.DECRYPT_MODE, master(), GCMParameterSpec(128, blob, 0, IV))
@@ -57,9 +69,9 @@ class AssistantKeys(context: Context) {
         }.getOrNull()
     }
 
-    fun has(kind: ProviderKind) = prefs.contains(kind.raw)
+    fun hasNamed(name: String) = prefs.contains(name)
 
-    fun remove(kind: ProviderKind) = prefs.edit().remove(kind.raw).apply()
+    fun removeNamed(name: String) = prefs.edit().remove(name).apply()
 
     private companion object {
         const val ALIAS = "zella-assistant-keys"

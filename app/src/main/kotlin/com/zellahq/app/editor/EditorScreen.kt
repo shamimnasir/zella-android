@@ -68,7 +68,7 @@ import com.zellahq.ui.ZellaColors
 import com.zellahq.ui.ZellaRadius
 import com.zellahq.ui.ZellaSpacing
 
-private enum class Sheet { None, Speed, Volume, Captions, Look, Sound, Text, Transition, Auto, Callouts, Assistant, Background }
+private enum class Sheet { None, Speed, Volume, Captions, Look, Sound, Text, Transition, Auto, Callouts, Assistant, Background, BRoll }
 
 @OptIn(UnstableApi::class)
 @Composable
@@ -220,6 +220,9 @@ fun EditorScreen(
             Tool(stringResource(R.string.ed_background), if (sheet == Sheet.Background) ZellaColors.CardSun else null) {
                 sheet = if (sheet == Sheet.Background) Sheet.None else Sheet.Background
             }
+            Tool(stringResource(R.string.ed_broll), if (sheet == Sheet.BRoll) ZellaColors.CardSun else null) {
+                sheet = if (sheet == Sheet.BRoll) Sheet.None else Sheet.BRoll
+            }
             Tool(stringResource(R.string.ed_callouts), if (sheet == Sheet.Callouts) ZellaColors.CardSun else null) {
                 sheet = if (sheet == Sheet.Callouts) Sheet.None else Sheet.Callouts
             }
@@ -294,6 +297,11 @@ fun EditorScreen(
         if (sheet == Sheet.Background) {
             androidx.compose.foundation.layout.Box(Modifier.heightIn(max = 320.dp).verticalScroll(rememberScrollState())) {
                 com.zellahq.app.cutout.BackgroundPanel(state, project)
+            }
+        }
+        if (sheet == Sheet.BRoll) {
+            androidx.compose.foundation.layout.Box(Modifier.heightIn(max = 320.dp).verticalScroll(rememberScrollState())) {
+                com.zellahq.app.broll.BRollPanel(state, project, selectedId)
             }
         }
         if (sheet == Sheet.Callouts) {
