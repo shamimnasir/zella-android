@@ -21,3 +21,14 @@ target_link_libraries(zella_whisper PRIVATE whisper log android)
 if (NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_options(zella_whisper PRIVATE -O3)
 endif ()
+
+# RNNoise (classic, BSD), the same vendored copy the iPhone and Mac use. Voice clean-up.
+set(RNNOISE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../../../third_party/rnnoise)
+add_library(zella_audio SHARED
+    audio_jni.c
+    ${RNNOISE_DIR}/denoise.c ${RNNOISE_DIR}/rnn.c ${RNNOISE_DIR}/rnn_data.c ${RNNOISE_DIR}/rnn_reader.c
+    ${RNNOISE_DIR}/pitch.c ${RNNOISE_DIR}/kiss_fft.c ${RNNOISE_DIR}/celt_lpc.c)
+target_include_directories(zella_audio PRIVATE ${RNNOISE_DIR} ${RNNOISE_DIR}/include)
+target_compile_definitions(zella_audio PRIVATE HAVE_CONFIG_H)
+target_compile_options(zella_audio PRIVATE -O3 -Wno-everything)
+target_link_libraries(zella_audio PRIVATE m log)

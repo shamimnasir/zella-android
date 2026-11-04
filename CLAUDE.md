@@ -53,7 +53,7 @@ recording, playback, export or the camera must be left marked "not verified on a
 
 ## Where the work stands
 
-Phases 0 and 1 (foundation, capture) are built and measured on an emulator. Phase 2 (timeline,
-editor, preview) and Phase 3 (export, limits) are mostly built; see BUILDLOG for what is open.
-Phases 4 to 9 (captions, looks and sound, one-tap AI, background removal and Assistant, billing,
-release) are not started. The phase plan and exit gates are in BUILDLOG.md.
+Phases 0 to 5 (foundation, capture, timeline, export, captions, looks, sound, text) are built and
+measured on an emulator. No phone has been used yet. Phases 6 to 9 (one-tap AI, background removal
+and Assistant, billing, release) are in progress; `BUILDLOG.md` holds the status, evidence and open
+items for each.

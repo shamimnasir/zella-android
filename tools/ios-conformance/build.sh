@@ -30,6 +30,8 @@ cp "$W/out/Conformance basic.zella/project.json" $FX/basic.project.json
 cp "$W/out/Conformance empty.zella/project.json" $FX/empty.project.json
 build probe && $W/probe/run | head -1 > $FX/absolute-ramp.project.json
 build edits && $W/edits/run $FX/edit-steps.json
+build duck && $W/duck/run $FX/duck-ramps.json
+build motion-dump && $W/motion-dump/run $ROOT/zella-core/src/main/resources/motion-catalog.json $FX/motion-frames.json
 echo "fixtures written to $FX"
 # The other direction: the iPhone decoder reads what Android wrote (run ./gradlew :zella-core:test first).
 build read-android && $W/read-android/run $ROOT/zella-core/build/ios-check
@@ -45,3 +47,13 @@ DYLD_LIBRARY_PATH=$W $W/bake/run $W/bake/out
 cp $W/bake/out/looks/*.lut $W/bake/out/looks.json $ROOT/app/src/main/assets/looks/
 cp $W/bake/out/board/* $ROOT/zella-core/src/test/resources/fixtures/ios/board/
 echo "looks baked into app/src/main/assets/looks"
+
+# Music loops and sound effects: the iPhone's own synthesiser (SoundFX.swift), compressed to AAC.
+build bake-sounds && $W/bake-sounds/run $W/sounds
+D=$ROOT/app/src/main/assets/sounds; mkdir -p $D/music $D/sfx
+for f in $W/sounds/music/*.wav; do ffmpeg -v error -y -i $f -c:a aac -b:a 128k $D/music/$(basename ${f%.wav}).m4a; done
+for f in $W/sounds/sfx/*.wav; do ffmpeg -v error -y -i $f -ac 1 -c:a aac -b:a 96k $D/sfx/$(basename ${f%.wav}).m4a; done
+cp $W/sounds/sounds.json $D/sounds.json
+
+# Title looks: read out of the app target, which this build cannot compile.
+python3 $HERE/title-looks.py $REPO/ZellaiOS/App/Features/Editor/StudioSheet.swift $ROOT/app/src/main/assets/titles/looks.json

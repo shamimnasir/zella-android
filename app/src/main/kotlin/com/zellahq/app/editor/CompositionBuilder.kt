@@ -100,27 +100,66 @@ class CompositionBuilder(
                 b.build()
             }.toMutableList()
 
-        // Music on its own audio-only track.
+        // Music on its own audio-only track. The iPhone's rule: a bed that steps back for the voice
+        // repeats to cover its span; one that does not (a voiceover) plays once. A stored play length caps both.
+        val voice = voiceWindows(p)
+        val total = p.duration
         p.musicBeds?.forEach { bed ->
             val file = store.resolve(bed.source, p.id)
-            if (!file.isFile) return@forEach
+            if (!file.isFile || bed.sourceDuration <= 0.05) return@forEach
+            val remain = total - maxOf(0.0, bed.start)
+            val trim = (bed.extras["duration"] as? kotlinx.serialization.json.JsonPrimitive)?.content?.toDoubleOrNull()
+            val want = minOf(trim ?: remain, remain).let { if (bed.duck) it else minOf(it, bed.sourceDuration) }
+            if (want <= 0.05) return@forEach
+            val envelope = com.zellahq.core.audio.MusicEnvelope.of(bed.volume, bed.duck, voice, total)
             val b = EditedMediaItemSequence.Builder(setOf(C.TRACK_TYPE_AUDIO))
             if (bed.start > 0) b.addGap((bed.start * 1e6).toLong())
-            val len = minOf(bed.sourceDuration, p.duration - bed.start).coerceAtLeast(0.1)
+            var at = maxOf(0.0, bed.start)
+            val end = at + want
+            while (at < end - 0.05) {
+                val len = minOf(bed.sourceDuration, end - at)
+                val startAt = at
+                val media =
+                    MediaItem
+                        .Builder()
+                        .setUri(Uri.fromFile(file))
+                        .setClippingConfiguration(MediaItem.ClippingConfiguration.Builder().setEndPositionUs((len * 1e6).toLong()).build())
+                        .build()
+                b.addItem(
+                    EditedMediaItem
+                        .Builder(media)
+                        .setDurationUs((bed.sourceDuration * 1e6).toLong())
+                        .setRemoveVideo(true)
+                        .setEffects(Effects(listOf(GainProcessor { t -> envelope.gain(startAt + t).toFloat() }), emptyList()))
+                        .build(),
+                )
+                at += len
+            }
+            sequences += b.build()
+        }
+
+        // Each sound effect on its own short audio track, at its time, cut off at the end of the video.
+        p.soundBites?.forEach { bite ->
+            val file = soundEffectFile(bite.effectId) ?: return@forEach
+            if (bite.atTime >= total) return@forEach
+            val len = com.zellahq.app.editor.Storage.durationSeconds(file) ?: 1.0
+            val b = EditedMediaItemSequence.Builder(setOf(C.TRACK_TYPE_AUDIO))
+            if (bite.atTime > 0) b.addGap((bite.atTime * 1e6).toLong())
             val media =
                 MediaItem
                     .Builder()
                     .setUri(Uri.fromFile(file))
                     .setClippingConfiguration(
-                        MediaItem.ClippingConfiguration.Builder().setEndPositionUs((len * 1e6).toLong()).build(),
-                    )
-                    .build()
+                        MediaItem.ClippingConfiguration.Builder().setEndPositionUs(
+                            (minOf(len, total - bite.atTime) * 1e6).toLong(),
+                        ).build(),
+                    ).build()
             b.addItem(
                 EditedMediaItem
                     .Builder(media)
-                    .setDurationUs((bed.sourceDuration * 1e6).toLong())
+                    .setDurationUs((len * 1e6).toLong())
                     .setRemoveVideo(true)
-                    .setEffects(Effects(listOf(GainProcessor { bed.volume.toFloat() }), emptyList()))
+                    .setEffects(Effects(listOf(GainProcessor { bite.volume.coerceIn(0.0, 1.0).toFloat() }), emptyList()))
                     .build(),
             )
             sequences += b.build()
@@ -130,7 +169,13 @@ class CompositionBuilder(
             Composition
                 .Builder(sequences)
                 // Zoom first, captions after: a zoom must not enlarge the captions.
-                .setEffects(Effects(emptyList(), listOfNotNull(zoomEffect(p.zoomBlocks.orEmpty(), canvas), captionEffect(p, canvas))))
+                .setEffects(
+                    Effects(
+                        // Evened-out loudness for the whole video, with a soft limit so a boost never clips.
+                        listOfNotNull(loudness(p)),
+                        listOfNotNull(zoomEffect(p.zoomBlocks.orEmpty(), canvas), titleEffect(p, canvas), captionEffect(p, canvas)),
+                    ),
+                )
                 .apply { if (fade) setVideoCompositorSettings(CrossfadeSettings(p, canvas)) }
                 .build()
         return Built(composition, missing, needsReverse)
@@ -177,6 +222,11 @@ class CompositionBuilder(
         val fadeIn = if (index > 0) p.transitionOverlap(index - 1) else 0.0
         val fadeOut = p.transitionOverlap(index)
         val len = clip.timelineDuration
+        // Voice clean-up on this clip (the iPhone's per-clip voiceNoise flag): resample to 48 kHz, then RNNoise.
+        if ((clip.extras["voiceNoise"] as? kotlinx.serialization.json.JsonPrimitive)?.content == "true") {
+            audio += androidx.media3.common.audio.SonicAudioProcessor().apply { setOutputSampleRateHz(48_000) }
+            audio += com.zellahq.app.sound.CleanupProcessor()
+        }
         audio += GainProcessor { tSec -> (clip.volume * crossfadeGain(tSec, len, fadeIn, fadeOut)).toFloat() }
         // The preview player needs each source's full length up front; export works without it, so
         // only the preview crashed when this was missing (lessons.md, 2026-11-04).
@@ -197,6 +247,23 @@ class CompositionBuilder(
         return androidx.media3.effect.OverlayEffect(
             listOf(com.zellahq.app.captions.CaptionOverlay(track, canvas.width, canvas.height, typeface(track))),
         )
+    }
+
+    /** The titles over the whole video. Set by the app, which has the fonts. */
+    var titleEffect: (Project, Size) -> Effect? = { _, _ -> null }
+
+    /** Where the voice is, for ducking music. */
+    var voiceWindows: (Project) -> List<com.zellahq.core.audio.Window> = { com.zellahq.core.audio.Voice.fromCaptions(it) }
+
+    /** The file for a sound effect id, or null when it is unknown. */
+    var soundEffectFile: (String) -> java.io.File? = { null }
+
+    private fun loudness(p: Project): AudioProcessor? {
+        val key = com.zellahq.app.sound.Sounds.LOUDNESS_KEY
+        val db = (p.extras[key] as? kotlinx.serialization.json.JsonPrimitive)?.content?.toDoubleOrNull()
+        if (db == null || kotlin.math.abs(db) < 0.1) return null
+        val g = com.zellahq.core.audio.Loudness.dbToLinear(db).toFloat()
+        return GainProcessor(softLimit = true) { g }
     }
 
     /** Colour effects for a clip. Set by the app (needs assets); empty in tests that do not set it. */
@@ -334,8 +401,17 @@ fun crossfadeGain(
 
 /** Per-sample gain from a function of time in the item (seconds). 16-bit PCM in, 16-bit out. */
 @OptIn(UnstableApi::class)
-class GainProcessor(private val gainAt: (Double) -> Float) : BaseAudioProcessor() {
+class GainProcessor(
+    private val softLimit: Boolean = false,
+    private val gainAt: (Double) -> Float,
+) : BaseAudioProcessor() {
     private var frames = 0L
+
+    private companion object {
+        /** Samples above this bend smoothly towards full scale instead of clipping. */
+        const val KNEE = 29_000f
+        const val ROOM = 3_767f
+    }
 
     override fun onConfigure(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
         if (inputAudioFormat.encoding != C.ENCODING_PCM_16BIT) {
@@ -359,7 +435,11 @@ class GainProcessor(private val gainAt: (Double) -> Float) : BaseAudioProcessor(
                 if ((frames and 255L) == 0L) g = gainAt(frames.toDouble() / rate) // recompute every 256 frames
                 frames++
             }
-            out.putShort((input.short * g).toInt().coerceIn(-32768, 32767).toShort())
+            var v = input.short * g
+            // Above about -1 dBFS, bend instead of clip: a boost must never crackle.
+            val size = kotlin.math.abs(v)
+            if (softLimit && size > KNEE) v = kotlin.math.sign(v) * (KNEE + ROOM * kotlin.math.tanh((size - KNEE) / ROOM))
+            out.putShort(v.toInt().coerceIn(-32768, 32767).toShort())
             k++
         }
         out.flip()

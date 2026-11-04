@@ -72,7 +72,7 @@ import com.zellahq.ui.ZellaColors
 import com.zellahq.ui.ZellaRadius
 import com.zellahq.ui.ZellaSpacing
 
-private enum class Sheet { None, Speed, Volume, Captions, Look }
+private enum class Sheet { None, Speed, Volume, Captions, Look, Sound, Text }
 
 @OptIn(UnstableApi::class)
 @Composable
@@ -221,6 +221,12 @@ fun EditorScreen(
             Tool(stringResource(R.string.ed_captions), if (sheet == Sheet.Captions) ZellaColors.CardSun else ZellaColors.CardMint) {
                 sheet = if (sheet == Sheet.Captions) Sheet.None else Sheet.Captions
             }
+            Tool(stringResource(R.string.ed_text), if (sheet == Sheet.Text) ZellaColors.CardSun else null) {
+                sheet = if (sheet == Sheet.Text) Sheet.None else Sheet.Text
+            }
+            Tool(stringResource(R.string.ed_sound), if (sheet == Sheet.Sound) ZellaColors.CardSun else null) {
+                sheet = if (sheet == Sheet.Sound) Sheet.None else Sheet.Sound
+            }
             Tool(stringResource(R.string.ed_split)) { state.edit("split") { it.split(position) } }
             if (selected != null) {
                 val index = project.clips.indexOf(selected)
@@ -275,6 +281,16 @@ fun EditorScreen(
             // Captions can be long; the panel scrolls on its own so the tools above stay in place.
             androidx.compose.foundation.layout.Box(Modifier.heightIn(max = 320.dp).verticalScroll(rememberScrollState())) {
                 com.zellahq.app.captions.CaptionsPanel(state, project)
+            }
+        }
+        if (sheet == Sheet.Text) {
+            androidx.compose.foundation.layout.Box(Modifier.heightIn(max = 360.dp).verticalScroll(rememberScrollState())) {
+                com.zellahq.app.titles.TitlesPanel(state, project, position)
+            }
+        }
+        if (sheet == Sheet.Sound) {
+            androidx.compose.foundation.layout.Box(Modifier.heightIn(max = 320.dp).verticalScroll(rememberScrollState())) {
+                com.zellahq.app.sound.SoundPanel(state, project, selected, position)
             }
         }
         if (selected != null && sheet == Sheet.Look) {

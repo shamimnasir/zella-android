@@ -1,0 +1,12 @@
+SoundRenderTest: export carries 2 channels at 44100 Hz
+SoundRenderTest: loudness normal: before -19.30 LUFS, gain +5.05 dB, after -14.25 LUFS
+SoundRenderTest: export carries 2 channels at 44100 Hz
+SoundRenderTest: loudness quiet: before -31.34 LUFS, gain +12.00 dB, after -19.33 LUFS
+SoundRenderTest: effect: first green frame 2020 ms, sound onset 2020.3 ms (its own onset 0.0 ms), video 4018 ms, audio 3993 ms
+SoundRenderTest: effect against the picture: +0.3 ms
+SoundRenderTest: clean-up through export: hiss vs voice -17.0 -> -22.3 dB, voice moved -0.83 ms, lengths 9.948 and 9.951 s
+SoundRenderTest: music: intro -19.2 dB, under voice -36.0 dB, after -21.1 dB, end of fade -42.9 dB
+SoundRenderTest: flat bed: during -15.1 dB, after -200.0 dB
+SoundRenderTest: trimmed bed: before the cut -15.1 dB, after -200.0 dB
+DenoiseHissTest: hiss vs voice (dB): original -23.7, noisy -16.2, cleaned -25.5, cleaned at 80% -23.6; noise in pauses -33.2 -> -51.7 dB
+DenoiseHissTest: voice moved 0 samples

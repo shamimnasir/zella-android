@@ -190,6 +190,51 @@
     <string name="look_cube_remove">Remove LUT file</string>
     <string name="look_cube_bad">That file is not a 3D .cube colour file Zella can read.</string>
 
+    <!-- Sound -->
+    <string name="ed_sound">Sound</string>
+    <string name="snd_music">Music</string>
+    <string name="snd_quiet">Quiet</string>
+    <string name="snd_medium">Medium</string>
+    <string name="snd_loud">Loud</string>
+    <string name="snd_remove_music">Remove music</string>
+    <string name="snd_duck">Lower the music when someone talks</string>
+    <string name="snd_music_note">All music is made for Zella and free to use in your videos. It repeats to fill the video.</string>
+    <string name="snd_music_once">With this off, the music plays once from the start and then stops.</string>
+    <string name="snd_effect_here">Add a sound effect where the playhead is</string>
+    <string name="snd_more">More sounds (%d)</string>
+    <string name="snd_remove_effects">Remove all sound effects (%d)</string>
+    <string name="snd_clean">Clean up the voice in this clip</string>
+    <string name="snd_even">Even out the loudness</string>
+    <string name="snd_even_again">Even out the loudness again</string>
+    <string name="snd_listening">Listening to your video</string>
+    <string name="snd_even_done">Loudness set for social video (%1$s dB). Talking is also found, so music can step back.</string>
+
+    <!-- Text -->
+    <string name="ed_text">Text</string>
+    <string name="tt_new">Words to add</string>
+    <string name="tt_edit">Change the words</string>
+    <string name="tt_add">Add text here</string>
+    <string name="tt_done">Done</string>
+    <string name="tt_remove">Remove this text</string>
+    <string name="tt_to_playhead">Move to the playhead</string>
+    <string name="tt_item">%1$d. %2$s at %3$s</string>
+    <string name="tt_style">Style</string>
+    <string name="tt_place">Where and how big</string>
+    <string name="tt_top">Top</string>
+    <string name="tt_middle">Middle</string>
+    <string name="tt_bottom">Bottom</string>
+    <string name="tt_small">Small</string>
+    <string name="tt_medium">Medium</string>
+    <string name="tt_big">Big</string>
+    <string name="tt_seconds">%d seconds</string>
+    <string name="tt_font">Font</string>
+    <string name="tt_motion">How it moves</string>
+    <string name="tt_motion_in">Coming in</string>
+    <string name="tt_motion_stay">While it stays</string>
+    <string name="tt_motion_out">Going away</string>
+    <string name="tt_motion_none">No movement</string>
+    <string name="tt_motion_empty">Nothing in this group moves this way. Try another group.</string>
+
     <string name="rec_list_title">Your recordings</string>
     <string name="rec_list_empty">Nothing recorded yet.</string>
     <string name="rec_list_item">%1$s, %2$d:%3$02d</string>

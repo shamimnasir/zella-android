@@ -24,7 +24,6 @@ import androidx.media3.common.util.ExperimentalApi
 import androidx.media3.common.util.UnstableApi
 import com.zellahq.app.Entitlements
 import com.zellahq.app.R
-import com.zellahq.app.editor.CompositionBuilder
 import com.zellahq.app.editor.ExportOutcome
 import com.zellahq.app.editor.ExportSettings
 import com.zellahq.app.editor.Exporter
@@ -167,18 +166,11 @@ class ExportService : Service() {
                             )
                         }
                         val builder =
-                            CompositionBuilder(
+                            com.zellahq.app.editor.appComposition(
+                                this,
                                 store,
                                 reversedFile = { ReverseRenderer.cached(this, store, project.id, it) },
-                            ).apply {
-                                typeface = { com.zellahq.app.editor.captionTypeface(this@ExportService, it) }
-                                clipLook = {
-                                        clip,
-                                        size,
-                                    ->
-                                    com.zellahq.app.looks.Looks.effects(this@ExportService, clip, size.width, size.height)
-                                }
-                            }
+                            )
                         val e = Exporter(this, builder).also { exporter = it }
                         val safe = project.name.replace(Regex("[^A-Za-z0-9 _-]"), "").trim().ifEmpty { "Zella" }
                         val out = File(Storage.exports(this), "$safe-${System.currentTimeMillis() / 1000}.mp4")

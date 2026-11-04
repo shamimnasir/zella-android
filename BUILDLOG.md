@@ -11,7 +11,8 @@ Read this and tasks/lessons.md at the start of every session.
 | 2 Timeline and editor | Mostly built. Model, edits, undo, store and iPhone parity done; editor UI works on the emulator. Open items below. |
 | 3 Export and limits | Mostly built. Export service, gate at the boundary, gallery save, share. Open items below. |
 | 4 Captions | Built and measured on the emulator. Gate NOT passed (needs a phone and a real Bangla clip). |
-| 5 to 9 | Not started |
+| 5 Looks, sound, text | Built and measured on the emulator. Open items below. |
+| 6 to 9 | Not started |
 
 ## Phase 0 evidence (2026-11-04)
 
@@ -157,6 +158,40 @@ found no dashes outside `third_party`. CI on GitHub has to confirm the full buil
 - Fonts travel in `.zella` packages Android writes; fonts in packages from the iPhone are not yet
   imported into the font library on open.
 - Caption translation between other languages (not English) is not offered.
+
+## Phase 5 evidence (2026-11-04, emulator and Mac only)
+
+Everything measured from the file a real export wrote, on `zella_p0`. Numbers in
+`docs/evidence/phase5-sound-render.txt`. Nothing here ran on a phone.
+
+| Check | Result | How |
+| --- | --- | --- |
+| 95 looks against the iPhone's own render | worst colour error 0.47 (Delta E) | `LookTest`, `LookRenderTest` |
+| Text animation engine against the iPhone | 142,260 values over 85 presets and 161 phases, all within 1e-7 | `MotionTest`, `tools/ios-conformance/motion-dump.swift` |
+| All 24 title styles, Latin and Bangla | every one draws; looked at by eye | `TitleRenderTest`, `docs/evidence/phase5-title-styles.png` |
+| All 85 animations | 155 phases draw and move; every In and Out settles on exactly the plain title's pixels | `TitleRenderTest`, `docs/evidence/phase5-title-motion.png` |
+| Title in a real export, with an animation | yellow pixels: none before, 345 arriving, 1927 settled, none after | `titlesComeOutOfARealExport`, `phase5-title-export-frame.png` |
+| Even out loudness | normal speech -19.30 to -14.25 LUFS. Very quiet speech -31.34 to -19.33 LUFS: the boost is capped at +12 dB | `SoundRenderTest` |
+| Music steps back for the voice | dip measured -14.9 dB against the iPhone's 18% (-14.89 dB); opening +1.9 dB (1.25 times); fades out | `SoundRenderTest`; ducked spans match the iPhone in 12 layouts, `VoiceTest` |
+| Music repeats, plays once, or stops at a trim | the iPhone's rule: repeats while it steps back, once when not, cut by a stored length; silence afterwards measured | `SoundRenderTest` |
+| Sound effect against the picture | +0.3 ms from the cut; an effect at the very end does not stretch the video (video 4018 ms, audio 3993 ms, timeline 4000 ms) | `SoundRenderTest` |
+| Voice clean-up, hiss against the voice | -17.0 to -22.3 dB through the export; the voice stays within 0.83 ms of where it was | `SoundRenderTest`, `DenoiseHissTest` |
+
+Sound found by this test and fixed: an export with clean-up on never finished (a 10 s clip grew past
+139 MB), loudness read 3 dB low so every video came out 3 dB hot, and the wet and dry voice were 10 ms
+apart. See `tasks/lessons.md`.
+
+### Open in Phase 5
+
+- Voice clean-up is RNNoise. The iPhone prefers DeepFilterNet 3 or Apple's isolation engine, and its
+  own measurements rank RNNoise below both. The hiss gate passes here on the iPhone's voice fixture
+  with white noise added. Not tested on a real noisy room.
+- "Polish voice" (the five voicings, compression and limiter on the iPhone) is not built yet.
+- A title drawn behind the person needs the cutout from Phase 7. Until then such a title is left out
+  of the render rather than drawn over the person.
+- Text card photos and the picture-in-picture, callout and sticker collections are kept in the file
+  and move with edits, but Android does not draw them yet.
+- Loudness on a phone speaker, and hearing any of this, has not been done. It was measured, not heard.
 
 ## Phase 1 exit gate: NOT passed
 

@@ -1,0 +1,581 @@
+{
+  "music" : [
+    {
+      "file" : "loop_v1_lo_fi_chill",
+      "id" : "Lo-Fi Chill",
+      "seconds" : 11.707324263038549
+    },
+    {
+      "file" : "loop_v1_upbeat_pop",
+      "id" : "Upbeat Pop",
+      "seconds" : 16
+    },
+    {
+      "file" : "loop_v1_cinematic_rise",
+      "id" : "Cinematic Rise",
+      "seconds" : 12
+    },
+    {
+      "file" : "loop_v1_hip_hop_head_nod",
+      "id" : "Hip-Hop Head-Nod",
+      "seconds" : 10.666666666666666
+    },
+    {
+      "file" : "loop_v1_acoustic_feel",
+      "id" : "Acoustic Feel",
+      "seconds" : 9.5999999999999996
+    },
+    {
+      "file" : "loop_v1_edm_drive",
+      "id" : "EDM Drive",
+      "seconds" : 15
+    },
+    {
+      "file" : "loop_v1_corporate_clean",
+      "id" : "Corporate Clean",
+      "seconds" : 8.5714285714285712
+    },
+    {
+      "file" : "loop_v1_night_drive",
+      "id" : "Night Drive",
+      "seconds" : 10
+    },
+    {
+      "file" : "loop_v1_phonk_drift",
+      "id" : "Phonk Drift",
+      "seconds" : 12.800000000000001
+    },
+    {
+      "file" : "loop_v1_amapiano_sun",
+      "id" : "Amapiano Sun",
+      "seconds" : 8.1356009070294792
+    },
+    {
+      "file" : "loop_v1_drill_night",
+      "id" : "Drill Night",
+      "seconds" : 13.521133786848072
+    },
+    {
+      "file" : "loop_v1_desi_pop",
+      "id" : "Desi Pop",
+      "seconds" : 9.1428571428571423
+    },
+    {
+      "file" : "loop_v1_sad_piano",
+      "id" : "Sad Piano",
+      "seconds" : 14.117641723356009
+    },
+    {
+      "file" : "loop_v1_bossa_cafe",
+      "id" : "Bossa Cafe",
+      "seconds" : 10.322585034013606
+    }
+  ],
+  "sfx" : [
+    {
+      "file" : "sfx_whoosh",
+      "id" : "Whoosh",
+      "seconds" : 0.69999999999999996
+    },
+    {
+      "file" : "sfx_swoosh",
+      "id" : "Swoosh",
+      "seconds" : 0.25
+    },
+    {
+      "file" : "sfx_riser",
+      "id" : "Riser",
+      "seconds" : 1.8
+    },
+    {
+      "file" : "sfx_boom",
+      "id" : "Boom",
+      "seconds" : 1.05
+    },
+    {
+      "file" : "sfx_vine_boom",
+      "id" : "Vine Boom",
+      "seconds" : 1.2
+    },
+    {
+      "file" : "sfx_pop",
+      "id" : "Pop",
+      "seconds" : 0.14000000000000001
+    },
+    {
+      "file" : "sfx_click",
+      "id" : "Click",
+      "seconds" : 0.12
+    },
+    {
+      "file" : "sfx_tap",
+      "id" : "Tap",
+      "seconds" : 0.089999999999999997
+    },
+    {
+      "file" : "sfx_ding",
+      "id" : "Ding",
+      "seconds" : 1.45
+    },
+    {
+      "file" : "sfx_notification",
+      "id" : "Notification",
+      "seconds" : 0.90000000000000002
+    },
+    {
+      "file" : "sfx_error",
+      "id" : "Error",
+      "seconds" : 0.5
+    },
+    {
+      "file" : "sfx_bass_drop",
+      "id" : "Bass Drop",
+      "seconds" : 1.5
+    },
+    {
+      "file" : "sfx_explosion",
+      "id" : "Explosion",
+      "seconds" : 2
+    },
+    {
+      "file" : "sfx_suspense",
+      "id" : "Suspense",
+      "seconds" : 1.8999999999999999
+    },
+    {
+      "file" : "sfx_cymbal_crash",
+      "id" : "Cymbal Crash",
+      "seconds" : 1.5
+    },
+    {
+      "file" : "sfx_drum_roll",
+      "id" : "Drum Roll",
+      "seconds" : 1.7
+    },
+    {
+      "file" : "sfx_heartbeat",
+      "id" : "Heartbeat",
+      "seconds" : 1.3500000000000001
+    },
+    {
+      "file" : "sfx_glitch",
+      "id" : "Glitch",
+      "seconds" : 0.69999999999999996
+    },
+    {
+      "file" : "sfx_punch",
+      "id" : "Punch",
+      "seconds" : 0.32000000000000001
+    },
+    {
+      "file" : "sfx_laser",
+      "id" : "Laser",
+      "seconds" : 0.32000000000000001
+    },
+    {
+      "file" : "sfx_record_scratch",
+      "id" : "Record Scratch",
+      "seconds" : 1.8999999999999999
+    },
+    {
+      "file" : "sfx_sparkle",
+      "id" : "Sparkle",
+      "seconds" : 1.22
+    },
+    {
+      "file" : "sfx_coin",
+      "id" : "Coin",
+      "seconds" : 1.0349886621315192
+    },
+    {
+      "file" : "sfx_air_horn",
+      "id" : "Air Horn",
+      "seconds" : 0.84999999999999998
+    },
+    {
+      "file" : "sfx_boing",
+      "id" : "Boing",
+      "seconds" : 0.75
+    },
+    {
+      "file" : "sfx_level_up",
+      "id" : "Level Up",
+      "seconds" : 0.94999999999999996
+    },
+    {
+      "file" : "sfx_ta-da",
+      "id" : "Ta-Da",
+      "seconds" : 1.5999773242630386
+    },
+    {
+      "file" : "sfx_slide_whistle",
+      "id" : "Slide Whistle",
+      "seconds" : 0.69999999999999996
+    },
+    {
+      "file" : "sfx_camera_shutter",
+      "id" : "Camera Shutter",
+      "seconds" : 0.17000000000000001
+    },
+    {
+      "file" : "sfx_keyboard",
+      "id" : "Keyboard",
+      "seconds" : 0.68000000000000005
+    },
+    {
+      "file" : "sfx_reverse_whoosh",
+      "id" : "Reverse Whoosh",
+      "seconds" : 0.75
+    },
+    {
+      "file" : "sfx_tape_stop",
+      "id" : "Tape Stop",
+      "seconds" : 0.80000000000000004
+    },
+    {
+      "file" : "sfx_rewind",
+      "id" : "Rewind",
+      "seconds" : 0.90000000000000002
+    },
+    {
+      "file" : "sfx_page_turn",
+      "id" : "Page Turn",
+      "seconds" : 0.57999999999999996
+    },
+    {
+      "file" : "sfx_censor_beep",
+      "id" : "Censor Beep",
+      "seconds" : 0.55000000000000004
+    },
+    {
+      "file" : "sfx_bubble_pop",
+      "id" : "Bubble Pop",
+      "seconds" : 0.10000000000000001
+    },
+    {
+      "file" : "sfx_typewriter",
+      "id" : "Typewriter",
+      "seconds" : 1.75
+    },
+    {
+      "file" : "sfx_success",
+      "id" : "Success",
+      "seconds" : 1.2
+    },
+    {
+      "file" : "sfx_reverse_cymbal",
+      "id" : "Reverse Cymbal",
+      "seconds" : 1.2
+    },
+    {
+      "file" : "sfx_fail",
+      "id" : "Fail",
+      "seconds" : 1.6809977324263039
+    },
+    {
+      "file" : "sfx_cash_register",
+      "id" : "Cash Register",
+      "seconds" : 1.2299773242630385
+    },
+    {
+      "file" : "sfx_applause",
+      "id" : "Applause",
+      "seconds" : 2.8499773242630386
+    },
+    {
+      "file" : "sfx_crickets",
+      "id" : "Crickets",
+      "seconds" : 2
+    },
+    {
+      "file" : "sfx_whip",
+      "id" : "Whip",
+      "seconds" : 0.22
+    },
+    {
+      "file" : "sfx_deep_whoosh",
+      "id" : "Deep Whoosh",
+      "seconds" : 1.25
+    },
+    {
+      "file" : "sfx_air_swipe",
+      "id" : "Air Swipe",
+      "seconds" : 0.32000000000000001
+    },
+    {
+      "file" : "sfx_zoom_in",
+      "id" : "Zoom In",
+      "seconds" : 0.94999999999999996
+    },
+    {
+      "file" : "sfx_zoom_out",
+      "id" : "Zoom Out",
+      "seconds" : 0.75
+    },
+    {
+      "file" : "sfx_static_burst",
+      "id" : "Static Burst",
+      "seconds" : 0.45000000000000001
+    },
+    {
+      "file" : "sfx_spin",
+      "id" : "Spin",
+      "seconds" : 0.90000000000000002
+    },
+    {
+      "file" : "sfx_text_pop",
+      "id" : "Text Pop",
+      "seconds" : 0.16
+    },
+    {
+      "file" : "sfx_caption_tick",
+      "id" : "Caption Tick",
+      "seconds" : 0.050000000000000003
+    },
+    {
+      "file" : "sfx_soft_click",
+      "id" : "Soft Click",
+      "seconds" : 0.070000000000000007
+    },
+    {
+      "file" : "sfx_toggle_on",
+      "id" : "Toggle On",
+      "seconds" : 0.17999999999999999
+    },
+    {
+      "file" : "sfx_toggle_off",
+      "id" : "Toggle Off",
+      "seconds" : 0.17999999999999999
+    },
+    {
+      "file" : "sfx_blip",
+      "id" : "Blip",
+      "seconds" : 0.12
+    },
+    {
+      "file" : "sfx_finger_snap",
+      "id" : "Finger Snap",
+      "seconds" : 0.23999999999999999
+    },
+    {
+      "file" : "sfx_counter_tick",
+      "id" : "Counter Tick",
+      "seconds" : 1.1000000000000001
+    },
+    {
+      "file" : "sfx_checkmark",
+      "id" : "Checkmark",
+      "seconds" : 0.56999999999999995
+    },
+    {
+      "file" : "sfx_cinematic_hit",
+      "id" : "Cinematic Hit",
+      "seconds" : 2.2999999999999998
+    },
+    {
+      "file" : "sfx_sub_drop",
+      "id" : "Sub Drop",
+      "seconds" : 2.2000000000000002
+    },
+    {
+      "file" : "sfx_thud",
+      "id" : "Thud",
+      "seconds" : 0.40000000000000002
+    },
+    {
+      "file" : "sfx_braam",
+      "id" : "Braam",
+      "seconds" : 3
+    },
+    {
+      "file" : "sfx_short_riser",
+      "id" : "Short Riser",
+      "seconds" : 0.94999999999999996
+    },
+    {
+      "file" : "sfx_snare_build",
+      "id" : "Snare Build",
+      "seconds" : 2
+    },
+    {
+      "file" : "sfx_downlifter",
+      "id" : "Downlifter",
+      "seconds" : 1.5
+    },
+    {
+      "file" : "sfx_metal_hit",
+      "id" : "Metal Hit",
+      "seconds" : 1.6999773242630385
+    },
+    {
+      "file" : "sfx_shimmer_reveal",
+      "id" : "Shimmer Reveal",
+      "seconds" : 2.6000000000000001
+    },
+    {
+      "file" : "sfx_magic_wand",
+      "id" : "Magic Wand",
+      "seconds" : 1.6000000000000001
+    },
+    {
+      "file" : "sfx_dramatic_sting",
+      "id" : "Dramatic Sting",
+      "seconds" : 2.5
+    },
+    {
+      "file" : "sfx_ticking_clock",
+      "id" : "Ticking Clock",
+      "seconds" : 2.2000000000000002
+    },
+    {
+      "file" : "sfx_tension_drone",
+      "id" : "Tension Drone",
+      "seconds" : 3
+    },
+    {
+      "file" : "sfx_countdown",
+      "id" : "Countdown",
+      "seconds" : 3.5
+    },
+    {
+      "file" : "sfx_bonk",
+      "id" : "Bonk",
+      "seconds" : 0.40000000000000002
+    },
+    {
+      "file" : "sfx_squeak",
+      "id" : "Squeak",
+      "seconds" : 0.32000000000000001
+    },
+    {
+      "file" : "sfx_cartoon_run",
+      "id" : "Cartoon Run",
+      "seconds" : 1.25
+    },
+    {
+      "file" : "sfx_rimshot",
+      "id" : "Rimshot",
+      "seconds" : 1.6000000000000001
+    },
+    {
+      "file" : "sfx_clown_honk",
+      "id" : "Clown Honk",
+      "seconds" : 0.75
+    },
+    {
+      "file" : "sfx_wobble",
+      "id" : "Wobble",
+      "seconds" : 0.90000000000000002
+    },
+    {
+      "file" : "sfx_cartoon_fall",
+      "id" : "Cartoon Fall",
+      "seconds" : 1.6000000000000001
+    },
+    {
+      "file" : "sfx_power_up",
+      "id" : "Power Up",
+      "seconds" : 0.43498866213151927
+    },
+    {
+      "file" : "sfx_jump",
+      "id" : "Jump",
+      "seconds" : 0.23999999999999999
+    },
+    {
+      "file" : "sfx_game_over",
+      "id" : "Game Over",
+      "seconds" : 1.1599999999999999
+    },
+    {
+      "file" : "sfx_retro_hit",
+      "id" : "Retro Hit",
+      "seconds" : 0.22
+    },
+    {
+      "file" : "sfx_retro_explosion",
+      "id" : "Retro Explosion",
+      "seconds" : 1.1000000000000001
+    },
+    {
+      "file" : "sfx_menu_select",
+      "id" : "Menu Select",
+      "seconds" : 0.17997732426303856
+    },
+    {
+      "file" : "sfx_achievement",
+      "id" : "Achievement",
+      "seconds" : 1.7
+    },
+    {
+      "file" : "sfx_like",
+      "id" : "Like",
+      "seconds" : 0.59999999999999998
+    },
+    {
+      "file" : "sfx_bell_ring",
+      "id" : "Bell Ring",
+      "seconds" : 1.6499999999999999
+    },
+    {
+      "file" : "sfx_message_sent",
+      "id" : "Message Sent",
+      "seconds" : 0.29999999999999999
+    },
+    {
+      "file" : "sfx_message_in",
+      "id" : "Message In",
+      "seconds" : 0.78000000000000003
+    },
+    {
+      "file" : "sfx_phone_buzz",
+      "id" : "Phone Buzz",
+      "seconds" : 1.1499999999999999
+    },
+    {
+      "file" : "sfx_alert_chime",
+      "id" : "Alert Chime",
+      "seconds" : 1.3999999999999999
+    },
+    {
+      "file" : "sfx_footsteps",
+      "id" : "Footsteps",
+      "seconds" : 2.2999773242630384
+    },
+    {
+      "file" : "sfx_door_knock",
+      "id" : "Door Knock",
+      "seconds" : 1.1499999999999999
+    },
+    {
+      "file" : "sfx_light_switch",
+      "id" : "Light Switch",
+      "seconds" : 0.12
+    },
+    {
+      "file" : "sfx_water_drop",
+      "id" : "Water Drop",
+      "seconds" : 0.42999999999999999
+    },
+    {
+      "file" : "sfx_wind",
+      "id" : "Wind",
+      "seconds" : 3
+    },
+    {
+      "file" : "sfx_rain",
+      "id" : "Rain",
+      "seconds" : 3
+    },
+    {
+      "file" : "sfx_crowd_cheer",
+      "id" : "Crowd Cheer",
+      "seconds" : 3.2999999999999998
+    },
+    {
+      "file" : "sfx_paper_crumple",
+      "id" : "Paper Crumple",
+      "seconds" : 1.1000000000000001
+    }
+  ]
+}

@@ -1,0 +1,2 @@
+RNNoise (classic, pre-nnet), BSD licence: see COPYING.
+Copied unchanged from the iPhone app (ZellaKit/Sources/CRNNoise), the same vendored copy the Mac app uses.

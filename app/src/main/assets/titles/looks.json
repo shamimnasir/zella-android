@@ -1,0 +1,758 @@
+[
+{
+"boxColor": [
+0,
+0,
+0,
+0
+],
+"boxOn": false,
+"entrance": "pop",
+"fill": [
+1,
+1,
+1,
+1.0
+],
+"font": null,
+"gradient": null,
+"label": "Clean Bold",
+"name": "clean",
+"shadow": 4.0,
+"strokeColor": [
+0,
+0,
+0,
+1.0
+],
+"strokeOn": true,
+"strokeW": 1.0
+},
+{
+"boxColor": [
+0,
+0,
+0,
+0
+],
+"boxOn": false,
+"entrance": "Marker Highlight",
+"fill": [
+0,
+0,
+0,
+1.0
+],
+"font": null,
+"gradient": null,
+"label": "Marker Highlight",
+"name": "markerhl",
+"shadow": 0.0,
+"strokeColor": [
+0,
+0,
+0,
+1.0
+],
+"strokeOn": false,
+"strokeW": 1.0
+},
+{
+"boxColor": [
+0,
+0,
+0,
+0
+],
+"boxOn": false,
+"entrance": "Underline Draw",
+"fill": [
+1,
+1,
+1,
+1.0
+],
+"font": null,
+"gradient": null,
+"label": "Underline Draw",
+"name": "underlinehl",
+"shadow": 4.0,
+"strokeColor": [
+0,
+0,
+0,
+1.0
+],
+"strokeOn": true,
+"strokeW": 1.0
+},
+{
+"boxColor": [
+0,
+0,
+0,
+0
+],
+"boxOn": false,
+"entrance": "Box Trace",
+"fill": [
+1,
+1,
+1,
+1.0
+],
+"font": null,
+"gradient": null,
+"label": "Box Trace",
+"name": "boxhl",
+"shadow": 4.0,
+"strokeColor": [
+0,
+0,
+0,
+1.0
+],
+"strokeOn": true,
+"strokeW": 1.0
+},
+{
+"boxColor": [
+1.0,
+0.86,
+0.25,
+1.0
+],
+"boxOn": true,
+"entrance": "slideUp",
+"fill": [
+0,
+0,
+0,
+1.0
+],
+"font": null,
+"gradient": null,
+"label": "Highlight",
+"name": "highlight",
+"shadow": 0.0,
+"strokeColor": [
+0,
+0,
+0,
+1.0
+],
+"strokeOn": false,
+"strokeW": 1.0
+},
+{
+"boxColor": [
+0,
+0,
+0,
+0
+],
+"boxOn": false,
+"entrance": "neon",
+"fill": [
+0.55,
+1.0,
+0.85,
+1.0
+],
+"font": null,
+"gradient": null,
+"label": "Neon",
+"name": "neon",
+"shadow": 10.0,
+"strokeColor": [
+0,
+0,
+0,
+1.0
+],
+"strokeOn": false,
+"strokeW": 1.0
+},
+{
+"boxColor": [
+0,
+0,
+0,
+0
+],
+"boxOn": false,
+"entrance": "bounce",
+"fill": [
+1.0,
+0.62,
+0.26,
+1.0
+],
+"font": null,
+"gradient": [
+0.96,
+0.26,
+0.55,
+1.0
+],
+"label": "Sunset",
+"name": "gradient",
+"shadow": 2.0,
+"strokeColor": [
+0,
+0,
+0,
+1.0
+],
+"strokeOn": true,
+"strokeW": 1.0
+},
+{
+"boxColor": [
+0,
+0,
+0,
+0
+],
+"boxOn": false,
+"entrance": "fade",
+"fill": [
+1,
+1,
+1,
+1.0
+],
+"font": "Georgia-Bold",
+"gradient": null,
+"label": "Elegant",
+"name": "serif",
+"shadow": 6.0,
+"strokeColor": [
+0,
+0,
+0,
+1.0
+],
+"strokeOn": false,
+"strokeW": 1.0
+},
+{
+"boxColor": [
+0,
+0,
+0,
+0
+],
+"boxOn": false,
+"entrance": "wave",
+"fill": [
+1.0,
+0.95,
+0.6,
+1.0
+],
+"font": "MarkerFelt-Wide",
+"gradient": null,
+"label": "Marker",
+"name": "hand",
+"shadow": 3.0,
+"strokeColor": [
+0,
+0,
+0,
+1.0
+],
+"strokeOn": true,
+"strokeW": 1.5
+},
+{
+"boxColor": [
+0.85,
+0.12,
+0.15,
+1.0
+],
+"boxOn": true,
+"entrance": "slideUp",
+"fill": [
+1,
+1,
+1,
+1.0
+],
+"font": null,
+"gradient": null,
+"label": "News Bar",
+"name": "chip",
+"shadow": 0.0,
+"strokeColor": [
+0,
+0,
+0,
+1.0
+],
+"strokeOn": false,
+"strokeW": 1.0
+},
+{
+"boxColor": [
+0,
+0,
+0,
+0.65
+],
+"boxOn": true,
+"entrance": "typewriter",
+"fill": [
+1,
+1,
+1,
+1.0
+],
+"font": "Courier-Bold",
+"gradient": null,
+"label": "Typewriter",
+"name": "mono",
+"shadow": 0.0,
+"strokeColor": [
+0,
+0,
+0,
+1.0
+],
+"strokeOn": false,
+"strokeW": 1.0
+},
+{
+"boxColor": [
+0.15,
+0.65,
+0.55,
+1.0
+],
+"boxOn": true,
+"entrance": "typewriter",
+"fill": [
+1,
+1,
+1,
+1.0
+],
+"font": "FjallaOne-Regular",
+"gradient": null,
+"highlightMiddle": true,
+"label": "Lyric",
+"name": "lyric",
+"shadow": 6.0,
+"strokeColor": [
+0,
+0,
+0,
+1.0
+],
+"strokeOn": false,
+"strokeW": 1.0
+},
+{
+"boxColor": [
+0.05,
+0.05,
+0.06,
+1.0
+],
+"boxOn": true,
+"entrance": "pop",
+"fill": [
+1.0,
+0.85,
+0.36,
+1.0
+],
+"font": "ArchivoBlack-Regular",
+"gradient": [
+0.78,
+0.52,
+0.1,
+1.0
+],
+"label": "Gold Title",
+"name": "goldthumb",
+"shadow": 6.0,
+"strokeColor": [
+0,
+0,
+0,
+1.0
+],
+"strokeOn": true,
+"strokeW": 1.5
+},
+{
+"boxColor": [
+0.97,
+0.96,
+0.93,
+1.0
+],
+"boxOn": true,
+"card": true,
+"entrance": "fade",
+"fill": [
+0.16,
+0.14,
+0.12,
+1.0
+],
+"font": "Georgia-Bold",
+"gradient": null,
+"label": "Story Card",
+"name": "storycard",
+"shadow": 0.0,
+"strokeColor": [
+0,
+0,
+0,
+1.0
+],
+"strokeOn": false,
+"strokeW": 1.0
+},
+{
+"boxColor": [
+0,
+0,
+0,
+0
+],
+"boxOn": false,
+"entrance": "bounce",
+"fill": [
+1.0,
+0.87,
+0.0,
+1.0
+],
+"font": "Anton-Regular",
+"gradient": null,
+"label": "Hook Yellow",
+"name": "hookyellow",
+"shadow": 2.0,
+"size": 130.0,
+"strokeColor": [
+0,
+0,
+0,
+1.0
+],
+"strokeOn": true,
+"strokeW": 11.0,
+"uppercase": true
+},
+{
+"boxColor": [
+1.0,
+0.18,
+0.52,
+1.0
+],
+"boxOn": true,
+"entrance": "bounce",
+"fill": [
+1,
+1,
+1,
+1.0
+],
+"font": "Poppins-Bold",
+"gradient": null,
+"label": "Sticker Label",
+"name": "sticker",
+"plate": "tag",
+"rotation": 3.0,
+"shadow": 0.0,
+"size": 100.0,
+"strokeColor": [
+0,
+0,
+0,
+1.0
+],
+"strokeOn": false,
+"strokeW": 1.0
+},
+{
+"boxColor": [
+0,
+0,
+0,
+0
+],
+"boxOn": false,
+"entrance": "Marker Highlight",
+"fill": [
+0.07,
+0.07,
+0.09,
+1.0
+],
+"font": "Montserrat-ExtraBold",
+"gradient": null,
+"highlightColor": [
+1.0,
+0.93,
+0.16,
+1.0
+],
+"label": "Highlighter Swipe",
+"name": "highlighter",
+"shadow": 0.0,
+"size": 100.0,
+"strokeColor": [
+0,
+0,
+0,
+1.0
+],
+"strokeOn": false,
+"strokeW": 1.0
+},
+{
+"boxColor": [
+0.13,
+0.13,
+0.16,
+0.58
+],
+"boxOn": true,
+"entrance": "slideUp",
+"fill": [
+1,
+1,
+1,
+1.0
+],
+"font": "AvenirNext-DemiBold",
+"gradient": null,
+"label": "Frosted Pill",
+"name": "frostedpill",
+"plate": "pill",
+"shadow": 0.0,
+"size": 80.0,
+"strokeColor": [
+0,
+0,
+0,
+1.0
+],
+"strokeOn": false,
+"strokeW": 1.0
+},
+{
+"accent": {
+"fontName": "Didot",
+"pick": "last"
+},
+"boxColor": [
+0,
+0,
+0,
+0
+],
+"boxOn": false,
+"entrance": "blurIn",
+"fill": [
+1,
+1,
+1,
+1.0
+],
+"font": "Didot-Italic",
+"gradient": null,
+"label": "Editorial Serif",
+"name": "editorial",
+"shadow": 14.0,
+"size": 110.0,
+"strokeColor": [
+0,
+0,
+0,
+1.0
+],
+"strokeOn": false,
+"strokeW": 1.0
+},
+{
+"boxColor": [
+0.04,
+0.52,
+1.0,
+1.0
+],
+"boxOn": true,
+"entrance": "bounce",
+"fill": [
+1,
+1,
+1,
+1.0
+],
+"font": "HelveticaNeue-Medium",
+"gradient": null,
+"label": "Chat Bubble",
+"name": "chatbubble",
+"plate": "bubble",
+"shadow": 0.0,
+"size": 76.0,
+"strokeColor": [
+0,
+0,
+0,
+1.0
+],
+"strokeOn": false,
+"strokeW": 1.0
+},
+{
+"boxColor": [
+0,
+0,
+0,
+0
+],
+"boxOn": false,
+"entrance": "bounce",
+"extrude": 9.0,
+"extrudeColor": [
+0.78,
+0.3,
+0.02,
+1.0
+],
+"fill": [
+1.0,
+0.86,
+0.12,
+1.0
+],
+"font": "LuckiestGuy-Regular",
+"gradient": null,
+"label": "Chunky 3D",
+"name": "chunky3d",
+"shadow": 0.0,
+"size": 130.0,
+"strokeColor": [
+0.22,
+0.08,
+0.0,
+1.0
+],
+"strokeOn": true,
+"strokeW": 6.0
+},
+{
+"accent": {
+"color": [
+1.0,
+0.231,
+0.361,
+1.0
+],
+"pick": "longest",
+"scale": 1.25
+},
+"boxColor": [
+0,
+0,
+0,
+0
+],
+"boxOn": false,
+"entrance": "scaleIn",
+"fill": [
+1,
+1,
+1,
+1.0
+],
+"font": "Montserrat-ExtraBold",
+"gradient": null,
+"label": "Keyword Punch",
+"name": "keywordpunch",
+"shadow": 6.0,
+"size": 100.0,
+"strokeColor": [
+0,
+0,
+0,
+1.0
+],
+"strokeOn": true,
+"strokeW": 7.0
+},
+{
+"boxColor": [
+0.98,
+0.96,
+0.9,
+1.0
+],
+"boxOn": true,
+"entrance": "typewriter",
+"fill": [
+0.13,
+0.12,
+0.11,
+1.0
+],
+"font": "Menlo-Bold",
+"gradient": null,
+"label": "Typewriter Receipt",
+"name": "receipt",
+"plate": "paper",
+"shadow": 0.0,
+"size": 72.0,
+"strokeColor": [
+0,
+0,
+0,
+1.0
+],
+"strokeOn": false,
+"strokeW": 1.0
+},
+{
+"boxColor": [
+0,
+0,
+0,
+0
+],
+"boxOn": false,
+"entrance": "slideRight",
+"fill": [
+1.0,
+0.16,
+0.58,
+1.0
+],
+"font": "Montserrat-ExtraBold",
+"gradient": [
+1.0,
+0.62,
+0.1,
+1.0
+],
+"label": "Gradient Pop",
+"name": "gradientpop",
+"shadow": 8.0,
+"size": 120.0,
+"strokeColor": [
+0.24,
+0.02,
+0.22,
+1.0
+],
+"strokeOn": true,
+"strokeW": 4.5
+}
+]

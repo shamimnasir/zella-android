@@ -103,3 +103,35 @@ A path like `res/values*/` inside `/** */` closes the comment early and breaks t
 Adding `third_party/whisper.cpp` put upstream dashes into the `NoDashTest` scan and `main` went red,
 and the commit was pushed anyway. Scans skip `third_party` now. Run the full test task before every
 push, and exclude any new vendored folder from the house-rule scans in the same commit.
+
+## 2026-11-04: Media3 calls queueEndOfStream over and over
+
+`AudioProcessingPipeline` calls `queueEndOfStream()` on a processor once per pass until the one before
+it has drained, and `queueInput` again with an empty buffer. A processor that writes its tail in
+`onQueueEndOfStream` without a guard produces audio forever: a 10 s export grew past 139 MB and never
+finished. An empty `queueInput` calling `replaceOutputBuffer(0)` also throws the tail away. Guard both.
+Any stateful `BaseAudioProcessor` needs the same two lines.
+
+## 2026-11-04: measure loudness the way the file carries it
+
+BS.1770 adds the channels up, and the export is stereo. Measuring a mono mix read 3 dB low and every
+video came out 3 dB too loud. A comment saying "the measurement holds at the resampled rate" sat right
+on top of the bug. Only reading the exported file showed it.
+
+## 2026-11-04: read the iPhone's numbers before writing your own
+
+Ducking was written from memory at 30% with 0.2 s ramps. The iPhone uses 18%, 0.12 s, an opening at
+1.25 times and a 1.5 s fade, and its rule for when music repeats is tied to the same flag. The code
+compiled, the unit test passed, and it was wrong. Read the Swift first, and hold the port to a fixture.
+
+## 2026-11-04: look at the picture
+
+Blur drew faint dark boxes (a wrong row layout and straight colour instead of premultiplied) and every
+pixel-count assertion passed, because a dark box is also "different pixels". A contact sheet showed it
+in one glance. For anything visual, write the sheet and open it.
+
+## 2026-11-04: compare like with like
+
+The clean-up test said the voice moved 44 ms. It had compared a 44.1 kHz export with a 48 kHz one sample
+by sample. The export rate follows the first sound in the mix, so check it before comparing.
+

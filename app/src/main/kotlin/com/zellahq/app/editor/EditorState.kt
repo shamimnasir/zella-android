@@ -88,11 +88,7 @@ class EditorState(
     private val undo = UndoStack(initial)
     private val main = Handler(Looper.getMainLooper())
     private val io = Executors.newSingleThreadExecutor()
-    val builder =
-        CompositionBuilder(store, reversedFile = { ReverseRenderer.cached(context, store, project.value.id, it) }).apply {
-            typeface = { captionTypeface(context, it) }
-            clipLook = { clip, size -> com.zellahq.app.looks.Looks.effects(context, clip, size.width, size.height) }
-        }
+    val builder = appComposition(context, store, reversedFile = { ReverseRenderer.cached(context, store, project.value.id, it) })
 
     private val mutableProject = MutableStateFlow(initial)
     val project: StateFlow<Project> = mutableProject
@@ -180,6 +176,39 @@ class EditorState(
     }
 
     fun stopCaptions() = captionEngine?.stop()
+
+    /** Finds the voice in the background so music can step back for it. Changes nothing else. */
+    fun findVoice() = analyse(setOf("voiceWindows")) {}
+
+    /** Finds the voice and measures loudness in the background, then applies both as one undo step. */
+    fun analyseSound(done: () -> Unit) = analyse(setOf("voiceWindows", com.zellahq.app.sound.Sounds.LOUDNESS_KEY), done)
+
+    private fun analyse(
+        keys: Set<String>,
+        done: () -> Unit,
+    ) {
+        val start = project.value
+        Thread({
+            val analysed = runCatching { com.zellahq.app.sound.Sounds.analyse(context, start) }.getOrNull()
+            main.post {
+                analysed?.let { a ->
+                    edit("sound") {
+                        it.copy(
+                            extras =
+                                kotlinx.serialization.json.JsonObject(
+                                    it.extras +
+                                        a.extras.filterKeys {
+                                                k ->
+                                            k in keys
+                                        },
+                                ),
+                        )
+                    }
+                }
+                done()
+            }
+        }, "analyse-sound").start()
+    }
 
     private val mutableReversing = MutableStateFlow(false)
 

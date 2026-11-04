@@ -10,12 +10,34 @@ import java.nio.ByteOrder
 object AudioExtractor {
     const val RATE = 16_000
 
+    /** Decoded sound, one array per channel. */
+    class Pcm(val channels: List<FloatArray>, val rate: Int) {
+        val mono: FloatArray
+            get() =
+                if (channels.size == 1) {
+                    channels[0]
+                } else {
+                    FloatArray(channels[0].size) { i ->
+                        var sum = 0f
+                        for (c in channels) sum += c[i]
+                        sum / channels.size
+                    }
+                }
+    }
+
     /** Null when the file has no sound track. */
     fun pcm16k(
         file: File,
         fromSec: Double,
         toSec: Double,
-    ): FloatArray? {
+    ): FloatArray? = decode(file, fromSec, toSec)?.let { resample(it.mono, it.rate) }
+
+    /** The sound of a stretch of the file at its own rate and channel count. Null when it has no sound track. */
+    fun decode(
+        file: File,
+        fromSec: Double,
+        toSec: Double,
+    ): Pcm? {
         val ex = MediaExtractor()
         try {
             ex.setDataSource(file.path)
@@ -31,7 +53,7 @@ object AudioExtractor {
             ex.seekTo((fromSec * 1e6).toLong(), MediaExtractor.SEEK_TO_PREVIOUS_SYNC)
             var rate = fmt.getInteger(MediaFormat.KEY_SAMPLE_RATE)
             var channels = fmt.getInteger(MediaFormat.KEY_CHANNEL_COUNT)
-            val mono = FloatArrayBuilder()
+            val builders = ArrayList<FloatArrayBuilder>()
             val info = MediaCodec.BufferInfo()
             var inputDone = false
             val fromUs = (fromSec * 1e6).toLong()
@@ -56,14 +78,13 @@ object AudioExtractor {
                         rate = codec.outputFormat.getInteger(MediaFormat.KEY_SAMPLE_RATE)
                         channels = codec.outputFormat.getInteger(MediaFormat.KEY_CHANNEL_COUNT)
                     } else if (o >= 0) {
+                        while (builders.size < channels) builders += FloatArrayBuilder()
                         val buf = codec.getOutputBuffer(o)!!.order(ByteOrder.nativeOrder()).asShortBuffer()
                         val frames = buf.remaining() / channels
                         for (f in 0 until frames) {
                             val t = info.presentationTimeUs + f * 1_000_000L / rate
                             if (t < fromUs || t >= toUs) continue
-                            var sum = 0f
-                            for (c in 0 until channels) sum += buf.get(f * channels + c)
-                            mono.add(sum / channels / 32768f)
+                            for (c in 0 until channels) builders[c].add(buf.get(f * channels + c) / 32768f)
                         }
                         val eos = info.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM != 0
                         codec.releaseOutputBuffer(o, false)
@@ -74,7 +95,8 @@ object AudioExtractor {
                 codec.stop()
                 codec.release()
             }
-            return resample(mono.toArray(), rate)
+            if (builders.isEmpty()) return Pcm(listOf(FloatArray(0)), rate)
+            return Pcm(builders.take(channels).map { it.toArray() }, rate)
         } finally {
             ex.release()
         }
