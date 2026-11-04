@@ -47,3 +47,11 @@ from memory of the form and has not been read against the live Play Console.
 - Target audience: 13 and up is a sensible start. The owner decides.
 - Ads: none. In-app purchases: yes, two one-time products.
 - Permissions: `docs/store/PERMISSIONS.md` gives a reason for each one, for the Play declaration forms.
+
+## What was saved in Play Console on 2026-11-05
+
+Option 2. Collected, not shared, optional, for app functionality: Other in-app messages, Other user-generated content,
+In-app search history. Answered "not processed ephemerally", because that answer would hide the data from the listing and
+Zella cannot promise how long a provider keeps it. Encrypted in transit: yes. No accounts. The optional deletion question
+is blank. The public listing therefore reads "No data shared with third parties", based on Google's exception for
+transfers the person starts. Saved, and not yet sent for review.

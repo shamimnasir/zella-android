@@ -1,20 +1,30 @@
 # Release checklist
 
-Play submission and publishing are the owner's to do: they need the owner's Google account, signing key and
-identity. Nothing here has been submitted.
+Publishing decisions are the owner's. They need the owner's Google account, signing key and identity.
+
+State on 2026-11-04: version 1 (0.0.1) is on the internal testing track of the Nasir Uddin Shamim developer account,
+list "Zella internal". It has not been reviewed and is not public. The Play Store listing is a text-only draft.
 
 ## Only the owner can do these
 
-- [ ] Create the app in Play Console, package `com.zellahq.app`.
-- [ ] Create the signing key. Put `keystore.properties` beside `settings.gradle.kts` (`storeFile`, `storePassword`,
+- [x] Create the app in Play Console, package `com.zellahq.app`.
+- [x] Create the signing key (kept in `~/.zella-android-keys/`, back it up). Put `keystore.properties` beside `settings.gradle.kts` (`storeFile`, `storePassword`,
       `keyAlias`, `keyPassword`). It is ignored by git. Never commit it. Use Play App Signing.
-- [ ] Create two one-time products: `zella_pro_lifetime`, `zella_founder_lifetime`. Set $89 and $299, and local prices.
-- [ ] Copy the licence public key from Play Console into `local.properties` as `zella.playKey=...`. **A release built
+- [x] Set up the Google Payments merchant account.
+- [x] Create two one-time products: `zella_pro_lifetime` ($89.00), `zella_founder_lifetime` ($299.00), both active, 174
+      regions, purchase option `buy-once`, backwards compatible (`PlayStore` reads `oneTimePurchaseOfferDetails`). Play's
+      bulk price rounds to .99 and adds VAT where prices include tax, so only the US price is exact. Check other regions.
+- [x] Copy the licence public key from Play Console into `local.properties` as `zella.playKey=...`. **A release built
       without it can never unlock a purchase, by design.**
-- [ ] Publish the privacy policy at a public address.
-- [ ] Decide the Data safety question in `DATA_SAFETY.md`.
+- [x] Publish the privacy policy at a public address: https://zellahq.com/legal/privacy-android/
+- [x] Decide the Data safety question in `DATA_SAFETY.md`: option 2, declare it. The form itself is not filled in yet.
+- [x] App content forms saved on 2026-11-05 except Foreground services. Nothing has been sent for review. Sign-in details
+      ticks "full access", with a note saying the 3 Founder colour grades are the one exception and Pro lasts 7 days.
+- [ ] Foreground services form: blank, every task needs a video link. Tick: Camera "Other", Data sync "Importing, exporting",
+      Media processing "Media transcoding", Media projection "Media and content projection, streaming", Microphone
+      "Background audio input". Check each against the form's wording first.
 - [ ] Record the short video Play wants for the screen recording permission, on a real phone.
-- [ ] Build `./gradlew :app:bundleRelease`, upload to the internal track, then closed testing.
+- [x] Build `./gradlew :app:bundleRelease`, upload to the internal track. Closed testing is still to do.
 - [ ] Run closed testing with at least the testers and days Play currently requires for new personal accounts.
 - [ ] Buy, refund and restore with a Play test account on a real phone. **Billing has never touched real Play.**
 - [ ] Staged rollout at 5 percent, then watch the crash rate in Play Console for at least 3 days before going on.
