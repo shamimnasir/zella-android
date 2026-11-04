@@ -135,6 +135,11 @@ class EditorState(
     private val io = Executors.newSingleThreadExecutor()
     val builder = appComposition(context, store, reversedFile = { ReverseRenderer.cached(context, store, project.value.id, it) })
 
+    /** How far along finding the person is, or null. The clip plays as it was until this finishes. */
+    private val mutableFinding = MutableStateFlow<Float?>(null)
+    val finding: StateFlow<Float?> = mutableFinding
+    private var matteBaker: com.zellahq.app.cutout.MatteBaker? = null
+
     private val mutableProject = MutableStateFlow(initial)
     val project: StateFlow<Project> = mutableProject
 
@@ -404,11 +409,6 @@ class EditorState(
             }
         }, "freeze").start()
     }
-
-    /** How far along finding the person is, or null. The clip plays as it was until this finishes. */
-    private val mutableFinding = MutableStateFlow<Float?>(null)
-    val finding: StateFlow<Float?> = mutableFinding
-    private var matteBaker: com.zellahq.app.cutout.MatteBaker? = null
 
     private fun startMatte(files: List<java.io.File>) {
         if (matteBaker != null) return

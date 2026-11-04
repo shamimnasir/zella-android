@@ -98,8 +98,9 @@ object Polish {
     }
 
     private fun isHook(t: Title): Boolean {
+        // By its look and place, not its length: a silence cut can shorten it, and a second run would then stack one.
         val l = TitleLook(t)
-        return t.start < 0.05 && t.duration == HOOK_SECONDS && l.positionY == 0.14 && l.positionX == 0.5
+        return t.start < 0.05 && t.duration <= HOOK_SECONDS + 0.001 && l.positionY == 0.14 && l.positionX == 0.5
     }
 
     /** The opener: one title from the first spoken words. A second run replaces it rather than stacking one on top. */
@@ -108,8 +109,10 @@ object Polish {
         firstWords: List<String>,
     ): Project {
         val line = firstWords.take(6).joinToString(" ").trim()
-        val text = if (line.isEmpty()) "WATCH THIS" else line.uppercase()
         val kept = p.titles.orEmpty().filterNot { isHook(it) }
+        // With no words heard there is no first line. English words of ours do not belong on the person's video.
+        if (line.isEmpty()) return p.copy(titles = kept.ifEmpty { null })
+        val text = line.uppercase()
         val hook =
             newTitle(
                 text,

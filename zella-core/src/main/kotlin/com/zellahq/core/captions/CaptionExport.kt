@@ -18,7 +18,7 @@ object CaptionExport {
         if (!t.isFinite() || t < 0 || t >= 86_400) return "00:00:00" + (if (comma) "," else ".") + "000"
         val s = t.toInt()
         val ms = ((t - floor(t)) * 1000).toInt()
-        return "%02d:%02d:%02d%s%03d".format(s / 3600, s % 3600 / 60, s % 60, if (comma) "," else ".", ms)
+        return "%02d:%02d:%02d%s%03d".format(java.util.Locale.ROOT, s / 3600, s % 3600 / 60, s % 60, if (comma) "," else ".", ms)
     }
 
     fun text(

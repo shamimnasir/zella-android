@@ -169,7 +169,7 @@ class Callout(val raw: JsonObject) {
         val elapsed = (time - start).coerceIn(0.0, total)
         val up = (raw["timerCountsUp"] as? JsonPrimitive)?.booleanOrNull ?: false
         val v = if (up) floor(elapsed).toInt() else ceil(total - elapsed).toInt()
-        return "%02d:%02d".format(v / 60, v % 60)
+        return "%02d:%02d".format(java.util.Locale.ROOT, v / 60, v % 60)
     }
 
     fun withFields(vararg fields: Pair<String, kotlinx.serialization.json.JsonElement>) = Callout(JsonObject(raw + fields))

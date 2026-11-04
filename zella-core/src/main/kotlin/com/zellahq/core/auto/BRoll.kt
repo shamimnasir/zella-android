@@ -8,6 +8,7 @@ import com.zellahq.core.project.MediaRef
 import com.zellahq.core.project.Project
 import com.zellahq.core.project.insertClip
 import com.zellahq.core.project.newId
+import com.zellahq.core.project.rippleDelete
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
@@ -126,7 +127,8 @@ object BRoll {
     fun removeAll(p: Project): Pair<Project, Int> {
         val n = p.clips.count { it.isBRoll }
         if (n == 0 || n == p.clips.size) return p to 0
-        return p.copy(clips = p.clips.filterNot { it.isBRoll }) to n
+        // Through ripple delete, so everything after each cutaway moves back up.
+        return p.clips.filter { it.isBRoll }.fold(p) { q, c -> q.rippleDelete(c.id) } to n
     }
 
     private fun stockScore(w: Int?): Int =

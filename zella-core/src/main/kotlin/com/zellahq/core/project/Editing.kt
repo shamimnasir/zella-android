@@ -151,9 +151,11 @@ fun rampMultiplier(
 fun Project.rippleDelete(clipId: String): Project {
     val clip = clips.firstOrNull { it.id == clipId } ?: return this
     val s = startTime(clipId)
-    return copy(clips = clips.filterNot { it.id == clipId })
-        .pruneTransitions()
-        .compactTimeline(s, s + clip.timelineDuration)
+    val without = copy(clips = clips.filterNot { it.id == clipId }).pruneTransitions()
+    // What really left the timeline: a transition pruned with the clip gives its overlap back.
+    val removed = duration - without.duration
+    return without
+        .compactTimeline(s, s + removed)
         .invalidatePolishedAudio()
 }
 
@@ -199,6 +201,8 @@ fun Project.trimStart(
     if (abs(newStart - c.trimStart) <= 1e-4) return this // a touched but undragged grip changes nothing
     val clipStart = startTime(clipId)
     val timelineDelta = (newStart - c.trimStart) / maxOf(0.1, c.speed)
+    // A reversed clip plays its source backwards, so its in-point is the end of its time on the timeline.
+    if (c.reversed) return trimTail(i, c.copy(trimStart = newStart))
     val trimmed = c.copy(trimStart = newStart, extras = rebaseKeyframes(c.extras, timelineDelta, Double.MAX_VALUE))
     val p = copy(clips = clips.toMutableList().apply { this[i] = trimmed })
     val shifted =
@@ -220,9 +224,31 @@ fun Project.trimEnd(
     val c = clips[i]
     val end = (c.trimEnd + delta).coerceAtLeast(c.trimStart + 0.1).coerceAtMost(c.sourceDuration)
     if (abs(end - c.trimEnd) <= 1e-4) return this
-    val clipStart = startTime(clipId)
+    if (c.reversed) {
+        // The out-point of a reversed clip is where it starts on the timeline.
+        val clipStart = startTime(clipId)
+        val delta = (c.trimEnd - end) / maxOf(0.1, c.speed)
+        val trimmed = c.copy(trimEnd = end, extras = rebaseKeyframes(c.extras, delta, Double.MAX_VALUE))
+        val p = copy(clips = clips.toMutableList().apply { this[i] = trimmed })
+        val shifted =
+            when {
+                delta > 1e-4 -> p.compactTimeline(clipStart, clipStart + delta)
+                delta < -1e-4 -> p.insertGap(clipStart, -delta)
+                else -> p
+            }
+        return shifted.invalidatePolishedAudio()
+    }
+    return trimTail(i, c.copy(trimEnd = end))
+}
+
+/** The clip at [i] became [trimmed], which only moved its end on the timeline. */
+private fun Project.trimTail(
+    i: Int,
+    trimmed: Clip,
+): Project {
+    val c = clips[i]
+    val clipStart = startTime(c.id)
     val oldDur = c.timelineDuration
-    val trimmed = c.copy(trimEnd = end)
     val newDur = trimmed.timelineDuration
     val p = copy(clips = clips.toMutableList().apply { this[i] = trimmed })
     val shifted =
@@ -243,11 +269,13 @@ fun Project.setSpeed(
     if (i < 0) return this
     val start = startTime(clipId)
     val oldDur = clips[i].timelineDuration
-    val c = clips[i].copy(speed = speed.coerceIn(0.1, 8.0))
+    val faster = clips[i].copy(speed = speed.coerceIn(0.1, 8.0))
+    val newDur = faster.timelineDuration
+    val k = if (oldDur > 0) newDur / oldDur else 1.0
+    // Keyframes are clip-local, so they stretch with the clip or the later ones are never reached.
+    val c = faster.withKeyframes(TransformKeyframes.of(faster.effects["keyframes"]).rescaled(k))
     val p = copy(clips = clips.toMutableList().apply { this[i] = c })
-    val newDur = c.timelineDuration
     if (abs(newDur - oldDur) <= 1e-4) return p.invalidatePolishedAudio()
-    val k = newDur / oldDur
     return p
         .remapTimes { x ->
             when {
@@ -292,13 +320,16 @@ fun Project.insertClip(
     clip: Clip,
     time: Double,
 ): Project {
-    val t = time.coerceIn(0.0, duration)
-    val p = split(t)
+    val want = time.coerceIn(0.0, duration)
+    val p = split(want)
+    // Split declines within 0.01 s of a cut. The clip goes in at that cut, and so does the gap.
     var acc = 0.0
     var at = p.clips.size
+    var t = p.duration
     for ((i, c) in p.clips.withIndex()) {
-        if (acc >= t - 0.0005) {
+        if (acc >= want - 0.0105) {
             at = i
+            t = acc
             break
         }
         acc += c.timelineDuration - p.transitionOverlap(i)
@@ -357,10 +388,9 @@ fun Project.removeRange(
                 mid > lo && mid < hi
             }.map { it.id }
             .toSet()
-    return p
-        .copy(clips = p.clips.filterNot { it.id in drop })
-        .pruneTransitions()
-        .compactTimeline(lo, hi)
+    val without = p.copy(clips = p.clips.filterNot { it.id in drop }).pruneTransitions()
+    return without
+        .compactTimeline(lo, lo + (p.duration - without.duration))
         .invalidatePolishedAudio()
 }
 

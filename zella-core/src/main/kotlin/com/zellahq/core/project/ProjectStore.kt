@@ -1,3 +1,5 @@
+@file:Suppress("ktlint:standard:max-line-length")
+
 package com.zellahq.core.project
 
 import java.io.File
@@ -123,11 +125,13 @@ class ProjectStore(private val root: File) {
                     } ?: throw ProjectFormatException("no project.json in the package")
                 }
             var p = ProjectJson.decode(File(pkg, PROJECT_FILE).readText())
-            if (packageFor(p.id).exists()) p = p.copy(id = newId())
+            // The id names a folder here. A crafted "../../x" must not reach outside, and the iPhone needs a UUID.
+            if (!looksLikeId(p.id) || packageFor(p.id).exists()) p = p.copy(id = newId())
             val dest = packageFor(p.id).apply { mkdirs() }
             for (sub in listOf(MEDIA, FONTS)) File(pkg, sub).takeIf {
                 it.isDirectory
             }?.copyRecursively(File(dest, sub), overwrite = true)
+            p = relinkImported(p, File(dest, MEDIA))
             writeAtomically(File(dest, PROJECT_FILE), ProjectJson.encode(p))
             return p
         } finally {
@@ -136,8 +140,65 @@ class ProjectStore(private val root: File) {
     }
 
     /**
-     * A self-contained copy for another device: every clip and music file is copied into media/
-     * and pointed at there. The processed-voice file is dropped, as on the iPhone; the other app can
+     * What a package points at, made safe and local. Pictures and colour files are stored as absolute paths
+     * from the device that wrote them, so they are found again by file name in media/. An absolute media
+     * reference from a package is never trusted: one naming a file on this phone could pull it out of Zella
+     * at the next export, so it is cut loose unless the file is in this package.
+     */
+    private fun relinkImported(
+        p: Project,
+        media: File,
+    ): Project {
+        fun local(path: String?): File? =
+            path?.substringAfterLast('/')?.let { MediaRef.safeLeaf(it) }?.let { File(media, it) }?.takeIf { it.isFile }
+
+        fun safe(ref: MediaRef): MediaRef =
+            if (ref is MediaRef.Absolute) {
+                val leaf = ref.url.substringAfterLast('/')
+                if (local(leaf) != null) {
+                    MediaRef.Packaged(
+                        MediaRef.safeLeaf(leaf),
+                    )
+                } else {
+                    MediaRef.Packaged(MediaRef.safeLeaf("missing-$leaf"))
+                }
+            } else {
+                ref
+            }
+
+        fun effects(c: Clip): Clip {
+            var fx = c.effects
+            (fx["background"] as? kotlinx.serialization.json.JsonObject)?.let { bg ->
+                val path = (bg["imagePath"] as? kotlinx.serialization.json.JsonPrimitive)?.content
+                local(path)?.let {
+                    fx =
+                        kotlinx.serialization.json.JsonObject(
+                            fx + ("background" to kotlinx.serialization.json.JsonObject(bg + ("imagePath" to kotlinx.serialization.json.JsonPrimitive(it.absolutePath)))),
+                        )
+                }
+            }
+            (fx["lut"] as? kotlinx.serialization.json.JsonObject)?.let { lut ->
+                val path = (lut["fileURL"] as? kotlinx.serialization.json.JsonPrimitive)?.content
+                local(path)?.let {
+                    fx =
+                        kotlinx.serialization.json.JsonObject(
+                            fx + ("lut" to kotlinx.serialization.json.JsonObject(lut + ("fileURL" to kotlinx.serialization.json.JsonPrimitive(it.toURI().toString())))),
+                        )
+                }
+            }
+            return if (fx === c.effects) c else c.copy(extras = kotlinx.serialization.json.JsonObject(c.extras + ("effects" to fx)))
+        }
+        val out =
+            p.copy(
+                clips = p.clips.map { effects(it.copy(source = safe(it.source))) },
+                musicBeds = p.musicBeds?.map { it.copy(source = safe(it.source)) },
+            )
+        return out.withOverlays(out.overlays.map { o -> o.source?.let { o.with("source" to ProjectJson.refJson(safe(it))) } ?: o })
+    }
+
+    /**
+     * A self-contained copy for another device: every clip, music file, picture-in-picture clip, background
+     * picture and colour file is copied into media/ and pointed at there, as the iPhone does. The processed-voice file is dropped, as on the iPhone; the other app can
      * re-run it. Writes the folder and, when [zip] is set, a `.zella.zip` beside it for sharing.
      */
     fun exportSelfContained(
@@ -166,12 +227,52 @@ class ProjectStore(private val root: File) {
             copied[src.path] = name
             return MediaRef.Packaged(name)
         }
+
+        // Pictures and colour files are stored as paths, not references: copied, then pointed at the copy.
+        fun packPath(path: String): String? {
+            val src =
+                runCatching {
+                    if (path.startsWith("file:")) File(java.net.URI(path)) else File(path)
+                }.getOrNull()?.takeIf { it.isFile } ?: return null
+            val name = (pack(MediaRef.Absolute(src.toURI().toString())) as? MediaRef.Packaged)?.path ?: return null
+            return File(media, name).absolutePath
+        }
+
+        fun packEffects(c: Clip): Clip {
+            var fx = c.effects
+            (fx["background"] as? kotlinx.serialization.json.JsonObject)?.let { bg ->
+                (bg["imagePath"] as? kotlinx.serialization.json.JsonPrimitive)?.content?.let(::packPath)?.let {
+                    fx =
+                        kotlinx.serialization.json.JsonObject(
+                            fx + ("background" to kotlinx.serialization.json.JsonObject(bg + ("imagePath" to kotlinx.serialization.json.JsonPrimitive(it)))),
+                        )
+                }
+            }
+            (fx["lut"] as? kotlinx.serialization.json.JsonObject)?.let { lut ->
+                (lut["fileURL"] as? kotlinx.serialization.json.JsonPrimitive)?.content?.let(::packPath)?.let {
+                    fx =
+                        kotlinx.serialization.json.JsonObject(
+                            fx + ("lut" to kotlinx.serialization.json.JsonObject(lut + ("fileURL" to kotlinx.serialization.json.JsonPrimitive(File(it).toURI().toString())))),
+                        )
+                }
+            }
+            return if (fx === c.effects) c else c.copy(extras = kotlinx.serialization.json.JsonObject(c.extras + ("effects" to fx)))
+        }
         val out =
             p
                 .copy(
-                    clips = p.clips.map { it.copy(source = pack(it.source)) },
+                    clips = p.clips.map { packEffects(it.copy(source = pack(it.source))) },
                     musicBeds = p.musicBeds?.map { it.copy(source = pack(it.source)) },
-                ).let { it.copy(extras = kotlinx.serialization.json.JsonObject(it.extras - "polishedAudioURL")) }
+                ).let {
+                        q ->
+                    q.withOverlays(
+                        q.overlays.map {
+                                o ->
+                            o.source?.let { s -> o.with("source" to ProjectJson.refJson(pack(s))) } ?: o
+                        },
+                    )
+                }
+                .let { it.copy(extras = kotlinx.serialization.json.JsonObject(it.extras - "polishedAudioURL")) }
         File(packageFor(p.id), FONTS).takeIf { it.isDirectory }?.copyRecursively(File(pkg, FONTS), overwrite = true)
         writeAtomically(File(pkg, PROJECT_FILE), ProjectJson.encode(out))
         if (zip) zipFolder(pkg, File(outDir, "${pkg.name}.zip"))
@@ -198,7 +299,7 @@ class ProjectStore(private val root: File) {
         // The time is in the name; a file's modified time can be touched by copying or syncing.
         val newestMs = newest?.nameWithoutExtension?.toLongOrNull()
         if (newestMs != null && nowMs - newestMs < SNAPSHOT_EVERY_MS) return
-        current.copyTo(File(dir, "%013d.json".format(nowMs)), overwrite = true)
+        current.copyTo(File(dir, "%013d.json".format(java.util.Locale.ROOT, nowMs)), overwrite = true)
         snapshots(pkg).drop(KEEP_SNAPSHOTS).forEach { it.delete() }
     }
 
@@ -209,14 +310,21 @@ class ProjectStore(private val root: File) {
         file: File,
         text: String,
     ) {
-        val tmp = File(file.parentFile, ".${file.name}.tmp")
-        FileOutputStream(tmp).use {
-            it.write(text.toByteArray())
-            it.fd.sync()
-        }
-        if (!tmp.renameTo(file)) {
-            file.delete()
-            check(tmp.renameTo(file)) { "could not save ${file.name}" }
+        // A name of its own: saves can come from two threads. The move never leaves the file absent.
+        val tmp = File.createTempFile(".${file.name}", ".tmp", file.parentFile)
+        try {
+            FileOutputStream(tmp).use {
+                it.write(text.toByteArray())
+                it.fd.sync()
+            }
+            java.nio.file.Files.move(
+                tmp.toPath(),
+                file.toPath(),
+                java.nio.file.StandardCopyOption.REPLACE_EXISTING,
+                java.nio.file.StandardCopyOption.ATOMIC_MOVE,
+            )
+        } finally {
+            tmp.delete()
         }
     }
 

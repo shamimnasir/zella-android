@@ -79,7 +79,9 @@ object ProjectJson {
         }
         m.putList("zoomBlocks", p.zoomBlocks) { z ->
             obj(
-                z.extras, "id" to z.id, "start" to z.start, "inDur" to z.inDur, "hold" to z.hold,
+                // Swift requires motionBlur. Its default is 0.2.
+                if (z.extras.containsKey("motionBlur")) z.extras else JsonObject(z.extras + ("motionBlur" to JsonPrimitive(0.2))),
+                "id" to z.id, "start" to z.start, "inDur" to z.inDur, "hold" to z.hold,
                 "outDur" to z.outDur, "scale" to z.scale, "anchorX" to z.anchorX, "anchorY" to z.anchorY,
             )
         }
@@ -190,9 +192,44 @@ object ProjectJson {
             is MediaRef.Absolute -> JsonObject(mapOf("absolute" to JsonObject(mapOf("_0" to JsonPrimitive(r.url)))))
         }
 
+    /** What the iPhone's ClipEffects decoder requires. Swift's synthesised decoder fails on any missing key. */
+    private val EFFECT_DEFAULTS: JsonObject by lazy {
+        json.parseToJsonElement(
+            """{"colorAdjustments":{"brightness":0,"contrast":1,"exposure":0,"highlights":1,"noiseReduction":0,"saturation":1,""" +
+                """"shadows":0,"sharpness":0,"temperature":6500,"tint":0},""" +
+                """"colorBoard":{"gain":{"blue":0,"green":0,"luma":0,"red":0},"gamma":{"blue":0,"green":0,"luma":0,"red":0},""" +
+                """"lift":{"blue":0,"green":0,"luma":0,"red":0}},"compositing":{"opacity":1},"gradeIntensity":1,""" +
+                """"special":{"blackAndWhite":false,"blurRadius":0,"broadcastSafe":false,"chromaticAberration":0,"colorHue":0,""" +
+                """"glow":0,"grain":0,"letterbox":false,"motionBlur":0,"pixelate":0,"vignette":0},""" +
+                """"transform":{"anchorX":0.5,"anchorY":0.5,"positionX":0,"positionY":0,"rotation":0,"scaleAll":1,"scaleX":1,"scaleY":1}}""",
+        ).jsonObject
+    }
+
+    private fun fill(
+        defaults: JsonObject,
+        have: JsonObject,
+    ): JsonObject {
+        val out = LinkedHashMap<String, JsonElement>(have)
+        defaults.forEach { (k, d) ->
+            val v = have[k]
+            out[k] = if (d is JsonObject && v is JsonObject) fill(d, v) else v ?: d
+        }
+        return JsonObject(out)
+    }
+
+    /**
+     * The editor writes only the effect fields it changed. A file must hold them all, or the iPhone cannot
+     * open the whole project. An effects object with nothing left in it is dropped.
+     */
+    private fun completeEffects(extras: JsonObject): JsonObject {
+        val fx = extras["effects"] as? JsonObject ?: return extras
+        if (fx.isEmpty()) return JsonObject(extras - "effects")
+        return JsonObject(extras + ("effects" to fill(EFFECT_DEFAULTS, fx)))
+    }
+
     private fun clipJson(c: Clip) =
         obj(
-            c.extras, "id" to c.id, "source" to refJson(c.source), "sourceDuration" to c.sourceDuration,
+            completeEffects(c.extras), "id" to c.id, "source" to refJson(c.source), "sourceDuration" to c.sourceDuration,
             "trimStart" to c.trimStart, "trimEnd" to c.trimEnd, "speed" to c.speed, "reversed" to c.reversed,
             "isBRoll" to c.isBRoll, "volume" to c.volume,
         )

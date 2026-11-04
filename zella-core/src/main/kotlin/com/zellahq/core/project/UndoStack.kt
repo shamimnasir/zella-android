@@ -29,7 +29,8 @@ class UndoStack(
         label: String,
         nowMs: Long = System.currentTimeMillis(),
     ): Boolean {
-        if (next == current) return false
+        // The time of the last save is not an edit. Comparing it made every no-op a dead undo step.
+        if (next.copy(modifiedAt = current.modifiedAt) == current) return false
         val last = undo.lastOrNull()
         if (last != null && last.label == label && nowMs - last.atMs < mergeWindowMs) {
             undo.removeLast()

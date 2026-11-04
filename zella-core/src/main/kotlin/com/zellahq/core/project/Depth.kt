@@ -185,6 +185,11 @@ data class TransformKeyframes(
 ) {
     val isEmpty get() = posX.keys.isEmpty() && posY.keys.isEmpty() && scale.keys.isEmpty() && rotation.keys.isEmpty() && opacity.keys.isEmpty()
 
+    fun rescaled(k: Double): TransformKeyframes {
+        fun r(t: KeyframeTrack) = KeyframeTrack(t.keys.map { it.copy(time = it.time * k) })
+        return TransformKeyframes(r(posX), r(posY), r(scale), r(rotation), r(opacity))
+    }
+
     fun track(p: KeyProperty) =
         when (p) {
             KeyProperty.PosX -> posX
