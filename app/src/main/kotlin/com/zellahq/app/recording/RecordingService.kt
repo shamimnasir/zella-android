@@ -208,7 +208,8 @@ class RecordingService : Service() {
                 if (wantMic) sources["voice"] = AudioSources.mic(this)
                 if (wantDevice) sources["phone sound"] = AudioSources.device(projection!!)
 
-                val name = "Zella-" + SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date()) + ".mp4"
+                val prefix = if (mode == Mode.Camera) "camera-" else "Zella-"
+                val name = prefix + SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date()) + ".mp4"
                 val f = File(recordingsDir(this).apply { mkdirs() }, name)
                 val delay = if (sources.isEmpty()) 0L else AacDelay.forDevice(this, 48_000)
                 val r = Recorder(f, config.copy(audioEncoderDelayUs = delay), source, sources)

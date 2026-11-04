@@ -46,6 +46,29 @@ private val texted =
         CalloutKind.Popup,
     )
 
+private fun calloutLabel(k: CalloutKind) =
+    when (k) {
+        CalloutKind.Arrow -> R.string.co_k_arrow
+        CalloutKind.Box -> R.string.co_k_box
+        CalloutKind.Ellipse -> R.string.co_k_ellipse
+        CalloutKind.Label -> R.string.co_k_label
+        CalloutKind.Keystroke -> R.string.co_k_keystroke
+        CalloutKind.Spotlight -> R.string.co_k_spotlight
+        CalloutKind.Number -> R.string.co_k_number
+        CalloutKind.Blur -> R.string.co_k_blur
+        CalloutKind.LeaderLine -> R.string.co_k_leader
+        CalloutKind.Popup -> R.string.co_k_popup
+        CalloutKind.Magnifier -> R.string.co_k_magnifier
+        CalloutKind.Highlight -> R.string.co_k_highlight
+        CalloutKind.Underline -> R.string.co_k_underline
+        CalloutKind.Pixelate -> R.string.co_k_pixelate
+        CalloutKind.Emoji -> R.string.co_k_emoji
+        CalloutKind.StickyNote -> R.string.co_k_sticky
+        CalloutKind.ScribbleCircle -> R.string.co_k_scribble
+        CalloutKind.Timer -> R.string.co_k_timer
+        CalloutKind.Glitch -> R.string.co_k_glitch
+    }
+
 /** Arrows, boxes, labels, blur boxes and the rest, plus the scan that hides private text. */
 @Composable
 fun CalloutsPanel(
@@ -74,7 +97,13 @@ fun CalloutsPanel(
             state.onMain {
                 reading = null
                 out.getOrNull()?.let { r ->
-                    report = r.text
+                    report =
+                        if (r.callouts.isEmpty()) {
+                            context.getString(R.string.co_hide_none)
+                        } else {
+                            context.getString(R.string.co_hide_done, r.callouts.size) +
+                                if (r.text.contains("Stopped early")) " " + context.getString(R.string.co_hide_short) else ""
+                        }
                     if (r.callouts.isNotEmpty()) state.edit("blur") { it.addCallouts(r.callouts) }
                 }
             }
@@ -85,14 +114,14 @@ fun CalloutsPanel(
         Text(stringResource(R.string.co_add), color = color)
         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(ZellaSpacing.S)) {
             CalloutKind.entries.forEach { k ->
-                Tool(k.label, ZellaColors.CardViolet) {
+                Tool(stringResource(calloutLabel(k)), ZellaColors.CardViolet) {
                     val d = 3.0
                     val c =
                         Callout.create(
                             k,
                             start = minOf(position, latestOverlayStart(project.duration, d)),
                             duration = d,
-                            text = if (k in texted) k.label else null,
+                            text = if (k in texted) context.getString(calloutLabel(k)) else null,
                         )
                     state.edit("mark up") { it.addCallouts(listOf(c)) }
                     picked = c.id
@@ -105,7 +134,10 @@ fun CalloutsPanel(
             Text(stringResource(R.string.co_on_video), color = color)
             Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(ZellaSpacing.S)) {
                 list.forEach { c ->
-                    Tool(c.kind!!.label + " " + com.zellahq.app.editor.mmss(c.start), if (c.id == picked) ZellaColors.CardSun else null) {
+                    Tool(
+                        stringResource(calloutLabel(c.kind!!)) + " " + com.zellahq.app.editor.mmss(c.start),
+                        if (c.id == picked) ZellaColors.CardSun else null,
+                    ) {
                         picked = if (picked == c.id) null else c.id
                         if (picked != null) state.seek(c.start)
                     }

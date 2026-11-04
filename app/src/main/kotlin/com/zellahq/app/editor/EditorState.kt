@@ -25,6 +25,7 @@ import com.zellahq.core.project.duration
 import com.zellahq.core.project.insertFreeze
 import com.zellahq.core.project.isoNow
 import com.zellahq.core.project.newId
+import com.zellahq.core.project.setBackgroundEverywhere
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import java.io.File
@@ -71,6 +72,25 @@ object Storage {
             }
         }.getOrNull()
 
+    private const val CAMERA_PREFS = "camera-background"
+
+    /** Remembers the choice for the recording that is about to start. Called from the camera screen. */
+    fun chooseCameraBackground(
+        context: Context,
+        choice: com.zellahq.core.project.BackgroundChoice?,
+    ) = context.getSharedPreferences(CAMERA_PREFS, Context.MODE_PRIVATE).edit().putString("choice", choice?.json()?.toString()).apply()
+
+    fun chosenCameraBackground(context: Context): com.zellahq.core.project.BackgroundChoice? =
+        context.getSharedPreferences(CAMERA_PREFS, Context.MODE_PRIVATE).getString("choice", null)?.let {
+            com.zellahq.core.project.BackgroundChoice.of(kotlinx.serialization.json.Json.parseToJsonElement(it))
+        }
+
+    /** Screen recordings keep their picture: this only applies to what the camera shot. */
+    private fun cameraBackground(
+        context: Context,
+        file: File,
+    ) = if (file.name.startsWith("camera")) chosenCameraBackground(context) else null
+
     /** A project with one clip made from [file]. */
     fun newProject(
         context: Context,
@@ -78,9 +98,11 @@ object Storage {
         name: String,
     ): Project? {
         val len = durationSeconds(file) ?: return null
-        val p =
+        var p =
             Project(id = newId(), name = name, createdAt = isoNow(), modifiedAt = isoNow())
                 .append(Clip(newId(), MediaRef.Absolute(file.toURI().toString()), len))
+        // A camera recording made with "Background after recording" picked gets it now.
+        cameraBackground(context, file)?.let { p = p.setBackgroundEverywhere(it) }
         store(context).save(p)
         return p
     }

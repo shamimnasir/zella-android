@@ -29,10 +29,12 @@ import com.zellahq.app.export.ExportStatus
 import com.zellahq.app.looks.Looks
 import com.zellahq.app.sound.BeatSync
 import com.zellahq.app.sound.Sounds
+import com.zellahq.app.sound.VoiceEffect
 import com.zellahq.core.PremiumGate
 import com.zellahq.core.audio.VoiceChain
 import com.zellahq.core.auto.BRoll
 import com.zellahq.core.captions.CaptionBuilder
+import com.zellahq.core.captions.CaptionExport
 import com.zellahq.core.motion.TextAnimationSpec
 import com.zellahq.core.motion.TextMotionCatalog
 import com.zellahq.core.motion.TextMotionPhase
@@ -64,6 +66,7 @@ import com.zellahq.core.project.mapClipById
 import com.zellahq.core.project.move
 import com.zellahq.core.project.newId
 import com.zellahq.core.project.newTitle
+import com.zellahq.core.project.overlays
 import com.zellahq.core.project.position
 import com.zellahq.core.project.removeTransition
 import com.zellahq.core.project.rippleDelete
@@ -77,6 +80,7 @@ import com.zellahq.core.project.spokenWords
 import com.zellahq.core.project.startTime
 import com.zellahq.core.project.transform
 import com.zellahq.core.project.transitionAfter
+import com.zellahq.core.project.updateOverlay
 import com.zellahq.core.project.withColorAdjust
 import com.zellahq.core.project.withField
 import com.zellahq.core.project.withOpacity
@@ -1218,6 +1222,166 @@ fun assistantTools(
         )
         add(
             Tool(
+                "apply_voice_changer",
+                "Apply a voice effect to the whole video.",
+                obj(mapOf("preset" to enumProp(VoiceEffect.entries.map { it.raw }, "Voice effect.")), listOf("preset")),
+            ) { a ->
+                val fx = VoiceEffect.of(a.str("preset")) ?: return@Tool bad("preset")
+                state.edit("voice effect") { it.copy(extras = JsonObject(it.extras + ("voiceChanger" to JsonPrimitive(fx.raw)))) }
+                ToolResult("${fx.raw} voice applied.")
+            },
+        )
+        add(
+            Tool("clear_voice_changer", "Remove the voice effect.", emptyParams()) {
+                state.edit("voice effect") { it.copy(extras = JsonObject(it.extras - "voiceChanger")) }
+                ToolResult("Voice effect removed.")
+            },
+        )
+        add(
+            Tool(
+                "set_noise_strength",
+                "Turn voice clean-up on or off on every clip. 0 is off, anything above is on: this build has one strength.",
+                obj(mapOf("strength" to prop("number", "0 to 1.")), listOf("strength")),
+            ) { a ->
+                val v = a.num("strength") ?: return@Tool bad("strength")
+                state.edit("clean voice") { p ->
+                    p.copy(
+                        clips =
+                            p.clips.map {
+                                    c ->
+                                c.copy(
+                                    extras =
+                                        JsonObject(
+                                            if (v <= 0) c.extras - "voiceNoise" else c.extras + ("voiceNoise" to JsonPrimitive(true)),
+                                        ),
+                                )
+                            },
+                    )
+                }
+                ToolResult(if (v <= 0) "Voice clean-up is off." else "Voice clean-up is on.")
+            },
+        )
+        add(
+            Tool(
+                "set_overlay_volume",
+                "Set a picture-in-picture clip's volume, 0 to 1.",
+                obj(
+                    mapOf("volume" to prop("number", "0 to 1."), "overlay_index" to prop("integer", "0-based; default the first.")),
+                    listOf("volume"),
+                ),
+            ) { a ->
+                val v = a.num("volume")?.coerceIn(0.0, 1.0) ?: return@Tool bad("volume")
+                val o = project().overlays.getOrNull(a.int("overlay_index") ?: 0) ?: return@Tool ToolResult("There is no picture-in-picture clip there.", true)
+                state.edit("overlay volume") { p -> p.updateOverlay(o.id) { it.with("volume" to JsonPrimitive(v)) } }
+                ToolResult("Volume set to ${(v * 100).roundToInt()}%.")
+            },
+        )
+        add(
+            Tool("add_zoom_at_playhead", "Add a zoom at the playhead.", emptyParams()) {
+                if (project().clips.isEmpty()) return@Tool noClips
+                val t = state.position.value
+                state.edit("zoom") { it.copy(zoomBlocks = it.zoomBlocks.orEmpty() + ZoomBlock(newId(), t)) }
+                ToolResult("Zoom added at ${fmt(t)}s.")
+            },
+        )
+        add(
+            Tool("reset_clip_effects", "Clear every effect, look and adjustment on the selected clip. Keeps the footage.", emptyParams()) {
+                val c = selected() ?: return@Tool noClips
+                state.edit("clear") { p -> p.mapClipById(c.id) { it.copy(extras = JsonObject(it.extras - "effects")) } }
+                ToolResult("Effects reset on the selected clip.")
+            },
+        )
+        add(
+            Tool(
+                "export_captions",
+                "Write the captions to a subtitle file the person can share.",
+                obj(mapOf("format" to enumProp(CaptionExport.Format.entries.map { it.raw }, "File type.")), listOf("format")),
+            ) { a ->
+                val f = CaptionExport.Format.entries.firstOrNull { it.raw == a.str("format") } ?: return@Tool bad("format")
+                val track = project().captions ?: return@Tool ToolResult("No captions to export: call add_captions first.", true)
+                val dir = android.os.Environment.DIRECTORY_DOCUMENTS
+                val out = java.io.File(context.getExternalFilesDir(dir), "${project().name.ifBlank { "captions" }}.${f.extension}")
+                out.writeText(CaptionExport.text(track, f))
+                ToolResult("Saved ${out.name}. They can share it from Captions, Subtitle file.")
+            },
+        )
+        add(
+            Tool(
+                "set_platform",
+                "Set where this video is going, which sets its shape: tiktok, reels, shorts, igfeed, fbreels, youtube, x, or original to clear it.",
+                obj(mapOf("preset" to prop("string", "Platform id.")), listOf("preset")),
+            ) { a ->
+                val shapes =
+                    mapOf(
+                        "tiktok" to Aspect.Vertical,
+                        "reels" to Aspect.Vertical,
+                        "shorts" to Aspect.Vertical,
+                        "fbreels" to Aspect.Vertical,
+                        "igfeed" to Aspect.Portrait45,
+                        "youtube" to Aspect.Landscape,
+                        "x" to Aspect.Landscape,
+                    )
+                val raw = a.str("preset")?.lowercase() ?: return@Tool bad("preset")
+                if (raw == "original" || raw == "none") {
+                    state.edit("platform") { it.copy(platformPresetId = null) }
+                    return@Tool ToolResult("Platform cleared.")
+                }
+                val shape = shapes[raw] ?: return@Tool ToolResult("Unknown platform. Options: ${shapes.keys.joinToString()}.", true)
+                state.edit("platform") { it.copy(aspect = shape, platformPresetId = raw) }
+                ToolResult("Set for $raw (${shape.raw}).")
+            },
+        )
+        add(
+            Tool(
+                "make_reel",
+                "One go: cut the silences, add captions, make it vertical, and place a few transitions on the widest-spaced cuts.",
+                emptyParams(),
+            ) {
+                if (project().clips.isEmpty()) return@Tool noClips
+                val p0 = project()
+                val (cut, n) = withContext(Dispatchers.Default) { com.zellahq.app.auto.AutoPolish(context).silencesOnly(p0) }
+                state.edit("remove silences") { cut }
+                words()
+                state.reshape(Aspect.Vertical)
+                autoFinished()
+                val joins = project().clips.size - 1
+                if (joins > 0) {
+                    val every = maxOf(1, kotlin.math.ceil(joins / 8.0).toInt())
+                    state.edit("transitions") { p ->
+                        var out = p
+                        for (i in 0 until joins step every) out = out.setTransition(p.clips[i].id, "Cross Dissolve", 0.4)
+                        out
+                    }
+                }
+                ToolResult("Reel ready: $n silences cut, captions added, vertical, a few transitions.")
+            },
+        )
+        add(
+            Tool(
+                "auto_color_match",
+                "Even out the colour of the selected clip from one frame, by balancing its average to neutral.",
+                emptyParams(),
+            ) {
+                val c = selected() ?: return@Tool noClips
+                val p = project()
+                val at = state.position.value
+                val shift = withContext(Dispatchers.Default) { grayWorld(context, p, at) } ?: return@Tool ToolResult("That frame could not be read.", true)
+                val o = colorAdjustOf(c.effects["colorAdjustments"])
+                state.edit("colour") { x ->
+                    x.mapClipById(c.id) {
+                        it.withColorAdjust(
+                            o.copy(
+                                temperature = (o.temperature + shift.first).coerceIn(2000.0, 10000.0),
+                                tint = (o.tint + shift.second).coerceIn(-100.0, 100.0),
+                            ),
+                        )
+                    }
+                }
+                ToolResult("Colour balanced.")
+            },
+        )
+        add(
+            Tool(
                 "describe_frame",
                 "Look at a frame on this phone: faces and brightness. Use to judge framing or exposure. It does not read text: use find_text_on_screen for that.",
                 obj(mapOf("seconds" to prop("number", "Timeline time (default the playhead)."))),
@@ -1294,6 +1458,39 @@ fun assistantTools(
             },
         )
     }
+}
+
+/** How far to move warmth and tint so the frame's average sits at neutral. */
+private fun grayWorld(
+    context: Context,
+    p: Project,
+    t: Double,
+): Pair<Double, Double>? {
+    val (clip, local) = p.clipAt(t) ?: return null
+    val file = Storage.store(context).resolve(clip.source, p.id).takeIf { it.isFile } ?: return null
+    val m = MediaMetadataRetriever()
+    val raw =
+        try {
+            m.setDataSource(file.absolutePath)
+            m.getFrameAtTime(((clip.trimStart + local) * 1e6).toLong(), MediaMetadataRetriever.OPTION_CLOSEST_SYNC)
+        } finally {
+            m.release()
+        } ?: return null
+    val b = Bitmap.createScaledBitmap(raw, 64, 64, true)
+    var r = 0L
+    var g = 0L
+    var bl = 0L
+    for (y in 0 until 64) {
+        for (x in 0 until 64) {
+            val c = b.getPixel(x, y)
+            r += c shr 16 and 255
+            g += c shr 8 and 255
+            bl += c and 255
+        }
+    }
+    val warm = (bl - r).toDouble() / (64 * 64) / 255
+    val green = (g - (r + bl) / 2).toDouble() / (64 * 64) / 255
+    return warm * 4500 to green * 100 * 2
 }
 
 private suspend fun card(

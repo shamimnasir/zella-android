@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The languages Zella's screens come in. Android 13 and later lists these under the app's language setting. -->
+<locale-config xmlns:android="http://schemas.android.com/apk/res/android">
+    <locale android:name="en" />
+    <locale android:name="es" />
+    <locale android:name="fr" />
+    <locale android:name="vi" />
+    <locale android:name="bn" />
+    <locale android:name="hi" />
+    <locale android:name="ar" />
+    <locale android:name="ur" />
+    <locale android:name="zh-CN" />
+</locale-config>

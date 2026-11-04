@@ -41,7 +41,14 @@ import com.zellahq.ui.ZellaColors
 import com.zellahq.ui.ZellaSpacing
 import java.io.File
 
-private val colours = listOf("#FFFFFF" to "White", "#00B140" to "Green", "#2B2E33" to "Charcoal", "#3A4A63" to "Slate", "#C9A87C" to "Sand")
+private val colours =
+    listOf(
+        "#FFFFFF" to R.string.bg_c_white,
+        "#00B140" to R.string.bg_c_green,
+        "#2B2E33" to R.string.bg_c_charcoal,
+        "#3A4A63" to R.string.bg_c_slate,
+        "#C9A87C" to R.string.bg_c_sand,
+    )
 
 /** Blur, colour, photo and the ready-made backgrounds. Applies to the whole video, like the iPhone's chat path. */
 @Composable
@@ -94,7 +101,7 @@ fun BackgroundPanel(
         Text(stringResource(R.string.bg_color), color = color)
         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(ZellaSpacing.S)) {
             colours.forEach { (hex, name) ->
-                Tool(name, if (current?.style == "color" && current.colorHex == hex) ZellaColors.CardSun else null) {
+                Tool(stringResource(name), if (current?.style == "color" && current.colorHex == hex) ZellaColors.CardSun else null) {
                     set(BackgroundChoice("color", colorHex = hex))
                 }
             }

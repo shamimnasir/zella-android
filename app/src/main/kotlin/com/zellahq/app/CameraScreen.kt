@@ -12,6 +12,7 @@ import android.view.SurfaceHolder
 import android.view.SurfaceView
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -201,6 +202,7 @@ fun CameraScreen(
                 )
         }
         if (status.state == RecorderState.Idle) {
+            CameraBackgroundChoice()
             status.notes.forEach { Text(stringResource(noteText(it)), color = MaterialTheme.colorScheme.onBackground) }
         }
     }
@@ -250,3 +252,29 @@ private fun granted(
     context: Context,
     permission: String,
 ) = ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
+
+/** What goes behind the person, applied when the recording is opened to edit. There is no live preview of it yet. */
+@Composable
+private fun CameraBackgroundChoice() {
+    val context = LocalContext.current
+    var chosen by remember { mutableStateOf(com.zellahq.app.editor.Storage.chosenCameraBackground(context)) }
+    val color = MaterialTheme.colorScheme.onBackground
+    Text(stringResource(R.string.cam_background), color = color)
+    androidx.compose.foundation.layout.Row(
+        androidx.compose.ui.Modifier.horizontalScroll(androidx.compose.foundation.rememberScrollState()),
+        horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(ZellaSpacing.S),
+    ) {
+        listOf(
+            null to R.string.cam_bg_none,
+            com.zellahq.core.project.BackgroundChoice("blur", blurRadius = 18.0) to R.string.cam_bg_blur,
+            com.zellahq.core.project.BackgroundChoice("cutout", colorHex = "#000000") to R.string.cam_bg_black,
+            com.zellahq.core.project.BackgroundChoice.REMOVED to R.string.cam_bg_ready,
+        ).forEach { (c, label) ->
+            com.zellahq.app.editor.Tool(stringResource(label), if (chosen == c) ZellaColors.CardSun else null) {
+                chosen = c
+                com.zellahq.app.editor.Storage.chooseCameraBackground(context, c)
+            }
+        }
+    }
+    if (chosen != null) Text(stringResource(R.string.cam_background_note), color = color)
+}

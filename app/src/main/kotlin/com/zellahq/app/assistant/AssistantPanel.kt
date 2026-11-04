@@ -52,6 +52,24 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+/** What a provider's failure means, in the person's own language. */
+private fun failureText(
+    context: android.content.Context,
+    kind: ProviderKind,
+    e: Throwable,
+): String {
+    val name = kind.displayName.substringBefore(" (")
+    val status = (e as? LlmException)?.status ?: 0
+    return when (status) {
+        401, 403 -> context.getString(R.string.as_err_key, name)
+        402 -> context.getString(R.string.as_err_credits, name)
+        404 -> context.getString(R.string.as_err_model, name)
+        429 -> context.getString(R.string.as_err_busy, name)
+        in 500..599 -> context.getString(R.string.as_err_down, name)
+        else -> context.getString(R.string.as_err_other, name, status)
+    }
+}
+
 private data class Bubble(val mine: Boolean, val text: String)
 
 /** Chat and settings for the Assistant. Everything that reaches the network is said so on this screen. */
@@ -103,7 +121,18 @@ private fun Settings(
                 }
             }
         }
-        Text(provider.keyHint, color = color)
+        Text(
+            stringResource(
+                when (provider) {
+                    ProviderKind.Gemini -> R.string.as_hint_gemini
+                    ProviderKind.Groq, ProviderKind.Cerebras -> R.string.as_hint_fast
+                    ProviderKind.OpenRouter -> R.string.as_hint_openrouter
+                    ProviderKind.Anthropic -> R.string.as_hint_anthropic
+                    ProviderKind.OpenAi -> R.string.as_hint_openai
+                },
+            ),
+            color = color,
+        )
         Tool(stringResource(R.string.as_get_key)) {
             context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(provider.keyPage)))
         }
@@ -150,7 +179,15 @@ private fun Settings(
                             note = okText
                             onDone()
                         } else {
-                            note = (failure as? LlmException)?.settingsText ?: context.getString(R.string.as_offline)
+                            note =
+                                when ((failure as? LlmException)?.status) {
+                                    null -> context.getString(R.string.as_offline)
+                                    401, 403 -> context.getString(R.string.as_set_key_bad)
+                                    402 -> context.getString(R.string.as_set_credits)
+                                    404 -> context.getString(R.string.as_set_model)
+                                    429 -> context.getString(R.string.as_set_busy)
+                                    else -> failureText(context, provider, failure)
+                                }
                         }
                     }
                 }
@@ -216,7 +253,7 @@ private fun Chat(
                             }
                         }
                 } catch (e: LlmException) {
-                    bubbles += Bubble(false, e.message)
+                    bubbles += Bubble(false, failureText(context, provider, e))
                 } catch (e: java.io.IOException) {
                     bubbles += Bubble(false, context.getString(R.string.as_offline))
                 } finally {

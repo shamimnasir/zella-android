@@ -366,6 +366,8 @@ class CompositionBuilder(
         index: Int,
     ): List<AudioProcessor> {
         val audio = ArrayList<AudioProcessor>()
+        // A voice effect replaces the voice's sound on every clip, as the iPhone's project-wide setting does.
+        val voiceFx = com.zellahq.app.sound.VoiceEffect.of((p.extras["voiceChanger"] as? kotlinx.serialization.json.JsonPrimitive)?.content)
         val fadeIn = if (index > 0) p.transitionOverlap(index - 1) else 0.0
         val fadeOut = p.transitionOverlap(index)
         val len = clip.timelineDuration
@@ -381,6 +383,7 @@ class CompositionBuilder(
         // the target and far too loud against the speech. A polished clip took its boost inside the chain above.
         val polished = com.zellahq.app.sound.Sounds.isPolished(clip)
         val boost = if (polished) 1.0 else com.zellahq.core.audio.Loudness.dbToLinear(com.zellahq.app.sound.Sounds.boostDb(p))
+        voiceFx?.let { audio += com.zellahq.app.sound.voiceEffectChain(it) }
         audio +=
             GainProcessor(softLimit = boost > 1.0) { tSec ->
                 (clip.volume * boost * crossfadeGain(tSec, len, fadeIn, fadeOut)).toFloat()

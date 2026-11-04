@@ -62,6 +62,18 @@ fun SoundPanel(
     Column(verticalArrangement = Arrangement.spacedBy(ZellaSpacing.S)) {
         Levels(state, project, selected)
         BeatPunch(state)
+        Text(stringResource(R.string.snd_voice_fx), color = text)
+        val currentFx = (project.extras["voiceChanger"] as? JsonPrimitive)?.content
+        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(ZellaSpacing.S)) {
+            Tool(stringResource(R.string.snd_voice_none), if (currentFx == null) ZellaColors.CardSun else null) {
+                state.edit("voice effect") { it.copy(extras = JsonObject(it.extras - "voiceChanger")) }
+            }
+            VoiceEffect.entries.forEach { fx ->
+                Tool(fx.raw, if (currentFx == fx.raw) ZellaColors.CardSun else null) {
+                    state.edit("voice effect") { it.copy(extras = JsonObject(it.extras + ("voiceChanger" to JsonPrimitive(fx.raw)))) }
+                }
+            }
+        }
         Text(stringResource(R.string.snd_music), color = text)
         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(ZellaSpacing.S)) {
             music.forEach { m ->

@@ -139,6 +139,7 @@ fun CaptionsPanel(
         BetterModels()
 
         TranscriptEditor(state, project)
+        SubtitleFiles(track)
         Text(stringResource(R.string.cap_edit_hint), color = text)
         // The cues as a list of words: tap one to fix it.
         Column(verticalArrangement = Arrangement.spacedBy(ZellaSpacing.S)) {
@@ -319,6 +320,29 @@ private fun TranscriptEditor(
             val cut = picked
             state.edit("cut words") { it.cutWords(cut) }
             picked = emptySet()
+        }
+    }
+}
+
+/** The captions as a file for other apps. They go wherever the person shares them, and nowhere else. */
+@Composable
+private fun SubtitleFiles(track: com.zellahq.core.project.CaptionTrack) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val title = stringResource(R.string.cap_subtitle_file)
+    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(ZellaSpacing.S)) {
+        com.zellahq.core.captions.CaptionExport.Format.entries.forEach { f ->
+            Tool("$title: ${f.raw.uppercase()}") {
+                val dir = java.io.File(context.getExternalFilesDir(null), "handoff").apply { mkdirs() }
+                val out = java.io.File(dir, "captions.${f.extension}")
+                out.writeText(com.zellahq.core.captions.CaptionExport.text(track, f))
+                val uri = androidx.core.content.FileProvider.getUriForFile(context, "${context.packageName}.files", out)
+                val send =
+                    android.content.Intent(android.content.Intent.ACTION_SEND)
+                        .setType("text/plain")
+                        .putExtra(android.content.Intent.EXTRA_STREAM, uri)
+                        .addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                context.startActivity(android.content.Intent.createChooser(send, title))
+            }
         }
     }
 }

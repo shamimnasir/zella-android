@@ -198,10 +198,10 @@ class BRollMaker(private val context: Context) {
         count: Int = BRoll.DEFAULT_COUNT,
     ): Outcome {
         val cues = p.captions?.cues.orEmpty()
-        if (cues.isEmpty()) return Outcome(p, 0, "Make captions first, so Zella knows which words matter.")
+        if (cues.isEmpty()) return Outcome(p, 0, context.getString(com.zellahq.app.R.string.br_note_no_captions))
         val s = scope(p, selected)
         val places = BRoll.placements(BRoll.scoped(cues, s), BRoll.budget(count, s), p.duration)
-        if (places.isEmpty()) return Outcome(p, 0, "No useful words were found in the captions.")
+        if (places.isEmpty()) return Outcome(p, 0, context.getString(com.zellahq.app.R.string.br_note_no_words))
         val (w, h) = canvas(p.aspect)
         val made =
             places.mapNotNull { pl ->
@@ -218,8 +218,8 @@ class BRollMaker(private val context: Context) {
                 }
                 BRoll.clip(mp4.toURI().toString(), BRoll.CARD_SECONDS, BRoll.CARD_SECONDS) to pl.time
             }
-        if (made.isEmpty()) return Outcome(p, 0, "The cards could not be made.")
-        return Outcome(BRoll.insert(p, made), made.size, "Added ${made.size} word card${if (made.size == 1) "" else "s"}.")
+        if (made.isEmpty()) return Outcome(p, 0, context.getString(com.zellahq.app.R.string.br_note_no_cards))
+        return Outcome(BRoll.insert(p, made), made.size, context.getString(com.zellahq.app.R.string.br_note_cards, made.size))
     }
 
     /** Stock clips matched to words from the captions. Sends only each word and the person's own key. */
@@ -233,10 +233,10 @@ class BRollMaker(private val context: Context) {
         status: (String) -> Unit = {},
     ): Outcome {
         val cues = p.captions?.cues.orEmpty()
-        if (cues.isEmpty()) return Outcome(p, 0, "Make captions first, so Zella knows which words matter.")
+        if (cues.isEmpty()) return Outcome(p, 0, context.getString(com.zellahq.app.R.string.br_note_no_captions))
         val s = scope(p, selected)
         val places = BRoll.placements(BRoll.scoped(cues, s), BRoll.budget(count, s), p.duration)
-        if (places.isEmpty()) return Outcome(p, 0, "No useful words were found in the captions.")
+        if (places.isEmpty()) return Outcome(p, 0, context.getString(com.zellahq.app.R.string.br_note_no_words))
         val made = ArrayList<Pair<Clip, Double>>()
         var problem: String? = null
         for (pl in places) {
@@ -247,16 +247,16 @@ class BRollMaker(private val context: Context) {
                 net.download(hit.url, dest)
                 made += BRoll.clip(dest.toURI().toString(), hit.duration) to pl.time
             } catch (e: StockProblem.BadKey) {
-                return Outcome(p, 0, e.message.orEmpty())
+                return Outcome(p, 0, context.getString(com.zellahq.app.R.string.br_note_bad_key))
             } catch (e: StockProblem.Busy) {
-                problem = e.message
+                problem = context.getString(com.zellahq.app.R.string.br_note_busy)
                 break
             } catch (e: IOException) {
-                problem = (e as? StockProblem)?.message ?: "Could not reach the stock site. Check your connection."
+                problem = context.getString(com.zellahq.app.R.string.br_note_offline)
             }
         }
-        if (made.isEmpty()) return Outcome(p, 0, problem ?: "No matching stock clips were found.")
-        return Outcome(BRoll.insert(p, made), made.size, "Added ${made.size} stock clip${if (made.size == 1) "" else "s"}.")
+        if (made.isEmpty()) return Outcome(p, 0, problem ?: context.getString(com.zellahq.app.R.string.br_note_none))
+        return Outcome(BRoll.insert(p, made), made.size, context.getString(com.zellahq.app.R.string.br_note_stock, made.size))
     }
 
     private companion object {
