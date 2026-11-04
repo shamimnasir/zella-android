@@ -171,6 +171,8 @@ class CompositionBuilder(
         val video = ArrayList<Effect>()
         // Fill the canvas, cropping the edges, like the iPhone's default fill mode.
         video += Presentation.createForWidthAndHeight(canvas.width, canvas.height, Presentation.LAYOUT_SCALE_TO_FIT_WITH_CROP)
+        // The clip's look, colour board and imported LUT (the iPhone's ClipEffects), as one LUT.
+        video += clipLook(clip, canvas)
         val audio = ArrayList<AudioProcessor>()
         val fadeIn = if (index > 0) p.transitionOverlap(index - 1) else 0.0
         val fadeOut = p.transitionOverlap(index)
@@ -196,6 +198,9 @@ class CompositionBuilder(
             listOf(com.zellahq.app.captions.CaptionOverlay(track, canvas.width, canvas.height, typeface(track))),
         )
     }
+
+    /** Colour effects for a clip. Set by the app (needs assets); empty in tests that do not set it. */
+    var clipLook: (Clip, Size) -> List<Effect> = { _, _ -> emptyList() }
 
     /** The caption font: an imported one by name when the person picked it, else bold system text. */
     var typeface: (com.zellahq.core.project.CaptionTrack) -> android.graphics.Typeface = { android.graphics.Typeface.DEFAULT_BOLD }

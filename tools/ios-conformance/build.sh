@@ -33,3 +33,15 @@ build edits && $W/edits/run $FX/edit-steps.json
 echo "fixtures written to $FX"
 # The other direction: the iPhone decoder reads what Android wrote (run ./gradlew :zella-core:test first).
 build read-android && $W/read-android/run $ROOT/zella-core/build/ios-check
+
+# Looks: the iPhone's EffectChain compiled in the same module as ZellaCore (the catalogue is internal).
+mkdir -p $W/bake/src && cp $W/src/*.swift $W/bake/src/
+R=$REPO/ZellaiOS/Packages/ZellaKit/Sources/ZellaRender
+cp $R/EffectChain.swift $R/LUTLoader.swift $W/bake/src/
+sed -i '' '/^import ZellaCore$/d' $W/bake/src/EffectChain.swift $W/bake/src/LUTLoader.swift
+cp $HERE/bake-looks.swift $W/bake/src/main.swift
+xcrun swiftc -module-name Bake -target arm64-apple-macos15 -swift-version 6 -I $W/mods -I $W/shim -Xcc -fmodule-map-file=$W/shim/module.modulemap -L $W -lZellaMotion -Xlinker -rpath -Xlinker $W $W/bake/src/*.swift $W/shim.o -o $W/bake/run
+DYLD_LIBRARY_PATH=$W $W/bake/run $W/bake/out
+cp $W/bake/out/looks/*.lut $W/bake/out/looks.json $ROOT/app/src/main/assets/looks/
+cp $W/bake/out/board/* $ROOT/zella-core/src/test/resources/fixtures/ios/board/
+echo "looks baked into app/src/main/assets/looks"

@@ -171,6 +171,25 @@
     <string name="cap_save">Save</string>
     <string name="cap_cancel">Cancel</string>
 
+    <!-- Looks and colour -->
+    <string name="ed_look">Look</string>
+    <string name="look_title">Pick a look for this clip</string>
+    <string name="look_none">No look</string>
+    <string name="look_strength">How strong</string>
+    <string name="look_all_clips">Use this look on every clip</string>
+    <string name="look_wheels">Fine-tune the colour</string>
+    <string name="look_shadows">Dark parts</string>
+    <string name="look_midtones">Middle</string>
+    <string name="look_highlights">Bright parts</string>
+    <string name="look_darker">Darker</string>
+    <string name="look_brighter">Brighter</string>
+    <string name="look_cooler">Cooler</string>
+    <string name="look_warmer">Warmer</string>
+    <string name="look_reset_wheels">Undo colour changes</string>
+    <string name="look_cube_add">Add a LUT file (.cube)</string>
+    <string name="look_cube_remove">Remove LUT file</string>
+    <string name="look_cube_bad">That file is not a 3D .cube colour file Zella can read.</string>
+
     <string name="rec_list_title">Your recordings</string>
     <string name="rec_list_empty">Nothing recorded yet.</string>
     <string name="rec_list_item">%1$s, %2$d:%3$02d</string>

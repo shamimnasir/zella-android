@@ -72,7 +72,7 @@ import com.zellahq.ui.ZellaColors
 import com.zellahq.ui.ZellaRadius
 import com.zellahq.ui.ZellaSpacing
 
-private enum class Sheet { None, Speed, Volume, Captions }
+private enum class Sheet { None, Speed, Volume, Captions, Look }
 
 @OptIn(UnstableApi::class)
 @Composable
@@ -237,6 +237,9 @@ fun EditorScreen(
                         state.edit("move") { it.move(selected.id, index + 1) }
                     }
                 }
+                Tool(stringResource(R.string.ed_look), if (sheet == Sheet.Look) ZellaColors.CardSun else null) {
+                    sheet = if (sheet == Sheet.Look) Sheet.None else Sheet.Look
+                }
                 Tool(
                     stringResource(R.string.ed_speed),
                 ) { sheet = if (sheet == Sheet.Speed) Sheet.None else Sheet.Speed }
@@ -272,6 +275,11 @@ fun EditorScreen(
             // Captions can be long; the panel scrolls on its own so the tools above stay in place.
             androidx.compose.foundation.layout.Box(Modifier.heightIn(max = 320.dp).verticalScroll(rememberScrollState())) {
                 com.zellahq.app.captions.CaptionsPanel(state, project)
+            }
+        }
+        if (selected != null && sheet == Sheet.Look) {
+            androidx.compose.foundation.layout.Box(Modifier.heightIn(max = 320.dp).verticalScroll(rememberScrollState())) {
+                com.zellahq.app.looks.LookPanel(state, selected)
             }
         }
         if (selected != null && sheet == Sheet.Speed) {

@@ -91,6 +91,7 @@ class EditorState(
     val builder =
         CompositionBuilder(store, reversedFile = { ReverseRenderer.cached(context, store, project.value.id, it) }).apply {
             typeface = { captionTypeface(context, it) }
+            clipLook = { clip, size -> com.zellahq.app.looks.Looks.effects(context, clip, size.width, size.height) }
         }
 
     private val mutableProject = MutableStateFlow(initial)
