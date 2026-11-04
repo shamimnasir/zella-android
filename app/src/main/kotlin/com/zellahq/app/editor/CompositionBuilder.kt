@@ -129,7 +129,8 @@ class CompositionBuilder(
         val composition =
             Composition
                 .Builder(sequences)
-                .setEffects(Effects(emptyList(), listOfNotNull(zoomEffect(p.zoomBlocks.orEmpty(), canvas))))
+                // Zoom first, captions after: a zoom must not enlarge the captions.
+                .setEffects(Effects(emptyList(), listOfNotNull(zoomEffect(p.zoomBlocks.orEmpty(), canvas), captionEffect(p, canvas))))
                 .apply { if (fade) setVideoCompositorSettings(CrossfadeSettings(p, canvas)) }
                 .build()
         return Built(composition, missing, needsReverse)
@@ -185,6 +186,19 @@ class CompositionBuilder(
             .setEffects(Effects(audio, video))
             .build()
     }
+
+    private fun captionEffect(
+        p: Project,
+        canvas: Size,
+    ): Effect? {
+        val track = p.captions?.takeIf { it.cues.isNotEmpty() } ?: return null
+        return androidx.media3.effect.OverlayEffect(
+            listOf(com.zellahq.app.captions.CaptionOverlay(track, canvas.width, canvas.height, typeface(track))),
+        )
+    }
+
+    /** The caption font: an imported one by name when the person picked it, else bold system text. */
+    var typeface: (com.zellahq.core.project.CaptionTrack) -> android.graphics.Typeface = { android.graphics.Typeface.DEFAULT_BOLD }
 
     /** A constant speed, or the iPhone's ramp curves sampled in 12 steps like its CompositionBuilder. */
     private fun speedProvider(

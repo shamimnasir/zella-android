@@ -10,7 +10,7 @@ Read this and tasks/lessons.md at the start of every session.
 | 1 Capture | Screen and camera capture built and measured on the emulator. Exit gate NOT passed (see below). |
 | 2 Timeline and editor | Mostly built. Model, edits, undo, store and iPhone parity done; editor UI works on the emulator. Open items below. |
 | 3 Export and limits | Mostly built. Export service, gate at the boundary, gallery save, share. Open items below. |
-| 4 Captions | Started. whisper.cpp v1.9.5 submodule and `zella-whisper` JNI module build (arm64, baseline ARMv8). Nothing else yet. |
+| 4 Captions | Built and measured on the emulator. Gate NOT passed (needs a phone and a real Bangla clip). |
 | 5 to 9 | Not started |
 
 ## Phase 0 evidence (2026-11-04)
@@ -130,25 +130,33 @@ So `./gradlew test lint ktlintCheck assembleDebug` cannot run here. Only `zella-
 52 unit tests passed through a scratch build without the Android plugin, and a separate exact scan
 found no dashes outside `third_party`. CI on GitHub has to confirm the full build.
 
-## Phase 4: where it stopped (2026-11-04)
+## Phase 4 evidence (2026-11-04, emulator only)
 
-Done: `third_party/whisper.cpp` (v1.9.5 submodule), `zella-whisper` module (CMake, JNI with word
-timestamps, progress, cancel, language detection; Kotlin `Whisper` wrapper). It compiles. It has NOT
-been run: no model loaded, no transcription measured.
+| Check | Result |
+| --- | --- |
+| Bundled model | whisper base multilingual, 5-bit, 59.7 MB, SHA-256 pinned, fetched at build time (`fetchCaptionModel`), not in git |
+| English speech (macOS voice, known sentence, 6.4 s) | 20 words, 19 right ("Zella makes" heard as "elemakes"); 8.2 s on the emulator CPU (`CaptionEngineTest`) |
+| Language detection | English at 0.9975 |
+| Speed | words of a 2x clip end by 3.3 s on the timeline, as they should |
+| Captions are drawn | 286 sampled pixels change in the caption band of an export (`CaptionEngineTest`) |
+| Real UI | Captions, English, Make captions: "Captions made: 20 words"; styles, hide, edit, remove shown; caption visible in the preview |
+| Grouping and placement | max 3 words, pause and sentence breaks incl. the Bangla danda, trim and speed mapping, reversed clips skipped, cue editing (`CaptionBuilderTest`) |
+| Fonts | PostScript names read from real fonts, ArialMT and Helvetica collection (`FontNamesTest`); import checks type and the 160 MB cap |
+| Model download | against a real HTTP server: 3 parts, checksums, a wrong checksum refused, unreachable list hidden, 59.7 MB in 4.9 s (`ModelDownloaderTest`) |
 
-Next, in order:
-1. Get a model onto the emulator (ggml base q5_1 from huggingface.co/ggerganov/whisper.cpp, SHA-256
-   checked, kept out of git) and an instrumented test that transcribes English speech made with
-   macOS `say`. Measure time per minute of audio.
-2. Audio extraction per clip (decode, mono, resample to 16 kHz), map word times source to timeline
-   through trim, speed and transitions, 30 s windows with progress, keep finished windows.
-3. Words to cues, store in `project.captions` (iPhone preset names), caption editing UI, language
-   picker that persists (`captionLanguage`), caption drawing in preview and export (OverlayEffect).
-4. Model downloader (manifest, SHA-256, resumable, Wi-Fi prompt). DECISION: ggml models must be
-   hosted at models.zellahq.com; the iPhone's models there are CoreML and do not work here.
-5. Custom fonts (.ttf .otf .ttc .otc up to 160 MB, PostScript names like the iPhone).
-6. Gate: a real Bangla clip and a real English clip on a mid-range phone, measured. Needs a phone and a
-   real Bangla recording.
+### Open in Phase 4
+
+- **Gate not passed.** No real Bangla clip and no phone. The base model will be weak at Bangla; the
+  iPhone found on-device Bangla transcription loops and offers English translation instead ("Write the
+  captions in English" is here too). Measure on a phone with a real Bangla recording before claiming it.
+- **DECISION: host Android models.** Upload ggml files and a manifest to
+  `https://models.zellahq.com/android/manifest.json` (format in `ModelDownloader.parse`). Until then
+  the "Better captions" download stays hidden. Suggested: ggml small or large-v3-turbo q5.
+- True mid-file resume (HTTP 206) is coded but the test server re-sent whole parts.
+- Only a baseline ARMv8 whisper build; an ARMv8.2 build would be faster on newer phones. Measure first.
+- Fonts travel in `.zella` packages Android writes; fonts in packages from the iPhone are not yet
+  imported into the font library on open.
+- Caption translation between other languages (not English) is not offered.
 
 ## Phase 1 exit gate: NOT passed
 

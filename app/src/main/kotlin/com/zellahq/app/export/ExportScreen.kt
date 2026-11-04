@@ -169,6 +169,30 @@ fun ExportScreen(
                 }
             }
         }
+        // Hand the project itself to another phone or a Mac: a .zella package with its media and fonts.
+        Tool(stringResource(R.string.ex_share_project)) {
+            val handoff =
+                java.io.File(context.getExternalFilesDir(null), "handoff").apply {
+                    deleteRecursively()
+                    mkdirs()
+                }
+            // A caption font the person imported travels in fonts/, as the iPhone does.
+            val fontName = (project.captions?.extras?.get("fontName") as? kotlinx.serialization.json.JsonPrimitive)?.content
+            val fontsDir = java.io.File(store.packageFor(project.id), com.zellahq.core.project.ProjectStore.FONTS)
+            java.io.File(context.filesDir, "fonts").listFiles { f -> f.nameWithoutExtension == fontName }?.forEach {
+                fontsDir.mkdirs()
+                it.copyTo(java.io.File(fontsDir, it.name), overwrite = true)
+            }
+            store.exportSelfContained(project, handoff)
+            val zip = handoff.listFiles { f -> f.name.endsWith(".zella.zip") }!!.first()
+            val uri = androidx.core.content.FileProvider.getUriForFile(context, "${context.packageName}.files", zip)
+            val send =
+                Intent(Intent.ACTION_SEND)
+                    .setType("application/zip")
+                    .putExtra(Intent.EXTRA_STREAM, uri)
+                    .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            context.startActivity(Intent.createChooser(send, context.getString(R.string.ex_share_project)))
+        }
         Text(stringResource(R.string.ex_privacy), color = MaterialTheme.colorScheme.onBackground)
     }
 }

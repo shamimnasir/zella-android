@@ -89,7 +89,9 @@ class EditorState(
     private val main = Handler(Looper.getMainLooper())
     private val io = Executors.newSingleThreadExecutor()
     val builder =
-        CompositionBuilder(store, reversedFile = { ReverseRenderer.cached(context, store, project.value.id, it) })
+        CompositionBuilder(store, reversedFile = { ReverseRenderer.cached(context, store, project.value.id, it) }).apply {
+            typeface = { captionTypeface(context, it) }
+        }
 
     private val mutableProject = MutableStateFlow(initial)
     val project: StateFlow<Project> = mutableProject
@@ -123,6 +125,60 @@ class EditorState(
     private val stills = Executors.newSingleThreadExecutor()
 
     @Volatile private var stillRequest = 0
+
+    /** Caption progress 0 to 1 while making captions, null otherwise. */
+    private val mutableCaptioning = MutableStateFlow<Float?>(null)
+    val captioning: StateFlow<Float?> = mutableCaptioning
+    private val mutableCaptionNote = MutableStateFlow<CaptionNote?>(null)
+    val captionNote: StateFlow<CaptionNote?> = mutableCaptionNote
+    private var captionEngine: com.zellahq.app.captions.CaptionEngine? = null
+
+    sealed interface CaptionNote {
+        data class Made(val words: Int, val language: String) : CaptionNote
+
+        data class NoWords(val language: String) : CaptionNote
+
+        data object NoSound : CaptionNote
+
+        data object Stopped : CaptionNote
+
+        data class Failed(val message: String) : CaptionNote
+    }
+
+    /** Makes captions in the background. One step of undo when done. */
+    fun makeCaptions(
+        language: String?,
+        translate: Boolean,
+    ) {
+        if (mutableCaptioning.value != null) return
+        player.pause()
+        mutableCaptionNote.value = null
+        mutableCaptioning.value = 0f
+        val engine = com.zellahq.app.captions.CaptionEngine(context).also { captionEngine = it }
+        val start = project.value
+        Thread({
+            val out = engine.run(start, language, translate) { f -> main.post { mutableCaptioning.value = f } }
+            main.post {
+                mutableCaptioning.value = null
+                captionEngine = null
+                mutableCaptionNote.value =
+                    when (out) {
+                        is com.zellahq.app.captions.CaptionEngine.Outcome.Done -> {
+                            android.util.Log.i("ZellaCaptions", "made ${out.words} words, ${out.language}, ${out.tookMs} ms")
+                            // Apply onto the current project, in case the person edited meanwhile.
+                            edit("captions") { it.copy(captions = out.project.captions, captionLanguage = out.project.captionLanguage) }
+                            CaptionNote.Made(out.words, out.language)
+                        }
+                        is com.zellahq.app.captions.CaptionEngine.Outcome.NoWords -> CaptionNote.NoWords(out.language)
+                        com.zellahq.app.captions.CaptionEngine.Outcome.NoSound -> CaptionNote.NoSound
+                        com.zellahq.app.captions.CaptionEngine.Outcome.Stopped -> CaptionNote.Stopped
+                        is com.zellahq.app.captions.CaptionEngine.Outcome.Failed -> CaptionNote.Failed(out.message)
+                    }
+            }
+        }, "captions").start()
+    }
+
+    fun stopCaptions() = captionEngine?.stop()
 
     private val mutableReversing = MutableStateFlow(false)
 
@@ -298,3 +354,12 @@ fun previewPlayer(
         .Builder(context)
         .apply { if (multi) setVideoGraphFactory(androidx.media3.effect.MultipleInputVideoGraph.Factory()) }
         .build()
+
+/** The caption font a track asks for: an imported font by its PostScript name, else bold system text. */
+fun captionTypeface(
+    context: Context,
+    track: com.zellahq.core.project.CaptionTrack,
+): android.graphics.Typeface {
+    val name = (track.extras["fontName"] as? kotlinx.serialization.json.JsonPrimitive)?.content
+    return com.zellahq.app.captions.FontLibrary.typeface(context, name) ?: android.graphics.Typeface.DEFAULT_BOLD
+}

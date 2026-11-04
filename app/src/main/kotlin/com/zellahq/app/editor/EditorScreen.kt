@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -71,7 +72,7 @@ import com.zellahq.ui.ZellaColors
 import com.zellahq.ui.ZellaRadius
 import com.zellahq.ui.ZellaSpacing
 
-private enum class Sheet { None, Speed, Volume }
+private enum class Sheet { None, Speed, Volume, Captions }
 
 @OptIn(UnstableApi::class)
 @Composable
@@ -217,6 +218,9 @@ fun EditorScreen(
             Modifier.horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(ZellaSpacing.S),
         ) {
+            Tool(stringResource(R.string.ed_captions), if (sheet == Sheet.Captions) ZellaColors.CardSun else ZellaColors.CardMint) {
+                sheet = if (sheet == Sheet.Captions) Sheet.None else Sheet.Captions
+            }
             Tool(stringResource(R.string.ed_split)) { state.edit("split") { it.split(position) } }
             if (selected != null) {
                 val index = project.clips.indexOf(selected)
@@ -264,6 +268,12 @@ fun EditorScreen(
             if (history.canRedo) Tool(stringResource(R.string.ed_redo)) { state.redo() }
         }
 
+        if (sheet == Sheet.Captions) {
+            // Captions can be long; the panel scrolls on its own so the tools above stay in place.
+            androidx.compose.foundation.layout.Box(Modifier.heightIn(max = 320.dp).verticalScroll(rememberScrollState())) {
+                com.zellahq.app.captions.CaptionsPanel(state, project)
+            }
+        }
         if (selected != null && sheet == Sheet.Speed) {
             Row(
                 Modifier.horizontalScroll(rememberScrollState()),

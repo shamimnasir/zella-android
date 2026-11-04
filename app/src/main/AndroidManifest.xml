@@ -2,6 +2,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- Each permission is asked for at the moment of use, with a plain-words reason. -->
     <!-- Voice, and also phone sound: Android needs this permission to capture other apps' audio. -->
+    <!-- Network, only for the opt-in paths: optional caption model downloads (files only), and later
+         the Assistant (your own key) and stock B-roll keywords. Video is never sent. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <!-- Camera recording. Asked when the camera screen opens. -->
     <uses-permission android:name="android.permission.CAMERA" />
