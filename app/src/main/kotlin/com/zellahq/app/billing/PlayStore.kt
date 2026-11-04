@@ -48,7 +48,12 @@ data class StoreState(
     val connected: Boolean = false,
     val prices: Map<String, String> = emptyMap(),
     val pending: Boolean = false,
+    /** Goes up each time Play's answer is applied, so a screen reads the stored plan again. */
+    val applied: Int = 0,
 )
+
+/** What a look at Play's list found. "Could not answer" is not the same as "you own nothing". */
+enum class RestoreResult { Found, None, NoAnswer }
 
 /**
  * Google Play, one-time purchases. Plan and refunds come from Play's own list, read at every start
@@ -105,17 +110,19 @@ class PlayStore(context: Context) : PurchasesUpdatedListener {
     }
 
     /** Re-reads what Play says and applies it. A refund shows up here as the purchase being gone. */
-    fun refresh(done: ((Boolean) -> Unit)? = null) {
+    fun refresh(done: ((RestoreResult) -> Unit)? = null) {
         client.queryPurchasesAsync(
             QueryPurchasesParams.newBuilder().setProductType(BillingClient.ProductType.INAPP).build(),
         ) { result, purchases ->
             if (result.responseCode != BillingClient.BillingResponseCode.OK) {
                 // Play could not answer: keep what is stored. A person offline keeps what they paid for.
-                done?.invoke(false)
+                done?.invoke(RestoreResult.NoAnswer)
                 return@queryPurchasesAsync
             }
             apply(purchases)
-            done?.invoke(purchases.any { it.purchaseState == Purchase.PurchaseState.PURCHASED })
+            done?.invoke(
+                if (purchases.any { it.purchaseState == Purchase.PurchaseState.PURCHASED }) RestoreResult.Found else RestoreResult.None,
+            )
         }
     }
 
@@ -128,7 +135,7 @@ class PlayStore(context: Context) : PurchasesUpdatedListener {
             }
         val r = PurchaseLedger.reconcile(facts)
         Entitlements.setPurchased(app, r.plan)
-        mutable.value = mutable.value.copy(pending = r.pending)
+        mutable.value = mutable.value.copy(pending = r.pending, applied = mutable.value.applied + 1)
         // Play refunds a purchase that is not acknowledged within three days.
         purchases
             .filter { it.purchaseState == Purchase.PurchaseState.PURCHASED && !it.isAcknowledged && signatureOk(it) }
@@ -162,7 +169,12 @@ class PlayStore(context: Context) : PurchasesUpdatedListener {
         result: BillingResult,
         purchases: MutableList<Purchase>?,
     ) {
-        if (result.responseCode == BillingClient.BillingResponseCode.OK) refresh()
+        // Already owned means this phone's stored plan is behind Play. Read the list and catch up.
+        if (result.responseCode == BillingClient.BillingResponseCode.OK ||
+            result.responseCode == BillingClient.BillingResponseCode.ITEM_ALREADY_OWNED
+        ) {
+            refresh()
+        }
     }
 
     fun close() = client.endConnection()

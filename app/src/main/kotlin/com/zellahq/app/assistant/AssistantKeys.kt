@@ -53,12 +53,13 @@ class AssistantKeys(context: Context) {
     fun setNamed(
         name: String,
         key: String,
-    ) {
-        val c = Cipher.getInstance(TRANSFORM)
-        c.init(Cipher.ENCRYPT_MODE, master())
-        val blob = c.iv + c.doFinal(key.toByteArray())
-        prefs.edit().putString(name, Base64.encodeToString(blob, Base64.NO_WRAP)).apply()
-    }
+    ): Boolean =
+        runCatching {
+            val c = Cipher.getInstance(TRANSFORM)
+            c.init(Cipher.ENCRYPT_MODE, master())
+            val blob = c.iv + c.doFinal(key.toByteArray())
+            prefs.edit().putString(name, Base64.encodeToString(blob, Base64.NO_WRAP)).apply()
+        }.isSuccess
 
     fun getNamed(name: String): String? {
         val blob = prefs.getString(name, null)?.let { Base64.decode(it, Base64.NO_WRAP) } ?: return null
@@ -69,7 +70,8 @@ class AssistantKeys(context: Context) {
         }.getOrNull()
     }
 
-    fun hasNamed(name: String) = prefs.contains(name)
+    /** Saved and readable. A key that can no longer be decrypted counts as gone, so the person is asked again. */
+    fun hasNamed(name: String) = getNamed(name) != null
 
     fun removeNamed(name: String) = prefs.edit().remove(name).apply()
 
@@ -104,7 +106,13 @@ object HttpsTransport : Transport {
         body: String,
     ): HttpReply {
         require(url.startsWith("https://")) { "The Assistant only talks over HTTPS" }
-        val c = URI(url).toURL().openConnection() as HttpURLConnection
+        // A bad model name makes a bad address. To the caller that is one more thing that could not be reached.
+        val c =
+            try {
+                URI(url).toURL().openConnection() as HttpURLConnection
+            } catch (e: Exception) {
+                throw java.io.IOException(e)
+            }
         try {
             c.requestMethod = "POST"
             c.doOutput = true

@@ -36,6 +36,12 @@ sealed interface AgentEvent {
     data class Using(val tool: String) : AgentEvent
 
     data class Did(val tool: String, val result: ToolResult) : AgentEvent
+
+    /** The model answered with nothing at all. */
+    data object Silent : AgentEvent
+
+    /** The conversation up to a safe point: every tool call in it has its result. */
+    data class Checkpoint(val messages: List<LlmMessage>) : AgentEvent
 }
 
 /**
@@ -56,10 +62,16 @@ class Agent(
         userText: String,
         onEvent: (AgentEvent) -> Unit,
     ): List<LlmMessage> {
-        val convo = (history + LlmMessage.User(userText)).toMutableList()
+        val convo = (bounded(history) + LlmMessage.User(userText)).toMutableList()
+        onEvent(AgentEvent.Checkpoint(convo.toList()))
         repeat(MAX_ROUNDS) {
             val reply = ask(systemPrompt(), convo, schemas)
-            convo += LlmMessage.Assistant(reply.text, reply.toolCalls)
+            val said = LlmMessage.Assistant(reply.text, reply.toolCalls)
+            if (said.isEmpty) {
+                onEvent(AgentEvent.Silent)
+                return convo
+            }
+            convo += said
             if (reply.text.isNotBlank()) onEvent(AgentEvent.Said(reply.text))
             if (reply.toolCalls.isEmpty()) return convo
             val outputs =
@@ -67,7 +79,16 @@ class Agent(
                     onEvent(AgentEvent.Using(call.name))
                     val tool = tools.firstOrNull { it.name == call.name }
                     val result =
-                        tool?.run?.invoke(Args(call.arguments))
+                        tool?.let { t ->
+                            try {
+                                t.run(Args(call.arguments))
+                            } catch (e: kotlin.coroutines.cancellation.CancellationException) {
+                                throw e
+                            } catch (e: Exception) {
+                                // One tool failing must not end the app or the chat. No detail: it could name a file.
+                                ToolResult("That did not work. Nothing was changed by this step.", true)
+                            }
+                        }
                             ?: ToolResult(
                                 "There is no tool called ${call.name}. The real tools are: ${tools.joinToString { it.name }}",
                                 true,
@@ -76,6 +97,7 @@ class Agent(
                     ToolOutput(call.id, call.name, result.text, result.isError)
                 }
             convo += LlmMessage.ToolResults(outputs)
+            onEvent(AgentEvent.Checkpoint(convo.toList()))
         }
         val stop = "I stopped here: that took more steps than I am allowed in one go. Ask me to carry on if you want more."
         onEvent(AgentEvent.Said(stop))
@@ -83,8 +105,17 @@ class Agent(
         return convo
     }
 
+    /** Keeps a long chat from growing without end. Always cut before a person's message, so no tool call loses its result. */
+    private fun bounded(history: List<LlmMessage>): List<LlmMessage> {
+        if (history.size <= MAX_HISTORY) return history
+        val from = history.size - MAX_HISTORY
+        val start = (from until history.size).firstOrNull { history[it] is LlmMessage.User } ?: return emptyList()
+        return history.subList(start, history.size)
+    }
+
     companion object {
         const val MAX_ROUNDS = 14
+        private const val MAX_HISTORY = 40
     }
 }
 

@@ -224,7 +224,7 @@ private fun CardRow(state: EditorState) {
             val out = runCatching { com.zellahq.app.depth.Cards.add(context, start, atEnd, style, if (atEnd) thanks else null) }.getOrNull()
             state.onMain {
                 busy = false
-                if (out != null) state.edit("card") { out }
+                if (out != null) state.applyResult(start, "card", out)
             }
         }, "card").start()
     }

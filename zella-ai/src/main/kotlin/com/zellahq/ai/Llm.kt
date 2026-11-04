@@ -15,7 +15,7 @@ enum class ProviderKind(
     Gemini(
         "gemini",
         "Google Gemini (free tier)",
-        "gemini-2.0-flash",
+        "gemini-3.5-flash-lite",
         null,
         "https://aistudio.google.com/apikey",
         "Free, no credit card. Open AI Studio and tap Get API key.",
@@ -31,7 +31,7 @@ enum class ProviderKind(
     Cerebras(
         "cerebras",
         "Cerebras (free tier)",
-        "llama-3.3-70b",
+        "gpt-oss-120b",
         "https://api.cerebras.ai/v1",
         "https://cloud.cerebras.ai/platform/",
         "Free and fast, with a limit on how much you can ask.",
@@ -39,7 +39,7 @@ enum class ProviderKind(
     OpenRouter(
         "openrouter",
         "OpenRouter",
-        "meta-llama/llama-3.3-70b-instruct",
+        "openrouter/auto",
         "https://openrouter.ai/api/v1",
         "https://openrouter.ai/keys",
         "Many models. Some are free: add :free to the model name.",
@@ -55,7 +55,7 @@ enum class ProviderKind(
     OpenAi(
         "openai",
         "OpenAI (ChatGPT)",
-        "gpt-4o",
+        "gpt-6-astra",
         "https://api.openai.com/v1",
         "https://platform.openai.com/api-keys",
         "Paid. Needs credits on your OpenAI account.",
@@ -67,7 +67,8 @@ enum class ProviderKind(
     }
 }
 
-data class ToolCall(val id: String, val name: String, val arguments: JsonObject)
+/** [signature] is Gemini's thought signature: it must go back with the call, or the next request is refused. */
+data class ToolCall(val id: String, val name: String, val arguments: JsonObject, val signature: String? = null)
 
 data class ToolOutput(val callId: String, val name: String, val text: String, val isError: Boolean = false)
 
@@ -75,7 +76,10 @@ data class ToolOutput(val callId: String, val name: String, val text: String, va
 sealed interface LlmMessage {
     data class User(val text: String) : LlmMessage
 
-    data class Assistant(val text: String, val toolCalls: List<ToolCall> = emptyList()) : LlmMessage
+    data class Assistant(val text: String, val toolCalls: List<ToolCall> = emptyList()) : LlmMessage {
+        /** Providers refuse an assistant turn with nothing in it, and then refuse every later request too. */
+        val isEmpty get() = text.isBlank() && toolCalls.isEmpty()
+    }
 
     data class ToolResults(val results: List<ToolOutput>) : LlmMessage
 }

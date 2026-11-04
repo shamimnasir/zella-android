@@ -72,7 +72,8 @@ fun PlansScreen(onBack: () -> Unit) {
                     )
                 price.isNotEmpty() ->
                     Tool(stringResource(R.string.pl_buy, price), ZellaColors.CardViolet) {
-                        (context as? Activity)?.let { store.buy(it, plan) }
+                        note = null
+                        if ((context as? Activity)?.let { store.buy(it, plan) } != true) note = R.string.pl_restored_no_answer
                     }
             }
         }
@@ -81,8 +82,13 @@ fun PlansScreen(onBack: () -> Unit) {
         if (state.prices.isEmpty()) Text(stringResource(R.string.pl_unavailable), color = color)
         if (state.pending) Text(stringResource(R.string.pl_pending), color = color)
         Tool(stringResource(R.string.pl_restore)) {
-            store.refresh { found ->
-                note = if (found) R.string.pl_restored else R.string.pl_restored_none
+            store.refresh { result ->
+                note =
+                    when (result) {
+                        RestoreResult.Found -> R.string.pl_restored
+                        RestoreResult.None -> R.string.pl_restored_none
+                        RestoreResult.NoAnswer -> R.string.pl_restored_no_answer
+                    }
                 refreshed++
             }
         }

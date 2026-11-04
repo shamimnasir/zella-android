@@ -8,7 +8,6 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.add
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
-import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
@@ -20,6 +19,8 @@ private fun parse(
     kind: ProviderKind,
     reply: HttpReply,
 ): JsonObject {
+    // Google answers a bad key with 400, not 401.
+    if (reply.status == 400 && reply.body.contains("API_KEY")) throw failure(kind, 401)
     if (reply.status !in 200..299) throw failure(kind, reply.status)
     return runCatching { lenient.parseToJsonElement(reply.body).jsonObject }
         .getOrElse { throw LlmException(reply.status, "The answer could not be read. Try again.") }
@@ -30,6 +31,18 @@ private fun JsonElement?.str() = (this as? JsonPrimitive)?.contentOrNull
 /** Providers send tool arguments as a JSON string. A broken one becomes no arguments, not a crash. */
 private fun argsFrom(text: String?): JsonObject =
     runCatching { lenient.parseToJsonElement(text.orEmpty().ifBlank { "{}" }).jsonObject }.getOrDefault(JsonObject(emptyMap()))
+
+/** Reads an answer. A shape nobody expected is a failed answer, never a crash. */
+private inline fun <T> reading(block: () -> T): T =
+    try {
+        block()
+    } catch (e: LlmException) {
+        throw e
+    } catch (e: Exception) {
+        throw LlmException(0, "The answer could not be read. Try again.")
+    }
+
+private fun List<LlmMessage>.sendable() = filterNot { it is LlmMessage.Assistant && it.isEmpty }
 
 /** Anthropic's Messages format. */
 class AnthropicClient(private val key: String, private val model: String, private val transport: Transport) : LlmClient {
@@ -54,7 +67,7 @@ class AnthropicClient(private val key: String, private val model: String, privat
                 }
             }
         }
-        putJsonArray("messages") { messages.forEach { add(wire(it)) } }
+        putJsonArray("messages") { messages.sendable().forEach { add(wire(it)) } }
     }
 
     private fun wire(m: LlmMessage) =
@@ -117,13 +130,15 @@ class AnthropicClient(private val key: String, private val model: String, privat
                 mapOf("x-api-key" to key, "anthropic-version" to "2023-06-01", "content-type" to "application/json"),
                 body(system, messages, tools).toString(),
             )
-        val blocks = parse(ProviderKind.Anthropic, reply)["content"]?.jsonArray.orEmpty().map { it.jsonObject }
-        return LlmReply(
-            blocks.filter { it["type"].str() == "text" }.joinToString("") { it["text"].str().orEmpty() },
-            blocks.filter { it["type"].str() == "tool_use" }.map {
-                ToolCall(it["id"].str().orEmpty(), it["name"].str().orEmpty(), it["input"] as? JsonObject ?: JsonObject(emptyMap()))
-            },
-        )
+        return reading {
+            val blocks = (parse(ProviderKind.Anthropic, reply)["content"] as? JsonArray).orEmpty().map { it.jsonObject }
+            LlmReply(
+                blocks.filter { it["type"].str() == "text" }.joinToString("") { it["text"].str().orEmpty() },
+                blocks.filter { it["type"].str() == "tool_use" }.map {
+                    ToolCall(it["id"].str().orEmpty(), it["name"].str().orEmpty(), it["input"] as? JsonObject ?: JsonObject(emptyMap()))
+                },
+            )
+        }
     }
 }
 
@@ -163,7 +178,7 @@ class OpenAiClient(
                     put("content", system)
                 },
             )
-            messages.forEach { m -> wire(m).forEach { add(it) } }
+            messages.sendable().forEach { m -> wire(m).forEach { add(it) } }
         }
     }
 
@@ -221,17 +236,19 @@ class OpenAiClient(
                 if (kind == ProviderKind.OpenRouter) put("x-title", "Zella")
             }
         val reply = transport.post("${kind.openAiBase}/chat/completions", headers, body(system, messages, tools).toString())
-        val message =
-            parse(kind, reply)["choices"]?.jsonArray?.firstOrNull()?.jsonObject?.get("message")?.jsonObject
-                ?: return LlmReply("", emptyList())
-        val calls = (message["tool_calls"] as? JsonArray).orEmpty().map { it.jsonObject }
-        return LlmReply(
-            message["content"].str().orEmpty(),
-            calls.map { c ->
-                val f = c["function"]?.jsonObject
-                ToolCall(c["id"].str().orEmpty(), f?.get("name").str().orEmpty(), argsFrom(f?.get("arguments").str()))
-            },
-        )
+        return reading {
+            val message =
+                ((parse(kind, reply)["choices"] as? JsonArray)?.firstOrNull() as? JsonObject)?.get("message") as? JsonObject
+                    ?: return@reading LlmReply("", emptyList())
+            val calls = (message["tool_calls"] as? JsonArray).orEmpty().map { it.jsonObject }
+            LlmReply(
+                message["content"].str().orEmpty(),
+                calls.map { c ->
+                    val f = c["function"]?.jsonObject
+                    ToolCall(c["id"].str().orEmpty(), f?.get("name").str().orEmpty(), argsFrom(f?.get("arguments").str()))
+                },
+            )
+        }
     }
 }
 
@@ -277,7 +294,7 @@ class GeminiClient(private val key: String, private val model: String, private v
                 )
             }
         }
-        putJsonArray("contents") { messages.forEach { add(wire(it)) } }
+        putJsonArray("contents") { messages.sendable().forEach { add(wire(it)) } }
     }
 
     private fun wire(m: LlmMessage) =
@@ -299,6 +316,7 @@ class GeminiClient(private val key: String, private val model: String, private v
                                         put("name", c.name)
                                         put("args", c.arguments)
                                     }
+                                    c.signature?.let { put("thoughtSignature", it) }
                                 },
                             )
                         }
@@ -329,19 +347,29 @@ class GeminiClient(private val key: String, private val model: String, private v
     ): LlmReply {
         val reply =
             transport.post(
-                "https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent",
+                "https://generativelanguage.googleapis.com/v1beta/models/${java.net.URLEncoder.encode(
+                    model.trim(),
+                    "UTF-8",
+                ).replace("+", "%20")}:generateContent",
                 mapOf("x-goog-api-key" to key, "content-type" to "application/json"),
                 body(system, messages, tools).toString(),
             )
-        val parts =
-            parse(ProviderKind.Gemini, reply)["candidates"]?.jsonArray?.firstOrNull()?.jsonObject
-                ?.get("content")?.jsonObject?.get("parts")?.jsonArray.orEmpty().map { it.jsonObject }
-        return LlmReply(
-            parts.mapNotNull { it["text"].str() }.joinToString(""),
-            parts.mapNotNull { it["functionCall"]?.jsonObject }.mapIndexed { i, f ->
-                // Gemini gives calls no id; results are matched by name, so this only needs to be stable.
-                ToolCall("call_$i", f["name"].str().orEmpty(), f["args"] as? JsonObject ?: JsonObject(emptyMap()))
-            },
-        )
+        return reading {
+            val first = (parse(ProviderKind.Gemini, reply)["candidates"] as? JsonArray)?.firstOrNull() as? JsonObject
+            val parts = ((first?.get("content") as? JsonObject)?.get("parts") as? JsonArray).orEmpty().map { it.jsonObject }
+            LlmReply(
+                parts.mapNotNull { it["text"].str() }.joinToString(""),
+                parts.filter { it["functionCall"] is JsonObject }.mapIndexed { i, part ->
+                    val f = part["functionCall"] as JsonObject
+                    // Gemini gives calls no id; results are matched by name, so this only needs to be stable.
+                    ToolCall(
+                        "call_$i",
+                        f["name"].str().orEmpty(),
+                        f["args"] as? JsonObject ?: JsonObject(emptyMap()),
+                        part["thoughtSignature"].str(),
+                    )
+                },
+            )
+        }
     }
 }

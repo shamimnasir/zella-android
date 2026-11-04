@@ -26,6 +26,7 @@ Each has a test or a procedure ready. `KNOWN_DEVICES.md` lists what to test on.
 - [ ] A/V sync on a real microphone: `tools/measure-av-sync.py`.
 - [ ] Kill during recording, on a phone: `docs/STOP_SEQUENCE.md`.
 - [ ] Captions in Bangla and Hindi on the owner's own clips.
+- [ ] Host `https://models.zellahq.com/android/manifest.json` (404 on 2026-11-04). Until then "See better caption downloads" says none could be reached, and the listing must not promise bigger caption downloads.
 - [ ] Voice clean-up and all voice effects, by ear. None has been heard.
 - [ ] Music ducking and loudness, by ear on phone speakers and earphones.
 - [ ] Cutout on the owner's own clips: edge quality in bright, dim and busy rooms.

@@ -85,7 +85,9 @@ object Formats {
                     val small = Bitmap.createScaledBitmap(raw, GIF_WIDTH, h, true)
                     if (small !== raw) raw.recycle()
                     val w = writer ?: GifWriter(o, GIF_WIDTH, h).also { writer = it }
-                    w.frame(small, 100 / GIF_FPS)
+                    // GIF counts in hundredths of a second, so the frames take turns to stay on time.
+                    val delay = ((i + 1) * 100 / GIF_FPS) - (i * 100 / GIF_FPS)
+                    w.frame(small, delay)
                     small.recycle()
                 }
                 writer?.finish() ?: return false

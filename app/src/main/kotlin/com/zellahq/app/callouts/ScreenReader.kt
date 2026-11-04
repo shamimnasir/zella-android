@@ -1,3 +1,5 @@
+@file:Suppress("ktlint:standard:max-line-length")
+
 package com.zellahq.app.callouts
 
 import android.content.Context
@@ -101,8 +103,8 @@ class ScreenReader(private val context: Context) : AutoCloseable {
     override fun close() = api.recycle()
 
     companion object {
-        /** How different two frames must be, 0 to 255 on average, before reading the second again. */
-        private const val SAME_FRAME = 1.2
+        /** A spot that moved this much, out of 255, means the frame is read again. */
+        private const val SAME_SPOT = 18
         private const val SCAN_SHORT_SIDE = 1080
 
         /** Renders the timeline, without callouts, to read from. The caller deletes the file. */
@@ -111,34 +113,47 @@ class ScreenReader(private val context: Context) : AutoCloseable {
             p: Project,
         ): File? {
             val store = ProjectStore(File(context.getExternalFilesDir(null), "projects"))
-            val builder = appComposition(context, store)
+            // With the reversed copies, or a reversed clip would be read forwards and its blurs land at the wrong times.
+            p.clips.filter { it.reversed }.forEach { com.zellahq.app.editor.ReverseRenderer.render(context, store, p.id, it) }
+            val builder =
+                appComposition(context, store, reversedFile = { com.zellahq.app.editor.ReverseRenderer.cached(context, store, p.id, it) })
             val out = File(context.cacheDir, "reading-${p.id}.mp4")
             val plain = p.copy(extras = kotlinx.serialization.json.JsonObject(p.extras - "callouts"))
-            val outcome = Exporter(context, builder).render(builder.build(plain).composition, ExportSettings(SCAN_SHORT_SIDE), out)
-            return (outcome as? ExportOutcome.Done)?.file
+            val exporter = Exporter(context, builder)
+            try {
+                val outcome = exporter.render(builder.build(plain).composition, ExportSettings(SCAN_SHORT_SIDE), out)
+                return (outcome as? ExportOutcome.Done)?.file
+            } finally {
+                exporter.release()
+            }
         }
 
-        private fun difference(
+        /**
+         * True when no spot changed. An average would be wrong: a password appearing on a still page is a small
+         * part of the frame, and it must not be skipped. Every sixth pixel, so thin text cannot fall between.
+         */
+        internal fun sameFrame(
             a: Bitmap,
             b: Bitmap,
-        ): Double {
-            var sum = 0L
-            var n = 0
-            val stepX = max(1, a.width / 48)
-            val stepY = max(1, a.height / 48)
-            var y = 0
-            while (y < a.height) {
-                var x = 0
-                while (x < a.width) {
-                    val p = a.getPixel(x, y)
-                    val q = b.getPixel(x, y)
-                    sum += abs((p shr 8 and 255) - (q shr 8 and 255))
-                    n++
-                    x += stepX
+        ): Boolean {
+            if (a.width != b.width || a.height != b.height) return false
+            val row = IntArray(a.width)
+            val other = IntArray(a.width)
+            for (y in 0 until a.height step 6) {
+                a.getPixels(row, 0, a.width, 0, y, a.width, 1)
+                b.getPixels(other, 0, a.width, 0, y, a.width, 1)
+                for (x in 0 until a.width step 6) {
+                    val p = row[x]
+                    val q = other[x]
+                    if (abs((p shr 16 and 255) - (q shr 16 and 255)) > SAME_SPOT ||
+                        abs((p shr 8 and 255) - (q shr 8 and 255)) > SAME_SPOT ||
+                        abs((p and 255) - (q and 255)) > SAME_SPOT
+                    ) {
+                        return false
+                    }
                 }
-                y += stepY
             }
-            return sum.toDouble() / max(1, n)
+            return true
         }
     }
 
@@ -185,7 +200,7 @@ class ScreenReader(private val context: Context) : AutoCloseable {
                 val frame = raw.copy(Bitmap.Config.ARGB_8888, false)
                 if (frame !== raw) raw.recycle()
                 val prev = last
-                val read = if (prev != null && difference(prev, frame) < SAME_FRAME) lastRead else read(frame)
+                val read = if (prev != null && sameFrame(prev, frame)) lastRead else read(frame)
                 prev?.recycle()
                 last = frame
                 lastRead = read
@@ -233,7 +248,7 @@ fun List<BlurPlan>.toCallouts(pixelate: Boolean): List<Callout> =
     }
 
 /** What a scan for sensitive text found and did, in words safe to show or send on: secrets stay masked. */
-data class BlurReport(val callouts: List<Callout>, val text: String)
+data class BlurReport(val callouts: List<Callout>, val text: String, val failed: Boolean = false)
 
 fun describe(m: SensitiveMatcher): String =
     listOfNotNull(
@@ -256,7 +271,7 @@ fun findSensitiveText(
     val dur = p.duration
     val s = (start ?: 0.0).coerceIn(0.0, dur)
     val e = (end ?: dur).coerceIn(s, dur)
-    val video = ScreenReader.renderForReading(context, p) ?: return BlurReport(emptyList(), "The video could not be prepared for reading.")
+    val video = ScreenReader.renderForReading(context, p) ?: return BlurReport(emptyList(), "The video could not be prepared for reading.", failed = true)
     try {
         val (times, step) = SensitiveBlurPlanner.sampleTimes(s, e, 0.5, maxFrames)
         val scan = ScreenReader(context).use { it.scan(video, times, matcher, budgetSeconds, progress) }

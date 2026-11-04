@@ -109,16 +109,21 @@ fun PipPanel(
             if (uri == null) return@rememberLauncherForActivityResult
             Thread({
                 val f = File(Storage.imports(context), "overlay-${newId()}.mp4")
-                context.contentResolver.openInputStream(uri)?.use { i -> f.outputStream().use { i.copyTo(it) } }
                 val m = MediaMetadataRetriever()
                 val (dur, aspect) =
                     try {
+                        context.contentResolver.openInputStream(uri)?.use { i -> f.outputStream().use { i.copyTo(it) } }
                         m.setDataSource(f.absolutePath)
                         val d = (m.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toDoubleOrNull() ?: 0.0) / 1000
                         val w = m.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)?.toDoubleOrNull() ?: 16.0
                         val h = m.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)?.toDoubleOrNull() ?: 9.0
                         val rot = m.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION)?.toIntOrNull() ?: 0
                         d to if (rot % 180 == 0) w / h else h / w
+                    } catch (e: Exception) {
+                        // Not a video Android can read, or no room to copy it.
+                        android.util.Log.w("ZellaEditor", "picture in picture", e)
+                        f.delete()
+                        0.0 to 1.0
                     } finally {
                         m.release()
                     }
@@ -235,7 +240,15 @@ fun EffectsPanel(
     }
 }
 
-private val rampNames = listOf("None", "Slow-Fast-Slow", "Fast-Slow-Fast", "Ramp Up", "Ramp Down")
+/** Stored name, then the words for it. */
+private val ramps =
+    listOf(
+        "None" to R.string.mo_ramp_none,
+        "Slow-Fast-Slow" to R.string.mo_ramp_sfs,
+        "Fast-Slow-Fast" to R.string.mo_ramp_fsf,
+        "Ramp Up" to R.string.mo_ramp_up,
+        "Ramp Down" to R.string.mo_ramp_down,
+    )
 
 /** Where the clip sits, how it changes over time, and where its look applies. */
 @Composable
@@ -320,8 +333,8 @@ fun MotionPanel(
 
         Text(stringResource(R.string.mo_ramp_title), color = color)
         Chips {
-            rampNames.forEach { name ->
-                Tool(name, if ((clip.speedRamp ?: "None") == name) ZellaColors.CardSun else null) {
+            ramps.forEach { (name, label) ->
+                Tool(stringResource(label), if ((clip.speedRamp ?: "None") == name) ZellaColors.CardSun else null) {
                     state.edit("speed ramp") { p ->
                         p.mapClipById(clip.id) { c ->
                             c.copy(

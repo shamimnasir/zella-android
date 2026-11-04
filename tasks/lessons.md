@@ -2,6 +2,28 @@
 
 Mistakes worth not repeating. Newest first.
 
+## 2026-11-04: a media test with round numbers hides rounding crashes
+
+Every ramp test used lengths that divide evenly, so a truncated boundary never landed on itself. A 4 second clip split
+in 12 did, and took the app down. Use awkward lengths in media tests. Throws from Media3 on a handler thread end the
+process, so wrap the call that starts work.
+
+## 2026-11-04: never count frames out of an encoder surface
+
+A drawing surface may skip frames when fed quickly. Assigning times by counting made reversed clips a third short with
+no error. Feed buffers with an explicit time. A test comparing only gaps passed for the frames that survived: compare the
+frame count and the pictures as well.
+
+## 2026-11-04: read one pixel of a moving test pattern and you will chase a false bug
+
+A corner pixel went from magenta to white and looked like a colour conversion bug. The pattern moves. Compare the mirrored
+frame, across the frame, in all three colours.
+
+## 2026-11-04: a permission or field declared is not a thing done
+
+The export wake lock had a permission, a field and a release, and nothing ever took it. A long patch script matches on text:
+print what missed, and check afterwards that each change landed.
+
 ## 2026-11-04: the two-track preview player never redraws after a paused seek
 
 Media3 1.10.1 `CompositionPlayer` with `MultipleInputVideoGraph` (needed for cross-fades) moved its

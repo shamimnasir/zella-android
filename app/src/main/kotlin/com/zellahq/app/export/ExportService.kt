@@ -1,3 +1,5 @@
+@file:Suppress("ktlint:standard:max-line-length")
+
 // Media3's composition preview and export are marked unstable and experimental. Zella depends on
 // them on purpose: they are the only way to preview exactly what exports. Pinned to 1.10.1.
 @file:OptIn(UnstableApi::class, ExperimentalApi::class)
@@ -43,7 +45,8 @@ sealed interface ExportStatus {
 
     data class Running(val percent: Int, val hot: Boolean) : ExportStatus
 
-    data class Done(val file: File, val seconds: Double, val more: List<File> = emptyList()) : ExportStatus
+    /** [missed] counts shapes in the queue that did not come out. */
+    data class Done(val file: File, val seconds: Double, val more: List<File> = emptyList(), val missed: Int = 0) : ExportStatus
 
     data class Blocked(val needs: List<ProFeature>) : ExportStatus
 
@@ -70,12 +73,37 @@ class ExportService : Service() {
         const val ACTION_CANCEL = "cancel"
         private const val CHANNEL = "export"
         private const val ID = 2
+        private const val READY_ID = 3
+        private const val WAKE_LIMIT_MS = 6 * 60 * 60 * 1000L
 
         private val mutableStatus = MutableStateFlow<ExportStatus>(ExportStatus.Idle)
         val status: StateFlow<ExportStatus> = mutableStatus
 
+        /** The project the current status belongs to. One project's finished file must never show on another's screen. */
+        @Volatile var statusProject: String? = null
+            private set
+
         fun reset() {
             if (mutableStatus.value !is ExportStatus.Running) mutableStatus.value = ExportStatus.Idle
+        }
+
+        /** Leaving the screen forgets a failure, but a finished video stays until the next export. */
+        fun leftScreen() {
+            if (mutableStatus.value is ExportStatus.Failed || mutableStatus.value is ExportStatus.Cancelled || mutableStatus.value is ExportStatus.Blocked) reset()
+        }
+
+        /** Letters of any language stay in the name. */
+        fun safeName(name: String) = name.replace(Regex("[^\\p{L}\\p{M}\\p{N} _-]"), "").trim().ifEmpty { "Zella" }
+
+        /** Finished files of a project with this name, newest first. They stay on the phone until deleted here. */
+        fun earlier(
+            context: Context,
+            name: String,
+        ): List<File> {
+            val prefix = safeName(name)
+            return Storage.exports(context).listFiles { f -> f.isFile && !f.name.endsWith(".part") && f.name.startsWith("$prefix-") }
+                .orEmpty()
+                .sortedByDescending { it.lastModified() }
         }
 
         /** Adds the file to the gallery, in Movies/Zella. No storage permission needed on Android 10+. */
@@ -108,13 +136,16 @@ class ExportService : Service() {
         fun shareIntent(
             context: Context,
             file: File,
+            more: List<File> = emptyList(),
         ): Intent {
-            val uri = FileProvider.getUriForFile(context, "${context.packageName}.files", file)
+            val uris = (listOf(file) + more).map { FileProvider.getUriForFile(context, "${context.packageName}.files", it) }
             val send =
-                Intent(Intent.ACTION_SEND)
-                    .setType(Formats.mime(file))
-                    .putExtra(Intent.EXTRA_STREAM, uri)
-                    .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                if (uris.size == 1) {
+                    Intent(Intent.ACTION_SEND).putExtra(Intent.EXTRA_STREAM, uris[0])
+                } else {
+                    Intent(Intent.ACTION_SEND_MULTIPLE).putParcelableArrayListExtra(Intent.EXTRA_STREAM, ArrayList(uris))
+                }
+            send.setType(Formats.mime(file)).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             return Intent.createChooser(send, context.getString(R.string.ex_share))
         }
     }
@@ -122,6 +153,17 @@ class ExportService : Service() {
     private var exporter: Exporter? = null
 
     @Volatile private var exporterCancelled = false
+
+    private var wake: PowerManager.WakeLock? = null
+
+    /** Android 15 ends a mediaProcessing service after its time limit. Stop cleanly rather than be killed for it. */
+    override fun onTimeout(
+        startId: Int,
+        fgsType: Int,
+    ) {
+        exporterCancelled = true
+        exporter?.cancel()
+    }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -152,7 +194,15 @@ class ExportService : Service() {
         // Not ServiceCompat: androidx.core 1.16 masks off types it does not know, and mediaProcessing
         // (Android 15) became "type none", which Android refuses (crash on the emulator, 2026-11-04).
         startForeground(ID, notification(0), type)
+        statusProject = projectId
         mutableStatus.value = ExportStatus.Running(0, false)
+        getSystemService(NotificationManager::class.java).cancel(READY_ID)
+        // The screen may turn off during a long export. Bounded, so a stuck export cannot hold it for ever.
+        wake =
+            getSystemService(PowerManager::class.java).newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "zella:export").apply {
+                setReferenceCounted(false)
+                acquire(WAKE_LIMIT_MS)
+            }
         exporterCancelled = false
         val format = intent.getStringExtra(EXTRA_FORMAT) ?: Formats.VIDEO
         val also = intent.getStringArrayListExtra(EXTRA_ALSO).orEmpty()
@@ -184,13 +234,10 @@ class ExportService : Service() {
                     is ExportDecision.Blocked -> ExportStatus.Blocked(d.needs)
                     is ExportDecision.Allowed -> {
                         // Reversed clips need their backwards copy before they can be exported.
-                        project.clips.filter { it.reversed }.forEach {
-                            ReverseRenderer.render(
-                                this,
-                                store,
-                                project.id,
-                                it,
-                            )
+                        for (c in project.clips.filter { it.reversed }) {
+                            if (exporterCancelled) return@runCatching ExportStatus.Cancelled
+                            // Waits if the preview is making it. A clip that cannot go backwards fails the export below.
+                            ReverseRenderer.render(this, store, project.id, c)
                         }
                         val builder =
                             com.zellahq.app.editor.appComposition(
@@ -199,7 +246,7 @@ class ExportService : Service() {
                                 reversedFile = { ReverseRenderer.cached(this, store, project.id, it) },
                             )
                         val e = Exporter(this, builder).also { exporter = it }
-                        val safe = project.name.replace(Regex("[^A-Za-z0-9 _-]"), "").trim().ifEmpty { "Zella" }
+                        val safe = safeName(project.name)
                         val out = File(Storage.exports(this), "$safe-${System.currentTimeMillis() / 1000}.mp4")
                         val power = getSystemService(PowerManager::class.java)
                         when (
@@ -218,16 +265,27 @@ class ExportService : Service() {
                                     if (first !is ExportStatus.Done) {
                                         emptyList()
                                     } else {
-                                        also.mapNotNull { raw ->
+                                        also.mapIndexedNotNull { i, raw ->
                                             val aspect = com.zellahq.core.project.Aspect.of(raw)
-                                            if (aspect == project.aspect || exporterCancelled) return@mapNotNull null
+                                            if (aspect == project.aspect || exporterCancelled) return@mapIndexedNotNull null
+                                            mutableStatus.value = ExportStatus.Running((100 * (i + 1)) / (also.size + 1), false)
                                             val f =
                                                 File(Storage.exports(this), "$safe-${aspect.raw}-${System.currentTimeMillis() / 1000}.mp4")
                                             val x = e.export(project.copy(aspect = aspect, platformPresetId = null), d.permit, settings, f)
                                             (x as? ExportOutcome.Done)?.file
                                         }
                                     }
-                                if (first is ExportStatus.Done) first.copy(more = more) else first
+                                if (first is ExportStatus.Done) {
+                                    first.copy(
+                                        more = more,
+                                        missed =
+                                            also.count {
+                                                com.zellahq.core.project.Aspect.of(it) != project.aspect
+                                            } - more.size,
+                                    )
+                                } else {
+                                    first
+                                }
                             }
                             is ExportOutcome.Failed -> ExportStatus.Failed(o.message)
                             ExportOutcome.Cancelled -> ExportStatus.Cancelled
@@ -236,8 +294,11 @@ class ExportService : Service() {
                 }
             }.getOrElse { ExportStatus.Failed(getString(R.string.ex_failed_generic)) }
         exporter = null
+        wake?.let { if (it.isHeld) it.release() }
+        wake = null
         mutableStatus.value = result
         ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
+        if (result is ExportStatus.Done) ready()
         stopSelf()
     }
 
@@ -249,9 +310,33 @@ class ExportService : Service() {
         val seconds = o.result.approximateDurationMs / 1000.0
         if (format == Formats.VIDEO) return ExportStatus.Done(o.file, seconds)
         val out = File(o.file.parentFile, o.file.nameWithoutExtension + if (format == Formats.GIF) ".gif" else ".m4a")
-        val ok = if (format == Formats.GIF) Formats.gif(o.file, out) else Formats.soundOnly(o.file, out)
+        val ok = runCatching { if (format == Formats.GIF) Formats.gif(o.file, out) else Formats.soundOnly(o.file, out) }.getOrDefault(false)
         o.file.delete()
-        return if (ok) ExportStatus.Done(out, seconds) else ExportStatus.Failed(getString(R.string.ex_failed_generic))
+        if (ok) return ExportStatus.Done(out, seconds)
+        return ExportStatus.Failed(getString(if (format == Formats.SOUND) R.string.ex_no_sound else R.string.ex_failed_generic))
+    }
+
+    private fun openApp() =
+        PendingIntent.getActivity(
+            this,
+            2,
+            packageManager.getLaunchIntentForPackage(packageName),
+            PendingIntent.FLAG_IMMUTABLE,
+        )
+
+    /** The person may have left the app. This says it finished and where to find it. */
+    private fun ready() {
+        getSystemService(NotificationManager::class.java).notify(
+            READY_ID,
+            Notification
+                .Builder(this, CHANNEL)
+                .setSmallIcon(android.R.drawable.ic_menu_save)
+                .setContentTitle(getString(R.string.ex_done))
+                .setContentText(getString(R.string.ex_done_notice))
+                .setContentIntent(openApp())
+                .setAutoCancel(true)
+                .build(),
+        )
     }
 
     private fun notification(percent: Int): Notification {
@@ -268,8 +353,9 @@ class ExportService : Service() {
             )
         return Notification
             .Builder(this, CHANNEL)
-            .setSmallIcon(android.R.drawable.stat_sys_upload)
+            .setSmallIcon(android.R.drawable.ic_menu_save)
             .setContentTitle(getString(R.string.ex_running, percent))
+            .setContentIntent(openApp())
             .setProgress(100, percent, false)
             .setOngoing(true)
             .addAction(Notification.Action.Builder(null, getString(R.string.ex_cancel), cancel).build())

@@ -1,3 +1,5 @@
+@file:Suppress("ktlint:standard:max-line-length")
+
 // Media3's composition preview and export are marked unstable and experimental. Zella depends on
 // them on purpose: they are the only way to preview exactly what exports. Pinned to 1.10.1.
 @file:OptIn(UnstableApi::class, ExperimentalApi::class)
@@ -14,6 +16,7 @@ import androidx.media3.common.Player
 import androidx.media3.common.util.ExperimentalApi
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.transformer.CompositionPlayer
+import com.zellahq.app.R
 import com.zellahq.core.project.Clip
 import com.zellahq.core.project.MediaRef
 import com.zellahq.core.project.Project
@@ -64,7 +67,16 @@ object Storage {
     fun store(context: Context) = ProjectStore(projects(context))
 
     /** Length of a video or audio file in seconds, or null when it cannot be read. */
-    fun durationSeconds(file: File): Double? =
+    private val durations = java.util.concurrent.ConcurrentHashMap<String, Pair<Long, Double>>()
+
+    /** Remembered per file: opening a video to read this takes long enough to be felt on every edit. */
+    fun durationSeconds(file: File): Double? {
+        val stamp = file.lastModified()
+        durations[file.path]?.takeIf { it.first == stamp }?.let { return it.second }
+        return readDuration(file)?.also { durations[file.path] = stamp to it }
+    }
+
+    private fun readDuration(file: File): Double? =
         runCatching {
             MediaMetadataRetriever().use {
                 it.setDataSource(file.path)
@@ -114,7 +126,14 @@ object Storage {
     ): File? =
         runCatching {
             val out = File(imports(context), "Import-${System.currentTimeMillis()}.mp4")
-            context.contentResolver.openInputStream(uri)!!.use { i -> out.outputStream().use { i.copyTo(it) } }
+            // Through a temporary name: a copy cut short by a full disk must not pass for a video.
+            val part = File(out.path + ".part")
+            try {
+                context.contentResolver.openInputStream(uri)!!.use { i -> part.outputStream().use { i.copyTo(it) } }
+                check(part.renameTo(out))
+            } finally {
+                part.delete()
+            }
             out
         }.getOrNull()
 }
@@ -133,6 +152,55 @@ class EditorState(
     private val undo = UndoStack(initial)
     private val main = Handler(Looper.getMainLooper())
     private val io = Executors.newSingleThreadExecutor()
+
+    /** Saves wait for nothing but each other. On [io] they sat behind long reverses and transition renders. */
+    private val saver = Executors.newSingleThreadExecutor()
+
+    @Volatile private var released = false
+
+    /** A line for the person about something that happened in the background, as a string resource. */
+    private val mutableNote = MutableStateFlow<Int?>(null)
+    val note: StateFlow<Int?> = mutableNote
+
+    /** Files and joins that failed, or that the person stopped. They are not retried until something changes. */
+    private val matteGaveUp = HashSet<String>()
+    private val reverseGaveUp = HashSet<String>()
+    private val bakeGaveUp = HashSet<String>()
+
+    /** Background work that must never take the app down: a failure becomes a line on screen. */
+    private fun background(
+        name: String,
+        block: () -> Unit,
+    ) = Thread({
+        try {
+            block()
+        } catch (t: Throwable) {
+            android.util.Log.e("ZellaEditor", name, t)
+            main.post { if (!released) mutableNote.value = R.string.ed_background_failed }
+        }
+    }, name).start()
+
+    /** A long job may run this long only while nothing else is. */
+    val busy get() = mutableAuto.value != null || mutableCaptioning.value != null
+
+    /**
+     * Applies work computed from the project as it was at [start]. Replacing the project with that result
+     * would throw away anything edited since, so when the project has moved on it says so and keeps the edits.
+     */
+    fun applyResult(
+        start: Project,
+        label: String,
+        result: Project,
+    ): Boolean {
+        if (released) return false
+        if (project.value != start) {
+            mutableNote.value = R.string.ed_changed_meanwhile
+            return false
+        }
+        edit(label) { result }
+        return true
+    }
+
     val builder = appComposition(context, store, reversedFile = { ReverseRenderer.cached(context, store, project.value.id, it) })
 
     /** How far along finding the person is, or null. The clip plays as it was until this finishes. */
@@ -186,18 +254,25 @@ class EditorState(
     fun makeCaptions(
         language: String?,
         translate: Boolean,
+        done: (Boolean) -> Unit = {},
     ) {
-        if (mutableCaptioning.value != null) return
+        if (busy) {
+            done(false)
+            return
+        }
         player.pause()
         mutableCaptionNote.value = null
         mutableCaptioning.value = 0f
         val engine = com.zellahq.app.captions.CaptionEngine(context).also { captionEngine = it }
         val start = project.value
-        Thread({
-            val out = engine.run(start, language, translate) { f -> main.post { mutableCaptioning.value = f } }
+        background("captions") {
+            val out =
+                runCatching { engine.run(start, language, translate) { f -> main.post { mutableCaptioning.value = f } } }
+                    .getOrElse { com.zellahq.app.captions.CaptionEngine.Outcome.Failed(context.getString(R.string.cap_failed)) }
             main.post {
                 mutableCaptioning.value = null
                 captionEngine = null
+                if (released) return@post
                 mutableCaptionNote.value =
                     when (out) {
                         is com.zellahq.app.captions.CaptionEngine.Outcome.Done -> {
@@ -206,13 +281,25 @@ class EditorState(
                             edit("captions") { it.copy(captions = out.project.captions, captionLanguage = out.project.captionLanguage) }
                             CaptionNote.Made(out.words, out.language)
                         }
-                        is com.zellahq.app.captions.CaptionEngine.Outcome.NoWords -> CaptionNote.NoWords(out.language)
-                        com.zellahq.app.captions.CaptionEngine.Outcome.NoSound -> CaptionNote.NoSound
-                        com.zellahq.app.captions.CaptionEngine.Outcome.Stopped -> CaptionNote.Stopped
-                        is com.zellahq.app.captions.CaptionEngine.Outcome.Failed -> CaptionNote.Failed(out.message)
+                        is com.zellahq.app.captions.CaptionEngine.Outcome.NoWords -> {
+                            done(false)
+                            CaptionNote.NoWords(out.language)
+                        }
+                        com.zellahq.app.captions.CaptionEngine.Outcome.NoSound -> {
+                            done(false)
+                            CaptionNote.NoSound
+                        }
+                        com.zellahq.app.captions.CaptionEngine.Outcome.Stopped -> {
+                            done(false)
+                            CaptionNote.Stopped
+                        }
+                        is com.zellahq.app.captions.CaptionEngine.Outcome.Failed -> {
+                            done(false)
+                            CaptionNote.Failed(out.message)
+                        }
                     }
             }
-        }, "captions").start()
+        }
     }
 
     fun stopCaptions() = captionEngine?.stop()
@@ -230,8 +317,14 @@ class EditorState(
     private val mutableBeforeAuto = MutableStateFlow<Project?>(null)
     val beforeAuto: StateFlow<Project?> = mutableBeforeAuto
 
-    fun runAuto(viral: Boolean) {
-        if (mutableAuto.value != null) return
+    fun runAuto(
+        viral: Boolean,
+        done: (Boolean) -> Unit = {},
+    ) {
+        if (busy) {
+            done(false)
+            return
+        }
         val start = project.value
         val runner = com.zellahq.app.auto.AutoPolish(context)
         autoRunner = runner
@@ -245,11 +338,13 @@ class EditorState(
             main.post {
                 mutableAuto.value = null
                 autoRunner = null
-                if (r != null && !r.stopped) {
+                if (r == null && !released) mutableNote.value = R.string.ed_background_failed
+                val applied = r != null && !r.stopped && applyResult(start, if (viral) "make it viral" else "auto polish", r.project)
+                if (applied) {
                     mutableBeforeAuto.value = start
-                    mutableReceipt.value = r.receipt
-                    edit(if (viral) "make it viral" else "auto polish") { r.project }
+                    mutableReceipt.value = r!!.receipt
                 }
+                done(applied)
             }
         }, "auto-polish").start()
     }
@@ -264,8 +359,14 @@ class EditorState(
     }
 
     /** Make Vertical and the other shapes. Keeps the speaker in the crop. */
-    fun reshape(aspect: com.zellahq.core.project.Aspect) {
-        if (mutableAuto.value != null) return
+    fun reshape(
+        aspect: com.zellahq.core.project.Aspect,
+        done: (Boolean) -> Unit = {},
+    ) {
+        if (busy) {
+            done(false)
+            return
+        }
         val start = project.value
         mutableAuto.value = AutoProgress(false, com.zellahq.core.auto.PolishStep.Reframe, 1, 1)
         val runner = com.zellahq.app.auto.AutoPolish(context)
@@ -273,26 +374,31 @@ class EditorState(
             val out = runCatching { runner.reshape(start, aspect) }.getOrNull()
             main.post {
                 mutableAuto.value = null
-                if (out != null) edit("shape") { out }
+                if (out == null && !released) mutableNote.value = R.string.ed_background_failed
+                done(out != null && applyResult(start, "shape", out))
             }
         }, "reshape").start()
     }
 
     /** Finds the voice in the background so music can step back for it. Changes nothing else. */
-    fun findVoice() = analyse(setOf("voiceWindows")) {}
+    fun findVoice() = analyse(setOf("voiceWindows")) { }
 
     /** Finds the voice and measures loudness in the background, then applies both as one undo step. */
-    fun analyseSound(done: () -> Unit) = analyse(setOf("voiceWindows", com.zellahq.app.sound.Sounds.LOUDNESS_KEY), done)
+    fun analyseSound(done: (Boolean) -> Unit) = analyse(setOf("voiceWindows", com.zellahq.app.sound.Sounds.LOUDNESS_KEY), done)
 
     private fun analyse(
         keys: Set<String>,
-        done: () -> Unit,
+        done: (Boolean) -> Unit,
     ) {
         val start = project.value
         Thread({
             val analysed = runCatching { com.zellahq.app.sound.Sounds.analyse(context, start) }.getOrNull()
             main.post {
-                analysed?.let { a ->
+                if (released) return@post
+                // Voice times and loudness describe the timeline they were measured on.
+                val same = project.value.clips == start.clips
+                if (!same) mutableNote.value = R.string.ed_changed_meanwhile
+                analysed?.takeIf { same }?.let { a ->
                     edit("sound") {
                         it.copy(
                             extras =
@@ -306,7 +412,7 @@ class EditorState(
                         )
                     }
                 }
-                done()
+                done(analysed != null)
             }
         }, "analyse-sound").start()
     }
@@ -369,6 +475,8 @@ class EditorState(
         label: String,
         change: (Project) -> Project,
     ) {
+        if (released) return
+        mutableNote.value = null
         val next = change(project.value)
         if (!undo.apply(next.copy(modifiedAt = project.value.modifiedAt), label)) return
         commit(undo.current.copy(modifiedAt = isoNow()))
@@ -388,12 +496,23 @@ class EditorState(
     }
 
     private fun save(p: Project) {
-        io.execute {
-            runCatching { store.save(p, allowCollapse = true) } // the user deleted the clips on purpose
+        runCatching {
+            saver.execute {
+                // allowCollapse: the user deleted the clips on purpose.
+                runCatching { store.save(p, allowCollapse = true) }.onFailure {
+                    android.util.Log.e("ZellaEditor", "save", it)
+                    main.post { mutableNote.value = R.string.ed_save_failed }
+                }
+            }
         }
     }
 
     fun saveNow() = save(project.value)
+
+    /** Waits for the save, for the moment something else is about to read the file. */
+    fun saveBlocking() {
+        runCatching { saver.submit { store.save(project.value, allowCollapse = true) }.get(10, java.util.concurrent.TimeUnit.SECONDS) }
+    }
 
     /** Freeze frame: holds the picture at [at] for two seconds, with no sound. One undo removes it. */
     fun freezeFrame(at: Double) {
@@ -411,50 +530,77 @@ class EditorState(
     }
 
     private fun startMatte(files: List<java.io.File>) {
-        if (matteBaker != null) return
+        if (matteBaker != null || released) return
         val baker = com.zellahq.app.cutout.MatteBaker(context)
         matteBaker = baker
         mutableFinding.value = 0f
-        Thread({
-            files.forEachIndexed { i, f ->
-                baker.bake(f) { x -> main.post { if (matteBaker === baker) mutableFinding.value = (i + x) / files.size } }
+        background("find-person") {
+            var failed = false
+            try {
+                files.forEachIndexed { i, f ->
+                    val ok = baker.bake(f) { x -> main.post { if (matteBaker === baker) mutableFinding.value = (i + x) / files.size } }
+                    if (!ok) {
+                        failed = !baker.wasStopped
+                        synchronized(matteGaveUp) { matteGaveUp += f.path }
+                    }
+                }
+            } catch (t: Exception) {
+                android.util.Log.e("ZellaEditor", "find person", t)
+                failed = true
+                synchronized(matteGaveUp) { matteGaveUp += files.map { it.path } }
             }
             main.post {
                 matteBaker = null
                 mutableFinding.value = null
-                rebuild()
+                if (!released) {
+                    if (failed) mutableNote.value = R.string.bg_failed
+                    rebuild()
+                }
             }
-        }, "find-person").start()
+        }
     }
 
+    /** Stops finding the person. The clip stays as it was until a background is picked again. */
     fun stopFinding() = matteBaker?.stop()
 
+    /** A background was picked: anything given up on gets another go. */
+    fun retryBackground() = synchronized(matteGaveUp) { matteGaveUp.clear() }
+
     private fun rebuild() {
+        if (released) return
         val p = project.value
         if (p.clips.isEmpty()) {
-            player.clearMediaItems()
+            // The player keeps its last picture when emptied. The editor covers it.
+            player.pause()
+            mutableMissing.value = emptyList()
             return
         }
         val built = builder.build(p)
         mutableMissing.value = built.missing.map { it.id }
         player.setComposition(built.composition, (position.value * 1000).toLong())
         player.prepare()
-        if (built.needsMatte.isNotEmpty()) startMatte(built.needsMatte)
+        val mattes = synchronized(matteGaveUp) { built.needsMatte.filter { it.path !in matteGaveUp } }
+        if (mattes.isNotEmpty()) startMatte(mattes)
         // Clips marked reversed get their reversed copy made in the background, then the preview rebuilds.
-        mutableReversing.value = built.needsReverse.isNotEmpty()
-        if (built.needsReverse.isNotEmpty()) {
+        val reverses = built.needsReverse.filter { it.id !in reverseGaveUp }
+        mutableReversing.value = reverses.isNotEmpty()
+        if (reverses.isNotEmpty()) {
             io.execute {
-                built.needsReverse.forEach { ReverseRenderer.render(context, store, p.id, it) }
+                reverses.forEach { if (ReverseRenderer.render(context, store, p.id, it) == null) reverseGaveUp += it.id }
                 main.post { if (project.value == p) rebuild() }
             }
-        } else if (built.needsBake.isNotEmpty() && p !== bakingFor) {
-            // Transitions play as plain cuts until their short videos are rendered.
+        } else if (mattes.isEmpty() && matteBaker == null && built.needsBake.any { "${p.modifiedAt}/$it" !in bakeGaveUp } && p !== bakingFor) {
+            // Transitions play as plain cuts until their short videos are rendered. A clip's new background
+            // comes first, or the transition would be rendered without it.
             bakingFor = p
             mutableBaking.value = true
             io.execute {
                 val canvas = canvasSize(p)
                 built.needsBake.forEach { join ->
-                    if (project.value === p || project.value == p) TransitionBaker.bake(context, builder, p, join, canvas)
+                    if (project.value == p && !released) {
+                        val ok = runCatching { TransitionBaker.bake(context, builder, p, join, canvas) }.getOrDefault(false)
+                        if (!ok) bakeGaveUp += "${p.modifiedAt}/$join"
+                    }
                 }
                 main.post {
                     bakingFor = null
@@ -482,11 +628,17 @@ class EditorState(
     }
 
     fun release() {
-        matteBaker?.stop()
-        main.removeCallbacks(ticker)
+        if (released) return
         saveNow()
+        released = true
+        matteBaker?.stop()
+        autoRunner?.stop()
+        captionEngine?.stop()
+        main.removeCallbacks(ticker)
         player.release()
+        // Queued work finishes on its own; nothing new can start.
         io.shutdown()
+        saver.shutdown()
     }
 }
 

@@ -100,13 +100,14 @@ private enum class ToolGroup(val label: Int) {
 @OptIn(UnstableApi::class)
 @Composable
 fun EditorScreen(
-    initial: Project,
+    state: EditorState,
     onBack: () -> Unit,
     onExport: (Project) -> Unit,
 ) {
     val context = LocalContext.current
-    val state = remember(initial.id) { EditorState(context, initial) }
-    DisposableEffect(state) { onDispose { state.release() } }
+    val note by state.note.collectAsState()
+    val assistant = remember(state) { com.zellahq.app.assistant.AssistantSession(context, state) }
+    DisposableEffect(assistant) { onDispose { assistant.close() } }
     val project by state.project.collectAsState()
     val position by state.position.collectAsState()
     val playing by state.playing.collectAsState()
@@ -129,15 +130,21 @@ fun EditorScreen(
     val picker =
         rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
             if (uri == null) return@rememberLauncherForActivityResult
-            val file = Storage.importUri(context, uri) ?: return@rememberLauncherForActivityResult
-            val len = Storage.durationSeconds(file) ?: return@rememberLauncherForActivityResult
-            val clip =
-                com.zellahq.core.project.Clip(
-                    com.zellahq.core.project.newId(),
-                    com.zellahq.core.project.MediaRef.Absolute(file.toURI().toString()),
-                    len,
-                )
-            state.edit("add clip") { it.insertClip(clip, position) }
+            val at = position
+            // A long video takes a while to copy, so not on the main thread.
+            Thread({
+                val file = Storage.importUri(context, uri)
+                val len = file?.let { Storage.durationSeconds(it) }
+                if (file != null && len != null) {
+                    val clip =
+                        com.zellahq.core.project.Clip(
+                            com.zellahq.core.project.newId(),
+                            com.zellahq.core.project.MediaRef.Absolute(file.toURI().toString()),
+                            len,
+                        )
+                    state.onMain { state.edit("add clip") { it.insertClip(clip, at) } }
+                }
+            }, "add-clip").start()
         }
 
     Column(
@@ -149,13 +156,13 @@ fun EditorScreen(
             horizontalArrangement = Arrangement.spacedBy(ZellaSpacing.S),
         ) {
             Tool(stringResource(R.string.ed_back)) {
-                state.saveNow()
+                state.saveBlocking()
                 onBack()
             }
             Text(project.name, color = MaterialTheme.colorScheme.onBackground, modifier = Modifier.weight(1f))
             Tool(stringResource(R.string.ed_export), ZellaColors.CardViolet) {
                 state.player.pause()
-                state.saveNow()
+                state.saveBlocking()
                 onExport(project)
             }
         }
@@ -196,6 +203,8 @@ fun EditorScreen(
                 update = { it.player = currentPlayer },
             )
             if (project.clips.isEmpty()) {
+                // The player keeps its last picture when emptied.
+                Box(Modifier.matchParentSize().background(MaterialTheme.colorScheme.background))
                 Text(
                     stringResource(R.string.ed_empty),
                     color = MaterialTheme.colorScheme.onBackground,
@@ -250,6 +259,8 @@ fun EditorScreen(
                 v.labelFor = { i, c -> clipLabel.format(i + 1, mmss(c.timelineDuration)) }
             },
         )
+
+        note?.let { Text(stringResource(it), color = MaterialTheme.colorScheme.error) }
 
         // Every tool is a labelled word. Tools sit in five groups, so a beginner is never scrolling through thirty.
         // Tools that need a clip act on the picked one.
@@ -390,7 +401,7 @@ fun EditorScreen(
         }
         if (sheet == Sheet.Assistant) {
             androidx.compose.foundation.layout.Box(Modifier.heightIn(max = 420.dp)) {
-                com.zellahq.app.assistant.AssistantPanel(state)
+                com.zellahq.app.assistant.AssistantPanel(assistant)
             }
         }
         if (sheet == Sheet.Sound) {

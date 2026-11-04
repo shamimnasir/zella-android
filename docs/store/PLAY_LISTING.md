@@ -20,7 +20,7 @@ No account. No watermark. Your video is worked on here on your phone.
 WHAT YOU GET FREE, FOR GOOD
 - The complete editor and all the AI
 - Captions written on your phone, including Bangla and Hindi in their own script
-- 95 colour looks, 25 transitions, 85 text animations, music and sound effects
+- 92 colour looks, 25 transitions, 85 text animations, music and sound effects
 - Background removal with no green screen
 - Exports up to 2 minutes at up to 1080p, with no watermark
 
@@ -48,7 +48,7 @@ Any claim about the transparent export, which Android does not have.
 
 ## What to check before pasting
 
-- "95 colour looks" counts 3 Founder grades: 92 for everyone. Say 92 if the Founder ones are not mentioned.
+- "92 colour looks" is what everyone gets. Founder adds 3 more, for 95.
 - Bangla and Hindi use the optional free download for best results. The bundled model handles them with
   lower accuracy. No phone test of Bangla has been done yet.
 

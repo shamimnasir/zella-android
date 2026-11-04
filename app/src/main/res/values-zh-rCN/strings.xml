@@ -48,7 +48,7 @@
     <string name="ed_pause">暂停</string>
     <string name="ed_clip_label">第 %1$d 段，%2$s</string>
     <string name="ed_fade_chip">淡入淡出</string>
-    <string name="ed_timeline_description">时间线，共 %d 段。左右拖动可在视频中前后移动。</string>
+    <string name="ed_timeline_description">时间线。片段：%d。左右拖动可在视频中前后移动。</string>
     <string name="ed_split">在此切开</string>
     <string name="ed_delete">删除这段</string>
     <string name="ed_move_earlier">往前移</string>
@@ -115,7 +115,6 @@
     <string name="ex_needs_4k">4K 需要 Zella Pro。1080p 永久免费。</string>
     <string name="ex_needs_60">超流畅需要 Zella Pro。正常流畅度免费。</string>
     <string name="ex_needs_other">这个设置需要 Zella Pro。</string>
-    <string name="ex_pro_later">在应用内购买 Zella Pro 的功能会在之后的更新里推出。</string>
     <string name="ex_share_project">分享项目文件 (.zella)</string>
     <string name="ex_privacy">导出在这部手机上完成。只有你分享时，视频才会离开手机。</string>
 
@@ -127,7 +126,7 @@
     <string name="cap_make">生成字幕</string>
     <string name="cap_making">正在生成字幕，%d%%</string>
     <string name="cap_stop">停止</string>
-    <string name="cap_made">字幕已生成：%d 个词。点一下下面的某一行来改词。</string>
+    <string name="cap_made">字幕已生成。字数：%d。点按下面的某一行可以修改文字。</string>
     <string name="cap_no_words">没有听到这种语言的内容。试试“自动识别语言”。</string>
     <string name="cap_no_sound">这个视频没有声音，无法生成字幕。</string>
     <string name="cap_stopped">已停止，没有添加字幕。</string>
@@ -148,7 +147,7 @@
     <string name="cap_better_use">使用 %1$s</string>
     <string name="cap_better_progress">正在下载，%d%%。你可以继续编辑。</string>
     <string name="cap_better_failed">下载没有完成。再点一下，会从中断的地方继续。</string>
-    <string name="cap_better_privacy">这只会下载语音识别模型文件，不会发送任何关于你或你的视频的内容。</string>
+    <string name="cap_better_privacy">这只会下载一个语音文件。不会发送任何关于你或你的视频的内容。</string>
     <string name="cap_better_data_title">你正在使用移动数据</string>
     <string name="cap_better_data_body">这次下载大约 %d MB。仍要用移动数据下载吗？</string>
     <string name="cap_better_data_yes">仍然下载</string>
@@ -172,8 +171,8 @@
     <string name="look_cooler">更冷</string>
     <string name="look_warmer">更暖</string>
     <string name="look_reset_wheels">撤销颜色调整</string>
-    <string name="look_cube_add">添加 LUT 文件 (.cube)</string>
-    <string name="look_cube_remove">移除 LUT 文件</string>
+    <string name="look_cube_add">添加颜色文件 (.cube)</string>
+    <string name="look_cube_remove">移除颜色文件</string>
     <string name="look_cube_bad">这个文件不是 Zella 能读取的 3D .cube 颜色文件。</string>
 
     <!-- Sound -->
@@ -186,14 +185,14 @@
     <string name="snd_duck">有人说话时压低音乐</string>
     <string name="snd_music_note">所有音乐都是为 Zella 制作的，可以免费用在你的视频里。音乐会重复播放，直到铺满整个视频。</string>
     <string name="snd_music_once">关闭后，音乐从头播放一遍就停止。</string>
-    <string name="snd_effect_here">在播放头的位置添加音效</string>
-    <string name="snd_more">更多声音（%d）</string>
-    <string name="snd_remove_effects">移除所有音效（%d）</string>
+    <string name="snd_effect_here">在视频的这个位置添加音效</string>
+    <string name="snd_more">更多声音：%d</string>
+    <string name="snd_remove_effects">移除全部音效：%d</string>
     <string name="snd_clean">让这段视频的人声更清晰</string>
     <string name="snd_even">把音量调均匀</string>
     <string name="snd_even_again">再把音量调均匀一次</string>
     <string name="snd_listening">正在听你的视频</string>
-    <string name="snd_even_done">音量已调到适合社交视频的水平（%1$s dB）。说话的部分也已找出，音乐可以退到后面。</string>
+    <string name="snd_even_done">音量已调到适合社交视频的水平。说话的部分也已找出，音乐可以退到后面。</string>
 
     <!-- Text -->
     <string name="ed_text">文字</string>
@@ -202,7 +201,7 @@
     <string name="tt_add">在这里添加文字</string>
     <string name="tt_done">完成</string>
     <string name="tt_remove">删除这段文字</string>
-    <string name="tt_to_playhead">移到播放头</string>
+    <string name="tt_to_playhead">移到视频中的这个位置</string>
     <string name="tt_item">%1$d. %2$s，在 %3$s</string>
     <string name="tt_style">样式</string>
     <string name="tt_place">位置和大小</string>
@@ -212,7 +211,7 @@
     <string name="tt_small">小</string>
     <string name="tt_medium">中</string>
     <string name="tt_big">大</string>
-    <string name="tt_seconds">%d 秒</string>
+    <string name="tt_seconds">秒数：%d</string>
     <string name="tt_font">字体</string>
     <string name="tt_motion">怎么动</string>
     <string name="tt_motion_in">进入时</string>
@@ -234,7 +233,7 @@
     <!-- One tap -->
     <string name="ed_auto">一键</string>
     <string name="au_polish">Auto-Polish</string>
-    <string name="au_polish_note">帮你整理这一遍录像：去掉停顿和口头禅，让人声更清晰，加入轻微的镜头移动和轻柔的音乐。不加字幕、不调颜色、不加音效。</string>
+    <string name="au_polish_note">帮你整理这段录像：剪掉停顿和口头禅，让人声更清晰，加上开场标题、轻柔的动作和轻声的音乐。不加字幕，不调颜色，不加音效。</string>
     <string name="au_viral">Make it Viral</string>
     <string name="au_viral_note">包含 Auto-Polish 的全部内容，再加上醒目的字幕、提亮的颜色，以及最有力的几处剪切下的音效。</string>
     <string name="au_see">看看会改什么</string>
@@ -248,16 +247,16 @@
     <string name="au_starting">正在准备</string>
     <string name="au_undo">全部撤销</string>
     <string name="au_stays_on_phone">这一切都在你的手机上运行。</string>
-    <string name="au_receipt">剪掉了 %1$d 处停顿（共 %2$s 秒）和 %3$d 个口头禅。加入了 %4$d 处渐变转场、%5$d 处放大、%6$d 处小幅移动和 %7$d 个音效。</string>
+    <string name="au_receipt">剪掉的停顿：%1$d（%2$s 秒）。剪掉的口头禅：%3$d。添加的转场：%4$d。放大：%5$d。小动作：%6$d。声音：%7$d。</string>
     <string name="ps_silences">剪掉停顿</string>
     <string name="ps_silences_detail">句子之间的空白会被去掉。</string>
     <string name="ps_silences_doing">正在去掉停顿</string>
     <string name="ps_fillers">剪掉口头禅</string>
-    <string name="ps_fillers_detail">“嗯”“呃”这类词会被去掉，空隙也会合上。仅限英文。</string>
+    <string name="ps_fillers_detail">“嗯”“呃”“你知道”这类词和重复的词会被剪掉，留下的空隙也会合上。仅限英语。</string>
     <string name="ps_fillers_doing">正在去掉口头禅</string>
-    <string name="ps_hook">加开场标题和渐变转场</string>
-    <string name="ps_hook_detail">在开头第一句加一个标题，并在最多八处衔接加上柔和的渐变转场。</string>
-    <string name="ps_hook_doing">正在加开场标题和渐变转场</string>
+    <string name="ps_hook">加开场标题和转场</string>
+    <string name="ps_hook_detail">在开头第一句加一个标题，并在最多八处衔接加上柔和的渐变。</string>
+    <string name="ps_hook_doing">正在加开场标题和转场</string>
     <string name="ps_voice">让人声更清晰</string>
     <string name="ps_voice_detail">压低背景噪音，让你的声音更均匀。</string>
     <string name="ps_voice_doing">正在处理人声</string>
@@ -290,7 +289,7 @@
 
     <!-- Assistant. -->
     <string name="ed_assistant">助手</string>
-    <string name="as_network">助手会把你输入的内容，以及这个项目的简短文字摘要（包括你的字幕文字），发送给 %1$s。它不会发送你的视频或声音。识别屏幕上的文字在这部手机上完成。</string>
+    <string name="as_network">助手会把你输入的内容，以及这个项目的简短文字摘要（包括你的字幕文字），发送给 %1$s。如果你让它读取屏幕上的文字，读取在这部手机上完成，找到的文字也会发送给 %1$s，看起来像机密的内容会被遮住。它绝不会发送你的视频或声音。</string>
     <string name="as_setup">助手是可选的，使用你自己的密钥。选一个回答的服务，粘贴你的密钥，然后用平常的话提问。</string>
     <string name="as_provider">由谁回答</string>
     <string name="as_key">你的密钥</string>
@@ -306,7 +305,6 @@
     <string name="as_stop">停止</string>
     <string name="as_settings">助手设置</string>
     <string name="as_chat">回到聊天</string>
-    <string name="as_working">正在处理：%1$s</string>
     <string name="as_yes">是</string>
     <string name="as_no">否</string>
     <string name="as_clear">清空聊天</string>
@@ -314,7 +312,7 @@
 
     <!-- Callouts. -->
     <string name="ed_callouts">标注</string>
-    <string name="co_add">加在播放头处</string>
+    <string name="co_add">添加到视频中的这个位置</string>
     <string name="co_on_video">这个视频上的标注</string>
     <string name="co_none">还没有标注。请从上面选一个。</string>
     <string name="co_words">上面的文字</string>
@@ -357,7 +355,7 @@
     <string name="br_stock_network">只会把每个搜索词和你自己的免费密钥发送给 %1$s，然后下载找到的视频。不会发送你的视频。发布之前，请先在网站上查看授权条款。</string>
     <string name="br_stock">添加素材视频</string>
     <string name="br_working">正在制作插入镜头…</string>
-    <string name="br_remove">移除 %1$d 个插入镜头</string>
+    <string name="br_remove">移除插入镜头：%1$d</string>
 
     <!-- Picture-in-picture, effects, moving things over time. -->
     <string name="ed_pip">画中画</string>
@@ -409,7 +407,7 @@
     <string name="mo_keys_title">随时间变化</string>
     <string name="mo_keys_detail">选好要变化的项目，设置好，然后点“在此设点”。在时间线上往后移，再设一个点：两点之间会自然过渡。</string>
     <string name="mo_set_point">在此设点</string>
-    <string name="mo_points">%1$d 个点</string>
+    <string name="mo_points">点数：%1$d</string>
     <string name="mo_clear_points">清除所有点</string>
     <string name="mo_glide">过渡方式</string>
     <string name="mo_smooth">平滑</string>
@@ -429,7 +427,7 @@
     <string name="cap_text_open">按文字剪辑</string>
     <string name="cap_text_close">关闭文字剪辑</string>
     <string name="cap_text_detail">点一下你不想要的词。视频里说这些词的那一段也会被剪掉。撤销可以全部恢复。</string>
-    <string name="cap_text_cut">从视频里剪掉 %1$d 个词</string>
+    <string name="cap_text_cut">从视频中剪掉的文字：%1$d</string>
     <string name="snd_levels">所有音量集中在这里</string>
     <string name="snd_level_clip">这段视频</string>
     <string name="snd_level_music">音乐</string>
@@ -468,21 +466,20 @@
     <string name="pl_open">方案</string>
     <string name="pl_title">Zella 方案</string>
     <string name="pl_free">永久免费</string>
-    <string name="pl_free_detail">完整的编辑器和全部 AI 功能，没有水印。最长导出 2 分钟，画质最高 1080p。</string>
+    <string name="pl_free_detail">完整的编辑器和全部 AI 功能，没有水印。最长导出 2 分钟，画质最高 1080p。Pro 另有更长、更清晰的导出和一些高级工具。</string>
     <string name="pl_pro">Zella Pro</string>
     <string name="pl_pro_detail">一次付费，不是订阅。更长的导出、4K、每秒 60 帧、自己设定画质、同时导出多种画面形状、保存的风格，以及随时间变化、只给一块区域上色和速度曲线这几项工具。</string>
     <string name="pl_founder">Zella Founder</string>
     <string name="pl_founder_detail">一次付费。包含 Pro 的全部内容，再加三种只有 Founder 才有的调色风格，以后每个大版本都免费。</string>
     <string name="pl_buy">以 %1$s 购买</string>
     <string name="pl_have">你已拥有</string>
-    <string name="pl_week">Pro Week：接下来的 %1$d 天，你可以使用完整的 Pro 功能。不会向你收费。它会自动结束，Zella 仍然免费。</string>
+    <string name="pl_week">Pro Week：可使用完整 Pro 功能的剩余天数：%1$d。不会向你收费。它会自动结束，Zella 仍然免费。</string>
     <string name="pl_restore">恢复购买</string>
     <string name="pl_restored_none">这个 Google 账号下没有找到购买记录。</string>
     <string name="pl_restored">你的购买已恢复。</string>
     <string name="pl_unavailable">现在无法连接 Google Play，所以不能显示价格。所有免费功能照常使用。</string>
     <string name="pl_pending">你的付款还在等待中。Google Play 确认后，Zella 会为你解锁。</string>
     <string name="pl_separate">在 iPhone 或 Mac 上买过 Zella？Apple 和 Google 的购买是分开的，所以那次购买不会解锁 Android 版。Android 版单独销售，价格相同。</string>
-    <string name="pl_needs_pro">这需要 Zella Pro。</string>
     <string name="pl_back">返回</string>
 
     <!-- First run. -->
@@ -490,13 +487,13 @@
     <string name="ob_welcome_detail">录下你的屏幕或你自己，让 Zella 帮你剪辑，然后分享视频。免费，没有水印，不用注册账号。</string>
     <string name="ob_how">怎么用</string>
     <string name="ob_how_1">录一段，或选一个已有的视频。</string>
-    <string name="ob_how_2">点一下 Auto-Polish，Zella 会剪掉停顿、让人声更清晰，并把你留在画面里。</string>
+    <string name="ob_how_2">点按“一键”，再点 Auto-Polish，Zella 会剪掉停顿、让人声更清晰，并把你留在画面里。</string>
     <string name="ob_how_3">想的话再加字幕、风格或音乐，然后导出。</string>
     <string name="ob_private">哪些内容留在你的手机上</string>
     <string name="ob_private_detail">录制、字幕、剪辑、去掉背景和导出，都在这部手机上完成。你的视频不会被发送到任何地方。</string>
-    <string name="ob_private_extras">有三项可选功能会用到网络，每一项在你使用时都会说明：助手，如果你添加了自己的密钥（它会发送你输入的内容和一份简短的文字摘要，包括字幕）；素材视频（它会发送一个搜索词）；以及更大的字幕模型下载。</string>
+    <string name="ob_private_extras">有三项可选功能会用到网络，使用时每一项都会告诉你：助手，如果你添加了自己的密钥（它会发送你输入的内容和一份简短的文字摘要，包括字幕和你让它读取的屏幕文字）；素材视频（它会发送一个搜索词）；以及更大的字幕下载。</string>
     <string name="ob_free">免费的部分</string>
-    <string name="ob_free_detail">编辑器里的一切和全部 AI 功能，永久免费。最长导出 2 分钟，画质最高 1080p。</string>
+    <string name="ob_free_detail">完整的编辑器和全部 AI 功能，永久可用。最长导出 2 分钟，画质最高 1080p。Pro 另有更长、更清晰的导出和一些高级工具。</string>
     <string name="ob_week">头 7 天你还能使用完整的 Pro 功能，不用付费。它会自动结束，Zella 仍然免费。</string>
     <string name="ob_next">下一步</string>
     <string name="ob_start">开始</string>
@@ -560,16 +557,59 @@
     <string name="as_set_credits">密钥可以用，但账户没有额度了。</string>
     <string name="as_set_model">找不到这个模型名称。</string>
     <string name="as_set_busy">密钥可以用，但现在超出了使用上限。</string>
-    <string name="co_hide_done">已添加 %1$d 处遮挡。撤销一次就能全部去掉。请完整播放一遍来检查。</string>
+    <string name="co_hide_done">已添加的隐藏区域：%1$d。撤销一次就能全部移除。请完整播放一遍检查。</string>
     <string name="co_hide_none">没有找到需要遮住的内容。小字、快速闪过的字或非拉丁文字可能会漏掉。如果你知道它在哪，可以在上面手动加一个模糊框。</string>
     <string name="co_hide_short">视频太长，没法一次读完，所以结尾部分没有检查。</string>
     <string name="br_note_no_captions">请先生成字幕，这样 Zella 才知道哪些词重要。</string>
     <string name="br_note_no_words">字幕里没有找到有用的词。</string>
-    <string name="br_note_cards">已添加 %1$d 张文字卡片。</string>
-    <string name="br_note_stock">已添加 %1$d 个素材视频。</string>
+    <string name="br_note_cards">已添加的文字卡片：%1$d。</string>
+    <string name="br_note_stock">已添加的素材视频：%1$d。</string>
     <string name="br_note_no_cards">卡片没能做出来。</string>
     <string name="br_note_bad_key">这个密钥不被接受。请从网站的页面重新复制。</string>
     <string name="br_note_busy">素材网站提示你暂时问得太多了。请稍等一会儿，少要几个视频再试。</string>
     <string name="br_note_offline">无法连接素材网站。请检查网络。</string>
     <string name="br_note_none">没有找到匹配的素材视频。</string>
+    <string name="ex_see_plans">查看方案</string>
+    <string name="ex_4k_plain">4K</string>
+    <string name="ex_60_plain">超流畅</string>
+    <string name="ex_needs_founder">这个视频用了 Zella Founder 附带的风格。请换一种风格再导出。</string>
+    <string name="ex_other_running">另一个视频正在导出。等它完成后，这个才能开始。</string>
+    <string name="ex_no_sound">这个视频没有可保存的声音，所以没有生成声音文件。</string>
+    <string name="ex_done_notice">在 Zella 里打开这个视频，点按“导出”即可保存或分享。</string>
+    <string name="ex_saved_gif">已保存到你的相册，位置在 Pictures，Zella。</string>
+    <string name="ex_saved_sound">已保存到这部手机，位置在 Music，Zella。</string>
+    <string name="ex_save_failed">没能保存。手机可能已经满了。你的文件仍在这里的 Zella 中。</string>
+    <string name="ex_again">再次导出</string>
+    <string name="ex_earlier">这个视频之前的导出</string>
+    <string name="ex_earlier_note">这些会一直留在 Zella 里，直到你删除。在这里删除不会影响相册里的副本。</string>
+    <string name="ex_delete_copy">删除</string>
+    <string name="cap_better_check">查看更好的字幕下载</string>
+    <string name="cap_better_looking">正在查找下载…</string>
+    <string name="cap_better_none">现在连接不到任何下载。字幕已经可以用这部手机上现有的内容正常生成。</string>
+    <string name="as_confirm_delete">删除这个片段吗？它占了视频的大部分（%2$s 中的 %1$s 秒）。</string>
+    <string name="as_confirm_export">以 %1$s 导出这个视频吗？可能需要一些时间。</string>
+    <string name="as_busy">助手正在处理…</string>
+    <string name="as_silent">这次助手没有给出回答。换个方式再问问。</string>
+    <string name="as_key_not_saved">密钥有效，但这部手机无法安全地存放它，所以没有保存。</string>
+    <string name="pl_restored_no_answer">Google Play 没有回应。你的方案没有变化。请检查网络后再试。</string>
+    <string name="ed_background_failed">没有成功。你的视频保持原样。请再试一次。</string>
+    <string name="ed_changed_meanwhile">处理期间你修改了视频，所以没有采用这次的结果。你的修改都安全。准备好后请再运行一次。</string>
+    <string name="ed_save_failed">Zella 无法保存这个项目。你的手机可能没有空间了。</string>
+    <string name="cap_failed">无法生成字幕。请再试一次。</string>
+    <string name="bg_failed">Zella 在这个视频里没有找到人物，所以显示的是原背景。</string>
+    <string name="ex_reverse_failed">有一个设为倒放的片段无法准备好。请关闭它的倒放，或再试一次。</string>
+    <string name="ex_queue_missed">其他尺寸中有 %1$d 个没有导出。</string>
+    <string name="ex_packing">正在打包项目…</string>
+    <string name="ex_pack_failed">无法打包项目。你的手机可能没有空间了。</string>
+    <string name="home_importing">正在复制你的视频…</string>
+    <string name="home_unreadable">Zella 无法打开的项目：%1$d。它们仍在这部手机上。更新 Zella 可能会有帮助。</string>
+    <string name="co_hide_failed">无法读取这个视频。什么都没有被隐藏。请再试一次。</string>
+    <string name="ex_err_encode">这部手机无法用这些设置生成视频。请试试 1080p。</string>
+    <string name="ex_err_read">这部手机无法读取其中一个片段。</string>
+    <string name="ex_err_missing">其中一个片段缺少它的视频文件。</string>
+    <string name="mo_ramp_none">匀速</string>
+    <string name="mo_ramp_sfs">慢，快，慢</string>
+    <string name="mo_ramp_fsf">快，慢，快</string>
+    <string name="mo_ramp_up">逐渐加快</string>
+    <string name="mo_ramp_down">逐渐变慢</string>
 </resources>

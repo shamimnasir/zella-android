@@ -1,3 +1,5 @@
+@file:Suppress("ktlint:standard:max-line-length")
+
 package com.zellahq.app.captions
 
 import android.content.Context
@@ -77,7 +79,7 @@ class CaptionEngine(private val context: Context) {
         stopped = false
         val t0 = System.currentTimeMillis()
         val store = Storage.store(context)
-        val w = Whisper.load(modelFile().path) ?: return Outcome.Failed("The speech model could not be loaded.")
+        val w = Whisper.load(modelFile().path) ?: return Outcome.Failed(context.getString(com.zellahq.app.R.string.cap_failed))
         whisper = w
         try {
             val clips = project.clips.filter { !it.reversed }
@@ -104,7 +106,7 @@ class CaptionEngine(private val context: Context) {
                         val windowLen = to - from
                         val t =
                             w.transcribe(pcm, lang!!, translate) { pct -> onProgress(((done + windowLen * pct / 100.0) / total).toFloat()) }
-                                ?: return if (stopped) Outcome.Stopped else Outcome.Failed("Captions stopped part way. Please try again.")
+                                ?: return if (stopped) Outcome.Stopped else Outcome.Failed(context.getString(com.zellahq.app.R.string.cap_failed))
                         val spoken =
                             t.words.filterNot {
                                 isNoise(it.text)

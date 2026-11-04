@@ -59,6 +59,7 @@ fun Project.setBackgroundEverywhere(choice: BackgroundChoice?) = copy(clips = cl
 
 /** The source position of a local timeline time, for anything keyed to the file: reversed and ramps included. */
 fun Clip.sourceTimeAt(local: Double): Double {
-    val f = sourceFractionAt(local).coerceIn(0.0, 1.0)
-    return if (reversed) trimEnd - f * trimmedDuration else trimStart + f * trimmedDuration
+    // A reversed copy plays at one speed: ramps do not reach it (CompositionBuilder.speedProvider).
+    if (reversed) return (trimEnd - local * speed).coerceIn(trimStart, trimEnd)
+    return trimStart + sourceFractionAt(local).coerceIn(0.0, 1.0) * trimmedDuration
 }

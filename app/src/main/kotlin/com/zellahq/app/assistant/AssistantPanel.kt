@@ -49,6 +49,7 @@ import com.zellahq.ui.ZellaSpacing
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -70,11 +71,9 @@ private fun failureText(
     }
 }
 
-private data class Bubble(val mine: Boolean, val text: String)
-
 /** Chat and settings for the Assistant. Everything that reaches the network is said so on this screen. */
 @Composable
-fun AssistantPanel(state: EditorState) {
+fun AssistantPanel(session: AssistantSession) {
     val context = LocalContext.current
     val keys = remember { AssistantKeys(context) }
     val settings = remember { AssistantSettings(context) }
@@ -87,7 +86,7 @@ fun AssistantPanel(state: EditorState) {
         if (showSettings) {
             Settings(keys, settings, provider, { provider = it }) { showSettings = false }
         } else {
-            Chat(state, keys, settings, provider) { showSettings = true }
+            Chat(session, keys, settings, provider) { showSettings = true }
         }
     }
 }
@@ -160,20 +159,24 @@ private fun Settings(
                 Tool(stringResource(R.string.as_save_key), ZellaColors.CardMint) {
                     val typed = key.trim()
                     val use = typed.ifEmpty { keys.get(provider).orEmpty() }
-                    settings.setModel(provider, model)
                     if (use.isEmpty()) return@Tool
                     checking = true
                     note = null
+                    val tryModel = model.trim().ifEmpty { provider.defaultModel }
                     scope.launch {
                         val failure =
                             withContext(Dispatchers.IO) {
                                 runCatching {
-                                    clientFor(provider, use, settings.model(provider), HttpsTransport).check()
+                                    clientFor(provider, use, tryModel, HttpsTransport).check()
                                 }.exceptionOrNull()
                             }
                         checking = false
                         if (failure == null) {
-                            keys.set(provider, use)
+                            if (!keys.set(provider, use)) {
+                                note = context.getString(R.string.as_key_not_saved)
+                                return@launch
+                            }
+                            settings.setModel(provider, tryModel)
                             has = true
                             key = ""
                             note = okText
@@ -206,62 +209,17 @@ private fun Settings(
 
 @Composable
 private fun Chat(
-    state: EditorState,
+    session: AssistantSession,
     keys: AssistantKeys,
     settings: AssistantSettings,
     provider: ProviderKind,
     onSettings: () -> Unit,
 ) {
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
     val color = MaterialTheme.colorScheme.onBackground
-    val bubbles = remember(state) { mutableStateListOf<Bubble>() }
-    var history by remember(state) { mutableStateOf<List<LlmMessage>>(emptyList()) }
     var input by remember { mutableStateOf("") }
-    var working by remember { mutableStateOf<String?>(null) }
-    var job by remember { mutableStateOf<Job?>(null) }
-    var asking by remember { mutableStateOf<Pair<String, CompletableDeferred<Boolean>>?>(null) }
     val list = rememberLazyListState()
+    val bubbles = session.bubbles
     LaunchedEffect(bubbles.size) { if (bubbles.isNotEmpty()) list.animateScrollToItem(bubbles.size - 1) }
-
-    fun send() {
-        val words = input.trim()
-        val key = keys.get(provider)
-        if (words.isEmpty() || key == null || job != null) return
-        input = ""
-        bubbles += Bubble(true, words)
-        val client = clientFor(provider, key, settings.model(provider), HttpsTransport)
-        val tools =
-            assistantTools(context, state) { question ->
-                val answer = CompletableDeferred<Boolean>()
-                asking = question to answer
-                answer.await().also { asking = null }
-            }
-        val agent =
-            Agent(tools, { assistantPrompt() }) { system, messages, schemas ->
-                withContext(Dispatchers.IO) { client.send(system, messages, schemas) }
-            }
-        job =
-            scope.launch {
-                try {
-                    history =
-                        agent.run(history, words) { e ->
-                            when (e) {
-                                is AgentEvent.Said -> bubbles += Bubble(false, e.text)
-                                is AgentEvent.Using -> working = e.tool.replace('_', ' ')
-                                is AgentEvent.Did -> working = null
-                            }
-                        }
-                } catch (e: LlmException) {
-                    bubbles += Bubble(false, failureText(context, provider, e))
-                } catch (e: java.io.IOException) {
-                    bubbles += Bubble(false, context.getString(R.string.as_offline))
-                } finally {
-                    working = null
-                    job = null
-                }
-            }
-    }
 
     LazyColumn(Modifier.fillMaxWidth().heightIn(max = 220.dp), state = list, verticalArrangement = Arrangement.spacedBy(ZellaSpacing.S)) {
         items(bubbles) { b ->
@@ -276,8 +234,8 @@ private fun Chat(
             )
         }
     }
-    working?.let { Text(stringResource(R.string.as_working, it), color = color) }
-    asking?.let { (question, answer) ->
+    if (session.working) Text(stringResource(R.string.as_busy), color = color)
+    session.asking?.let { (question, answer) ->
         Text(question, color = color)
         Row(horizontalArrangement = Arrangement.spacedBy(ZellaSpacing.S)) {
             Tool(stringResource(R.string.as_yes), ZellaColors.CardMint) { answer.complete(true) }
@@ -291,17 +249,111 @@ private fun Chat(
         modifier = Modifier.fillMaxWidth(),
     )
     Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(ZellaSpacing.S)) {
-        if (job == null) {
-            Tool(stringResource(R.string.as_send), ZellaColors.CardMint) { send() }
-        } else {
-            Tool(stringResource(R.string.as_stop), ZellaColors.CardCoral) { job?.cancel() }
-        }
-        if (bubbles.isNotEmpty() && job == null) {
-            Tool(stringResource(R.string.as_clear)) {
-                bubbles.clear()
-                history = emptyList()
+        if (!session.running) {
+            Tool(stringResource(R.string.as_send), ZellaColors.CardMint) {
+                val words = input.trim()
+                val key = keys.get(provider)
+                if (words.isNotEmpty() && key != null) {
+                    input = ""
+                    session.send(provider, key, settings.model(provider), words)
+                } else if (key == null) {
+                    onSettings()
+                }
             }
+        } else {
+            Tool(stringResource(R.string.as_stop), ZellaColors.CardCoral) { session.stop() }
         }
+        if (bubbles.isNotEmpty() && !session.running) Tool(stringResource(R.string.as_clear)) { session.clear() }
         Tool(stringResource(R.string.as_settings), onClick = onSettings)
+    }
+}
+
+/**
+ * The chat, kept outside the panel. Closing the panel or looking at settings must not stop work half done or
+ * lose the conversation. It ends with the editor session.
+ */
+class AssistantSession(private val context: android.content.Context, private val state: EditorState) {
+    data class Bubble(val mine: Boolean, val text: String)
+
+    val bubbles = mutableStateListOf<Bubble>()
+    var working by mutableStateOf(false)
+        private set
+    var running by mutableStateOf(false)
+        private set
+    var asking by mutableStateOf<Pair<String, CompletableDeferred<Boolean>>?>(null)
+        private set
+    private val scope = kotlinx.coroutines.MainScope()
+    private var history: List<LlmMessage> = emptyList()
+    private var job: Job? = null
+
+    fun send(
+        provider: ProviderKind,
+        key: String,
+        model: String,
+        words: String,
+    ) {
+        if (running) return
+        bubbles += Bubble(true, words)
+        running = true
+        val client = clientFor(provider, key, model, HttpsTransport)
+        val tools =
+            assistantTools(context, state) { question ->
+                val answer = CompletableDeferred<Boolean>()
+                asking = question to answer
+                try {
+                    answer.await()
+                } finally {
+                    asking = null
+                }
+            }
+        val agent =
+            Agent(tools, { assistantPrompt() }) { system, messages, schemas ->
+                withContext(Dispatchers.IO) { client.send(system, messages, schemas) }
+            }
+        job =
+            scope.launch {
+                try {
+                    history =
+                        agent.run(history, words) { e ->
+                            when (e) {
+                                is AgentEvent.Said -> bubbles += Bubble(false, e.text)
+                                is AgentEvent.Using -> working = true
+                                is AgentEvent.Did -> working = false
+                                AgentEvent.Silent -> bubbles += Bubble(false, context.getString(R.string.as_silent))
+                                is AgentEvent.Checkpoint -> history = e.messages
+                            }
+                        }
+                } catch (e: LlmException) {
+                    bubbles += Bubble(false, failureText(context, provider, e))
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    throw e
+                } catch (e: java.io.IOException) {
+                    bubbles += Bubble(false, context.getString(R.string.as_offline))
+                } catch (e: Exception) {
+                    android.util.Log.e("ZellaAssistant", "run", e)
+                    bubbles += Bubble(false, context.getString(R.string.ed_background_failed))
+                } finally {
+                    working = false
+                    running = false
+                    job = null
+                }
+            }
+    }
+
+    /** Stops the conversation and whatever long job it started. Edits already made stay, and can be undone. */
+    fun stop() {
+        job?.cancel()
+        state.stopAuto()
+        state.stopCaptions()
+    }
+
+    fun clear() {
+        bubbles.clear()
+        history = emptyList()
+    }
+
+    fun close() {
+        stop()
+        scope.cancel()
     }
 }

@@ -35,13 +35,16 @@ class MatteBaker(
 ) {
     @Volatile private var stopped = false
 
+    val wasStopped get() = stopped
+
     fun stop() {
         stopped = true
     }
 
     private fun load(): ByteBuffer {
-        val fd = context.assets.openFd(MODEL)
-        return FileInputStream(fd.fileDescriptor).channel.map(FileChannel.MapMode.READ_ONLY, fd.startOffset, fd.declaredLength)
+        return context.assets.openFd(MODEL).use { fd ->
+            FileInputStream(fd.fileDescriptor).use { it.channel.map(FileChannel.MapMode.READ_ONLY, fd.startOffset, fd.declaredLength) }
+        }
     }
 
     /** Works out the file for [video]. Blocking. Returns false when stopped or the video could not be read. */
@@ -51,9 +54,10 @@ class MatteBaker(
     ): Boolean {
         val out = fileFor(context, video, hold)
         if (out.isFile && out.length() > 0) return true
-        stopped = false
+        if (stopped) return false
         out.parentFile?.mkdirs()
-        val part = File(out.path + ".part")
+        // A name of its own: the preview and an export can both be working this file out.
+        val part = File(out.path + "." + System.nanoTime() + ".part")
         val interpreter = Interpreter(load(), Interpreter.Options().setNumThreads(4))
         val input = ByteBuffer.allocateDirect(SIZE * SIZE * 3 * 4).order(ByteOrder.nativeOrder())
         val shape = interpreter.getOutputTensor(0).shape()
@@ -104,15 +108,25 @@ class MatteBaker(
                 offsets.forEach { w.writeLong(it) }
                 w.writeInt(offsets.size)
             }
+        } catch (e: Exception) {
+            part.delete()
+            throw e
         } finally {
             deflater.end()
             interpreter.close()
         }
-        if (!done || offsets.isEmpty()) {
+        try {
+            if (!done || offsets.isEmpty()) return false
+            java.nio.file.Files.move(
+                part.toPath(),
+                out.toPath(),
+                java.nio.file.StandardCopyOption.REPLACE_EXISTING,
+                java.nio.file.StandardCopyOption.ATOMIC_MOVE,
+            )
+            return true
+        } finally {
             part.delete()
-            return false
         }
-        return part.renameTo(out)
     }
 
     /**

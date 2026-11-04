@@ -50,7 +50,7 @@
     <string name="ed_pause">থামান</string>
     <string name="ed_clip_label">ক্লিপ %1$d, %2$s</string>
     <string name="ed_fade_chip">ফেড</string>
-    <string name="ed_timeline_description">টাইমলাইনে %dটি ক্লিপ আছে। ভিডিওতে এগোতে বা পিছোতে বাঁয়ে বা ডানে টানুন।</string>
+    <string name="ed_timeline_description">টাইমলাইন। ক্লিপ: %d। ভিডিওতে এগোতে বা পিছোতে বাঁয়ে বা ডানে টানুন।</string>
     <string name="ed_split">এখানে ভাগ করুন</string>
     <string name="ed_delete">ক্লিপ মুছুন</string>
     <string name="ed_move_earlier">আগে আনুন</string>
@@ -117,7 +117,6 @@
     <string name="ex_needs_4k">4K-এর জন্য Zella Pro লাগবে। 1080p চিরকাল ফ্রি।</string>
     <string name="ex_needs_60">বেশি মসৃণের জন্য Zella Pro লাগবে। স্বাভাবিক মসৃণতা ফ্রি।</string>
     <string name="ex_needs_other">এই সেটিংয়ের জন্য Zella Pro লাগবে।</string>
-    <string name="ex_pro_later">অ্যাপ থেকে Zella Pro কেনার সুবিধা পরের কোনো আপডেটে আসবে।</string>
     <string name="ex_share_project">প্রজেক্ট ফাইল শেয়ার করুন (.zella)</string>
     <string name="ex_privacy">এক্সপোর্ট এই ফোনেই হয়। আপনার ভিডিও শুধু তখনই ফোনের বাইরে যায়, যখন আপনি সেটি শেয়ার করেন।</string>
 
@@ -129,7 +128,7 @@
     <string name="cap_make">ক্যাপশন বানান</string>
     <string name="cap_making">ক্যাপশন তৈরি হচ্ছে, %d%%</string>
     <string name="cap_stop">বন্ধ করুন</string>
-    <string name="cap_made">ক্যাপশন তৈরি হয়েছে: %dটি শব্দ। কোনো শব্দ ঠিক করতে নিচের লাইনে চাপুন।</string>
+    <string name="cap_made">ক্যাপশন তৈরি হয়েছে। শব্দ: %d। কোনো শব্দ ঠিক করতে নিচের লাইনে চাপুন।</string>
     <string name="cap_no_words">ওই ভাষায় কোনো শব্দ শোনা যায়নি। ভাষা চিনে নিন বেছে দেখুন।</string>
     <string name="cap_no_sound">এই ভিডিওতে কোনো শব্দ নেই, তাই ক্যাপশন বানানো যাচ্ছে না।</string>
     <string name="cap_stopped">বন্ধ করা হয়েছে। কোনো ক্যাপশন যোগ হয়নি।</string>
@@ -150,7 +149,7 @@
     <string name="cap_better_use">%1$s ব্যবহার করুন</string>
     <string name="cap_better_progress">ডাউনলোড হচ্ছে, %d%%। আপনি এডিট চালিয়ে যেতে পারেন।</string>
     <string name="cap_better_failed">ডাউনলোড শেষ হয়নি। যেখানে থেমেছিল সেখান থেকে চালিয়ে যেতে আবার চাপুন।</string>
-    <string name="cap_better_privacy">এটি শুধু কথা চেনার মডেল ফাইলটি ডাউনলোড করে। আপনার বা আপনার ভিডিওর কোনো তথ্য পাঠানো হয় না।</string>
+    <string name="cap_better_privacy">এটি শুধু কথা চেনার একটি ফাইল ডাউনলোড করে। আপনার বা আপনার ভিডিওর কোনো তথ্য পাঠানো হয় না।</string>
     <string name="cap_better_data_title">আপনি মোবাইল ডেটায় আছেন</string>
     <string name="cap_better_data_body">এই ডাউনলোডটি প্রায় %d MB। তবুও মোবাইল ডেটায় ডাউনলোড করবেন?</string>
     <string name="cap_better_data_yes">তবুও ডাউনলোড করুন</string>
@@ -174,8 +173,8 @@
     <string name="look_cooler">আরও ঠান্ডা</string>
     <string name="look_warmer">আরও উষ্ণ</string>
     <string name="look_reset_wheels">রঙের বদল ফিরিয়ে নিন</string>
-    <string name="look_cube_add">LUT ফাইল যোগ করুন (.cube)</string>
-    <string name="look_cube_remove">LUT ফাইল সরান</string>
+    <string name="look_cube_add">রঙের ফাইল যোগ করুন (.cube)</string>
+    <string name="look_cube_remove">রঙের ফাইল সরান</string>
     <string name="look_cube_bad">ওই ফাইলটি এমন 3D .cube রঙের ফাইল নয় যা Zella পড়তে পারে।</string>
 
     <!-- Sound -->
@@ -188,14 +187,14 @@
     <string name="snd_duck">কেউ কথা বললে মিউজিক কমিয়ে দিন</string>
     <string name="snd_music_note">সব মিউজিক Zella-র জন্য বানানো, আর আপনার ভিডিওতে বিনামূল্যে ব্যবহার করা যায়। ভিডিও ভরাতে এটি বারবার বাজে।</string>
     <string name="snd_music_once">এটি বন্ধ থাকলে মিউজিক শুরু থেকে একবার বেজে থেমে যায়।</string>
-    <string name="snd_effect_here">টাইমলাইনের দাগ যেখানে, সেখানে সাউন্ড ইফেক্ট যোগ করুন</string>
-    <string name="snd_more">আরও শব্দ (%d)</string>
-    <string name="snd_remove_effects">সব সাউন্ড ইফেক্ট সরান (%d)</string>
+    <string name="snd_effect_here">ভিডিওর এই জায়গায় সাউন্ড ইফেক্ট যোগ করুন</string>
+    <string name="snd_more">আরও শব্দ: %d</string>
+    <string name="snd_remove_effects">সব সাউন্ড ইফেক্ট সরান: %d</string>
     <string name="snd_clean">এই ক্লিপের কণ্ঠ পরিষ্কার করুন</string>
     <string name="snd_even">আওয়াজ সমান করুন</string>
     <string name="snd_even_again">আবার আওয়াজ সমান করুন</string>
     <string name="snd_listening">আপনার ভিডিও শোনা হচ্ছে</string>
-    <string name="snd_even_done">সোশ্যাল ভিডিওর জন্য আওয়াজ ঠিক করা হয়েছে (%1$s dB)। কথা বলার জায়গাগুলোও খুঁজে নেওয়া হয়েছে, তাই সেখানে মিউজিক পিছিয়ে যেতে পারে।</string>
+    <string name="snd_even_done">সোশ্যাল ভিডিওর জন্য আওয়াজ ঠিক করা হয়েছে। কথা বলার জায়গাগুলোও খুঁজে নেওয়া হয়েছে, তাই সেখানে মিউজিক কমে যেতে পারে।</string>
 
     <!-- Text -->
     <string name="ed_text">লেখা</string>
@@ -204,7 +203,7 @@
     <string name="tt_add">এখানে লেখা যোগ করুন</string>
     <string name="tt_done">হয়ে গেছে</string>
     <string name="tt_remove">এই লেখা সরান</string>
-    <string name="tt_to_playhead">টাইমলাইনের দাগে নিয়ে যান</string>
+    <string name="tt_to_playhead">ভিডিওর এই জায়গায় নিয়ে যান</string>
     <string name="tt_item">%1$d. %2$s, %3$s-এ</string>
     <string name="tt_style">স্টাইল</string>
     <string name="tt_place">কোথায় আর কত বড়</string>
@@ -214,7 +213,7 @@
     <string name="tt_small">ছোট</string>
     <string name="tt_medium">মাঝারি</string>
     <string name="tt_big">বড়</string>
-    <string name="tt_seconds">%d সেকেন্ড</string>
+    <string name="tt_seconds">সেকেন্ড: %d</string>
     <string name="tt_font">ফন্ট</string>
     <string name="tt_motion">কীভাবে নড়বে</string>
     <string name="tt_motion_in">আসার সময়</string>
@@ -236,7 +235,7 @@
     <!-- One tap -->
     <string name="ed_auto">এক চাপে</string>
     <string name="au_polish">Auto-Polish</string>
-    <string name="au_polish_note">আপনার ভিডিও পরিষ্কার করে: বিরতি আর বাড়তি শব্দ বাদ, কণ্ঠ পরিষ্কার, হালকা নড়াচড়া, নিচু আওয়াজে মিউজিক। ক্যাপশন, রং বা সাউন্ড ইফেক্ট নেই।</string>
+    <string name="au_polish_note">আপনার ভিডিও পরিষ্কার করে: বিরতি আর বাড়তি শব্দ বাদ, কণ্ঠ পরিষ্কার, শুরুতে একটি শিরোনাম, হালকা নড়াচড়া, নিচু আওয়াজে মিউজিক। ক্যাপশন নেই, রং নেই, সাউন্ড ইফেক্ট নেই।</string>
     <string name="au_viral">Make it Viral</string>
     <string name="au_viral_note">Auto-Polish-এর সবকিছু, সঙ্গে মোটা অক্ষরের ক্যাপশন, উজ্জ্বল রং আর সবচেয়ে জোরালো কাটগুলোর নিচে শব্দ।</string>
     <string name="au_see">কী কী বদলায় দেখুন</string>
@@ -250,16 +249,16 @@
     <string name="au_starting">প্রস্তুত হচ্ছে</string>
     <string name="au_undo">সব আগের মতো করুন</string>
     <string name="au_stays_on_phone">এই সবকিছু আপনার ফোনেই চলে।</string>
-    <string name="au_receipt">%1$dটি বিরতি (%2$s সেকেন্ড) আর %3$dটি বাড়তি শব্দ কাটা হয়েছে। যোগ হয়েছে %4$dটি মিলিয়ে যাওয়ার ইফেক্ট, %5$dটি জুম, %6$dটি ছোট নড়াচড়া আর %7$dটি শব্দ।</string>
+    <string name="au_receipt">বিরতি কাটা হয়েছে: %1$d (%2$s সেকেন্ড)। বাড়তি শব্দ কাটা হয়েছে: %3$d। ট্রানজিশন যোগ হয়েছে: %4$d। জুম: %5$d। ছোট নড়াচড়া: %6$d। শব্দ: %7$d।</string>
     <string name="ps_silences">নীরব অংশ কাটুন</string>
     <string name="ps_silences_detail">বাক্যের মাঝের ফাঁকা সময় বাদ যায়।</string>
     <string name="ps_silences_doing">নীরব অংশ সরানো হচ্ছে</string>
     <string name="ps_fillers">বাড়তি শব্দ কাটুন</string>
-    <string name="ps_fillers_detail">um বা like-এর মতো শব্দ বাদ যায়, আর পেছনের ফাঁকটুকুও জুড়ে যায়। শুধু ইংরেজিতে কাজ করে।</string>
+    <string name="ps_fillers_detail">um, uh, \"you know\" আর বারবার বলা শব্দ বাদ যায়, আর পেছনের ফাঁকটুকুও জুড়ে যায়। শুধু ইংরেজিতে কাজ করে।</string>
     <string name="ps_fillers_doing">বাড়তি শব্দ সরানো হচ্ছে</string>
-    <string name="ps_hook">নজরকাড়া শিরোনাম আর মিলিয়ে যাওয়ার ইফেক্ট যোগ করুন</string>
+    <string name="ps_hook">শুরুর শিরোনাম আর ট্রানজিশন যোগ করুন</string>
     <string name="ps_hook_detail">শুরুর লাইনে একটি শিরোনাম, আর সর্বোচ্চ আটটি জোড়ে নরমভাবে মিলিয়ে যাওয়ার ইফেক্ট।</string>
-    <string name="ps_hook_doing">শিরোনাম আর মিলিয়ে যাওয়ার ইফেক্ট যোগ হচ্ছে</string>
+    <string name="ps_hook_doing">শুরুর শিরোনাম আর ট্রানজিশন যোগ হচ্ছে</string>
     <string name="ps_voice">আপনার কণ্ঠ পরিষ্কার করুন</string>
     <string name="ps_voice_detail">পেছনের আওয়াজ কমে, আপনার কণ্ঠ সমান হয়।</string>
     <string name="ps_voice_doing">আপনার কণ্ঠ পরিষ্কার হচ্ছে</string>
@@ -292,7 +291,7 @@
 
     <!-- Assistant. It reaches a provider the person chose, so nothing here may claim otherwise. -->
     <string name="ed_assistant">সহকারী</string>
-    <string name="as_network">সহকারী আপনার লেখা কথা আর এই প্রজেক্টের একটি ছোট লিখিত সারাংশ, আপনার ক্যাপশনের লেখাসহ, %1$s-এ পাঠায়। এটি কখনো আপনার ভিডিও বা শব্দ পাঠায় না। স্ক্রিনের লেখা পড়ার কাজ এই ফোনেই হয়।</string>
+    <string name="as_network">সহকারী আপনার লেখা কথা আর এই প্রজেক্টের একটি ছোট লিখিত সারাংশ, আপনার ক্যাপশনের লেখাসহ, %1$s-এ পাঠায়। আপনি স্ক্রিনের লেখা পড়তে বললে পড়ার কাজ এই ফোনেই হয়, আর যে শব্দগুলো পাওয়া যায় সেগুলোও %1$s-এ যায়, তবে গোপন বলে মনে হওয়া তথ্য ঢেকে দেওয়া হয়। এটি কখনো আপনার ভিডিও বা শব্দ পাঠায় না।</string>
     <string name="as_setup">সহকারী ঐচ্ছিক, আর এটি আপনার নিজের API key ব্যবহার করে। কে উত্তর দেবে বেছে নিন, আপনার API key বসান, তারপর সহজ কথায় জিজ্ঞেস করুন।</string>
     <string name="as_provider">কে উত্তর দেবে</string>
     <string name="as_key">আপনার API key</string>
@@ -308,7 +307,6 @@
     <string name="as_stop">বন্ধ করুন</string>
     <string name="as_settings">সহকারীর সেটিংস</string>
     <string name="as_chat">চ্যাটে ফিরে যান</string>
-    <string name="as_working">কাজ চলছে: %1$s</string>
     <string name="as_yes">হ্যাঁ</string>
     <string name="as_no">না</string>
     <string name="as_clear">চ্যাট মুছুন</string>
@@ -316,7 +314,7 @@
 
     <!-- Callouts. -->
     <string name="ed_callouts">চিহ্ন দিন</string>
-    <string name="co_add">টাইমলাইনের দাগে যোগ করুন</string>
+    <string name="co_add">ভিডিওর এই জায়গায় যোগ করুন</string>
     <string name="co_on_video">এই ভিডিওতে</string>
     <string name="co_none">এখনো কোনো চিহ্ন দেওয়া হয়নি। ওপর থেকে একটি বেছে নিন।</string>
     <string name="co_words">এর ওপরের লেখা</string>
@@ -359,7 +357,7 @@
     <string name="br_stock_network">শুধু প্রতিটি খোঁজার শব্দ আর আপনার নিজের ফ্রি API key %1$s-এ পাঠায়, তারপর যে ক্লিপ পায় সেটি ডাউনলোড করে। এটি কখনো আপনার ভিডিও পাঠায় না। প্রকাশ করার আগে সাইটে গিয়ে লাইসেন্স দেখে নিন।</string>
     <string name="br_stock">স্টক ক্লিপ যোগ করুন</string>
     <string name="br_working">মাঝের শট তৈরি হচ্ছে…</string>
-    <string name="br_remove">%1$dটি মাঝের শট সরান</string>
+    <string name="br_remove">মাঝের শট সরান: %1$d</string>
 
     <!-- Picture-in-picture, effects, moving things over time. -->
     <string name="ed_pip">ছবির ভেতরে ছবি</string>
@@ -411,7 +409,7 @@
     <string name="mo_keys_title">সময়ের সঙ্গে বদলান</string>
     <string name="mo_keys_detail">কী বদলাবে বেছে নিন, ঠিক করুন, তারপর এখানে পয়েন্ট দিন-এ চাপুন। টাইমলাইনে এগিয়ে আরেকটি দিন: দুটির মাঝে এটি ধীরে বদলাবে।</string>
     <string name="mo_set_point">এখানে পয়েন্ট দিন</string>
-    <string name="mo_points">%1$dটি পয়েন্ট</string>
+    <string name="mo_points">পয়েন্ট: %1$d</string>
     <string name="mo_clear_points">পয়েন্টগুলো মুছুন</string>
     <string name="mo_glide">কীভাবে বদলাবে</string>
     <string name="mo_smooth">মসৃণ</string>
@@ -431,7 +429,7 @@
     <string name="cap_text_open">লেখা দিয়ে এডিট করুন</string>
     <string name="cap_text_close">লেখা দিয়ে এডিট বন্ধ করুন</string>
     <string name="cap_text_detail">যে শব্দগুলো চান না সেগুলোতে চাপুন। ভিডিওর যে অংশে সেগুলো বলা হয়েছে, সেটিও কাটা যাবে। আগের মতো করলে সব ফিরে আসবে।</string>
-    <string name="cap_text_cut">ভিডিও থেকে %1$dটি শব্দ কাটুন</string>
+    <string name="cap_text_cut">ভিডিও থেকে শব্দ কাটুন: %1$d</string>
     <string name="snd_levels">সব আওয়াজ এক জায়গায়</string>
     <string name="snd_level_clip">এই ক্লিপ</string>
     <string name="snd_level_music">মিউজিক</string>
@@ -470,21 +468,20 @@
     <string name="pl_open">প্ল্যান</string>
     <string name="pl_title">Zella-র প্ল্যান</string>
     <string name="pl_free">ফ্রি, চিরকালের জন্য</string>
-    <string name="pl_free_detail">পুরো এডিটর আর সব AI, কোনো ওয়াটারমার্ক ছাড়া। এক্সপোর্ট সর্বোচ্চ ২ মিনিট, সর্বোচ্চ 1080p পর্যন্ত।</string>
+    <string name="pl_free_detail">পুরো এডিটর আর সব AI, কোনো ওয়াটারমার্ক ছাড়া। এক্সপোর্ট সর্বোচ্চ ২ মিনিট, সর্বোচ্চ 1080p পর্যন্ত। Pro-তে আরও লম্বা ও আরও ঝকঝকে এক্সপোর্ট আর কয়েকটি উন্নত টুল যোগ হয়।</string>
     <string name="pl_pro">Zella Pro</string>
     <string name="pl_pro_detail">একবারই টাকা দিতে হয়, কোনো সাবস্ক্রিপশন নেই। আরও লম্বা এক্সপোর্ট, 4K, সেকেন্ডে ৬০ ফ্রেম, নিজের মতো মানের সেটিং, একসঙ্গে কয়েকটি আকারে এক্সপোর্ট, সেভ করা লুক, আর সময়ের সঙ্গে জিনিস বদলানো, একটি জায়গায় রং করা ও গতির কার্ভের টুল।</string>
     <string name="pl_founder">Zella Founder</string>
     <string name="pl_founder_detail">একবারই টাকা দিতে হয়। Pro-র সবকিছু, তিনটি রঙের স্টাইল যা শুধু Founder-দের আছে, আর ভবিষ্যতের প্রতিটি বড় ভার্সন ফ্রি।</string>
     <string name="pl_buy">%1$s দিয়ে কিনুন</string>
     <string name="pl_have">এটি আপনার আছে</string>
-    <string name="pl_week">Pro Week: আরও %1$d দিন আপনি পুরো Pro সুবিধা পাচ্ছেন। আপনার কাছ থেকে কোনো টাকা নেওয়া হবে না। এটি নিজে থেকেই শেষ হবে, আর Zella ফ্রি থাকবে।</string>
+    <string name="pl_week">Pro Week: পুরো Pro সুবিধা নিয়ে বাকি দিন: %1$d। আপনার কাছ থেকে কোনো টাকা নেওয়া হবে না। এটি নিজে থেকেই শেষ হবে, আর Zella ফ্রি থাকবে।</string>
     <string name="pl_restore">কেনাকাটা ফিরিয়ে আনুন</string>
     <string name="pl_restored_none">এই Google অ্যাকাউন্টে কোনো কেনাকাটা পাওয়া যায়নি।</string>
     <string name="pl_restored">আপনার কেনাকাটা ফিরে এসেছে।</string>
     <string name="pl_unavailable">এখন Google Play-তে পৌঁছানো যাচ্ছে না, তাই দাম দেখানো যাচ্ছে না। ফ্রি সবকিছু চলতে থাকবে।</string>
     <string name="pl_pending">আপনার পেমেন্ট অপেক্ষায় আছে। Google Play নিশ্চিত করলে Zella এটি চালু করে দেবে।</string>
     <string name="pl_separate">iPhone বা Mac-এ Zella কিনেছেন? Apple আর Google কেনাকাটা আলাদা রাখে, তাই সেই কেনাকাটায় Android-এ কিছু চালু হয় না। Android আলাদাভাবে বিক্রি হয়, একই দামে।</string>
-    <string name="pl_needs_pro">এর জন্য Zella Pro লাগবে।</string>
     <string name="pl_back">ফিরে যান</string>
 
     <!-- First run. -->
@@ -492,13 +489,13 @@
     <string name="ob_welcome_detail">আপনার স্ক্রিন বা নিজেকে রেকর্ড করুন, Zella-কে কাটতে দিন, আর ভিডিও শেয়ার করুন। ফ্রি, কোনো ওয়াটারমার্ক নেই, অ্যাকাউন্টও লাগে না।</string>
     <string name="ob_how">যেভাবে কাজ করে</string>
     <string name="ob_how_1">রেকর্ড করুন, অথবা আপনার কাছে থাকা কোনো ভিডিও বেছে নিন।</string>
-    <string name="ob_how_2">Auto-Polish-এ চাপুন, Zella নীরব অংশ কাটবে, আপনার কণ্ঠ পরিষ্কার করবে আর আপনাকে ফ্রেমে বসাবে।</string>
+    <string name="ob_how_2">এক চাপে বোতামে চাপুন, তারপর Auto-Polish-এ চাপুন, Zella নীরব অংশ কাটবে, আপনার কণ্ঠ পরিষ্কার করবে আর আপনাকে ফ্রেমে বসাবে।</string>
     <string name="ob_how_3">চাইলে ক্যাপশন, লুক বা মিউজিক যোগ করুন, তারপর এক্সপোর্ট করুন।</string>
     <string name="ob_private">যা আপনার ফোনে থাকে</string>
     <string name="ob_private_detail">রেকর্ডিং, ক্যাপশন, কাটা, ব্যাকগ্রাউন্ড সরানো আর এক্সপোর্ট, সবই এই ফোনে হয়। আপনার ভিডিও কোথাও পাঠানো হয় না।</string>
-    <string name="ob_private_extras">তিনটি ঐচ্ছিক জিনিস ইন্টারনেট ব্যবহার করে, আর ব্যবহারের সময় প্রতিটিই তা জানিয়ে দেয়: সহকারী, যদি আপনি নিজের API key যোগ করেন (এটি আপনার লেখা কথা আর একটি ছোট লিখিত সারাংশ পাঠায়, ক্যাপশনসহ); স্টক ভিডিও ক্লিপ (এটি একটি খোঁজার শব্দ পাঠায়); আর ক্যাপশনের বড় ফাইল ডাউনলোড।</string>
+    <string name="ob_private_extras">তিনটি ঐচ্ছিক জিনিস ইন্টারনেট ব্যবহার করে, আর ব্যবহারের সময় প্রতিটিই তা জানিয়ে দেয়: সহকারী, যদি আপনি নিজের API key যোগ করেন (এটি আপনার লেখা কথা আর একটি ছোট লিখিত সারাংশ পাঠায়, ক্যাপশন আর আপনি পড়তে বলেছেন এমন স্ক্রিনের লেখাসহ); স্টক ভিডিও ক্লিপ (এটি একটি খোঁজার শব্দ পাঠায়); আর ক্যাপশনের বড় ফাইল ডাউনলোড।</string>
     <string name="ob_free">কী কী ফ্রি</string>
-    <string name="ob_free_detail">এডিটরের সবকিছু আর সব AI, চিরকালের জন্য। এক্সপোর্ট সর্বোচ্চ ২ মিনিট, সর্বোচ্চ 1080p পর্যন্ত।</string>
+    <string name="ob_free_detail">এডিটরের সবকিছু আর সব AI, চিরকালের জন্য। এক্সপোর্ট সর্বোচ্চ ২ মিনিট, সর্বোচ্চ 1080p পর্যন্ত। Pro-তে আরও লম্বা ও আরও ঝকঝকে এক্সপোর্ট আর কয়েকটি উন্নত টুল যোগ হয়।</string>
     <string name="ob_week">প্রথম ৭ দিন আপনি পুরো Pro সুবিধাও পাবেন, কোনো টাকা দিতে হবে না। এটি নিজে থেকেই শেষ হবে, আর Zella ফ্রি থাকবে।</string>
     <string name="ob_next">পরের ধাপ</string>
     <string name="ob_start">শুরু করুন</string>
@@ -562,16 +559,59 @@
     <string name="as_set_credits">API key কাজ করছে, কিন্তু অ্যাকাউন্টে কোনো ক্রেডিট নেই।</string>
     <string name="as_set_model">ওই মডেলের নাম পাওয়া যায়নি।</string>
     <string name="as_set_busy">API key কাজ করছে, কিন্তু এখন এর সীমা পেরিয়ে গেছে।</string>
-    <string name="co_hide_done">%1$dটি লুকানো জায়গা যোগ হয়েছে। একবার আগের মতো করলেই সব সরে যাবে। মিলিয়ে দেখতে পুরোটা চালিয়ে দেখুন।</string>
+    <string name="co_hide_done">লুকানো জায়গা যোগ হয়েছে: %1$d। একবার আগের মতো করলেই সব সরে যাবে। মিলিয়ে দেখতে পুরোটা চালিয়ে দেখুন।</string>
     <string name="co_hide_none">লুকানোর মতো কিছু পাওয়া যায়নি। ছোট, দ্রুত সরে যাওয়া বা ইংরেজি হরফে নয় এমন লেখা বাদ পড়তে পারে। কোথায় আছে জানলে ওপরে একটি ঝাপসা বক্স যোগ করুন।</string>
     <string name="co_hide_short">ভিডিওটি একবারে পড়ার জন্য অনেক লম্বা ছিল, তাই শেষের অংশ দেখা হয়নি।</string>
     <string name="br_note_no_captions">আগে ক্যাপশন বানান, যাতে Zella বুঝতে পারে কোন শব্দগুলো জরুরি।</string>
     <string name="br_note_no_words">ক্যাপশনে কাজে লাগার মতো কোনো শব্দ পাওয়া যায়নি।</string>
-    <string name="br_note_cards">%1$dটি শব্দ কার্ড যোগ হয়েছে।</string>
-    <string name="br_note_stock">%1$dটি স্টক ক্লিপ যোগ হয়েছে।</string>
+    <string name="br_note_cards">শব্দ কার্ড যোগ হয়েছে: %1$d।</string>
+    <string name="br_note_stock">স্টক ক্লিপ যোগ হয়েছে: %1$d।</string>
     <string name="br_note_no_cards">কার্ডগুলো বানানো যায়নি।</string>
     <string name="br_note_bad_key">ওই API key গ্রহণ করা হয়নি। সাইটের পেজ থেকে আবার কপি করুন।</string>
     <string name="br_note_busy">স্টক সাইট বলছে, আপনি এখন অনেক বেশি চেয়েছেন। একটু অপেক্ষা করে কম ক্লিপ দিয়ে চেষ্টা করুন।</string>
     <string name="br_note_offline">স্টক সাইটে পৌঁছানো যায়নি। আপনার ইন্টারনেট দেখুন।</string>
     <string name="br_note_none">মিল আছে এমন কোনো স্টক ক্লিপ পাওয়া যায়নি।</string>
+    <string name="ex_see_plans">প্ল্যান দেখুন</string>
+    <string name="ex_4k_plain">4K</string>
+    <string name="ex_60_plain">বেশি মসৃণ</string>
+    <string name="ex_needs_founder">এই ভিডিওতে এমন একটি লুক আছে যা Zella Founder-এর সঙ্গে আসে। এক্সপোর্ট করতে অন্য একটি লুক বেছে নিন।</string>
+    <string name="ex_other_running">অন্য একটি ভিডিও এক্সপোর্ট হচ্ছে। সেটি শেষ হলে এটি শুরু করা যাবে।</string>
+    <string name="ex_no_sound">এই ভিডিওতে সেভ করার মতো কোনো শব্দ নেই, তাই কোনো শব্দের ফাইল তৈরি হয়নি।</string>
+    <string name="ex_done_notice">সেভ বা শেয়ার করতে Zella-তে ভিডিওটি খুলে এক্সপোর্ট-এ চাপুন।</string>
+    <string name="ex_saved_gif">আপনার গ্যালারিতে সেভ হয়েছে, Pictures, Zella ফোল্ডারে।</string>
+    <string name="ex_saved_sound">এই ফোনে সেভ হয়েছে, Music, Zella ফোল্ডারে।</string>
+    <string name="ex_save_failed">এটি সেভ করা যায়নি। ফোন হয়তো ভরে গেছে। আপনার ফাইলটি এখনো এখানে Zella-তে আছে।</string>
+    <string name="ex_again">আবার এক্সপোর্ট করুন</string>
+    <string name="ex_earlier">এই ভিডিওর আগের এক্সপোর্টগুলো</string>
+    <string name="ex_earlier_note">আপনি না মোছা পর্যন্ত এগুলো Zella-তে থাকে। এখান থেকে কোনোটি মুছলে আপনার গ্যালারির কপিতে কিছু হয় না।</string>
+    <string name="ex_delete_copy">মুছুন</string>
+    <string name="cap_better_check">ক্যাপশনের আরও ভালো ডাউনলোডগুলো দেখুন</string>
+    <string name="cap_better_looking">ডাউনলোড খোঁজা হচ্ছে…</string>
+    <string name="cap_better_none">এই মুহূর্তে কোনো ডাউনলোডে পৌঁছানো যায়নি। এই ফোনে যা আছে তা দিয়েই ক্যাপশন এমনিতেই কাজ করে।</string>
+    <string name="as_confirm_delete">এই ক্লিপটি মুছবেন? এটি ভিডিওর বেশিরভাগ অংশ (%2$s সেকেন্ডের মধ্যে %1$s সেকেন্ড)।</string>
+    <string name="as_confirm_export">এই ভিডিওটি %1$s-এ এক্সপোর্ট করবেন? এতে বেশ সময় লাগতে পারে।</string>
+    <string name="as_busy">সহকারী কাজ করছে…</string>
+    <string name="as_silent">সহকারী এবার কোনো উত্তর দেয়নি। অন্যভাবে জিজ্ঞেস করে দেখুন।</string>
+    <string name="as_key_not_saved">API key কাজ করছে, কিন্তু এই ফোন এটি নিরাপদে রাখতে পারেনি, তাই সেভ হয়নি।</string>
+    <string name="pl_restored_no_answer">Google Play উত্তর দেয়নি। আপনার প্ল্যান বদলায়নি। আপনার ইন্টারনেট দেখে আবার চেষ্টা করুন।</string>
+    <string name="ed_background_failed">এটি কাজ করেনি। আপনার ভিডিও আগের মতোই আছে। আবার চেষ্টা করুন।</string>
+    <string name="ed_changed_meanwhile">এটি চলার সময় আপনি ভিডিও বদলেছেন, তাই ফলাফলটি ব্যবহার করা হয়নি। আপনার বদলগুলো নিরাপদ আছে। প্রস্তুত হলে আবার চালান।</string>
+    <string name="ed_save_failed">Zella এই প্রজেক্টটি সেভ করতে পারেনি। আপনার ফোনে হয়তো জায়গা নেই।</string>
+    <string name="cap_failed">ক্যাপশন বানানো যায়নি। আবার চেষ্টা করুন।</string>
+    <string name="bg_failed">Zella এই ভিডিওতে মানুষটিকে খুঁজে পায়নি, তাই আসল ব্যাকগ্রাউন্ড দেখাচ্ছে।</string>
+    <string name="ex_reverse_failed">উল্টো চালানোর জন্য রাখা একটি ক্লিপ তৈরি করা যায়নি। এর উল্টো চালানো বন্ধ করুন অথবা আবার চেষ্টা করুন।</string>
+    <string name="ex_queue_missed">অন্য আকারগুলোর মধ্যে %1$dটি এক্সপোর্ট হয়নি।</string>
+    <string name="ex_packing">প্রজেক্ট প্যাক করা হচ্ছে…</string>
+    <string name="ex_pack_failed">প্রজেক্ট প্যাক করা যায়নি। আপনার ফোনে হয়তো জায়গা নেই।</string>
+    <string name="home_importing">আপনার ভিডিও কপি হচ্ছে…</string>
+    <string name="home_unreadable">যে প্রজেক্টগুলো Zella খুলতে পারেনি: %1$d। সেগুলো এখনো এই ফোনে আছে। Zella আপডেট করলে কাজ হতে পারে।</string>
+    <string name="co_hide_failed">ভিডিওটি পড়া যায়নি। কিছুই লুকানো হয়নি। আবার চেষ্টা করুন।</string>
+    <string name="ex_err_encode">এই সেটিংসে এই ফোন ভিডিওটি বানাতে পারেনি। 1080p দিয়ে চেষ্টা করুন।</string>
+    <string name="ex_err_read">এই ফোন একটি ক্লিপ পড়তে পারেনি।</string>
+    <string name="ex_err_missing">একটি ক্লিপের ভিডিও ফাইল পাওয়া যাচ্ছে না।</string>
+    <string name="mo_ramp_none">একই গতি</string>
+    <string name="mo_ramp_sfs">ধীর, দ্রুত, ধীর</string>
+    <string name="mo_ramp_fsf">দ্রুত, ধীর, দ্রুত</string>
+    <string name="mo_ramp_up">গতি বাড়ে</string>
+    <string name="mo_ramp_down">গতি কমে</string>
 </resources>

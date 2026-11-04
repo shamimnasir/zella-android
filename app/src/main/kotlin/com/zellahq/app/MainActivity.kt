@@ -11,6 +11,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -68,6 +69,7 @@ import com.zellahq.ui.ZellaColors
 import com.zellahq.ui.ZellaSpacing
 import com.zellahq.ui.ZellaTheme
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.text.SimpleDateFormat
@@ -77,6 +79,8 @@ import java.util.Locale
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // The base theme is a dark one, so without this the clock and icons are pale on our light screens.
+        enableEdgeToEdge()
         val state = Entitlements.load(this)
         // Debug builds only: start a test-pattern recording from adb, for the forced-kill test.
         if (BuildConfig.DEBUG && intent.getBooleanExtra("debug_pattern", false)) {
@@ -143,6 +147,13 @@ private fun Root(
     var voice by rememberSaveable { mutableStateOf(true) }
     val status by RecordingService.status.collectAsState()
     val store = remember { Storage.store(context) }
+    // One editor session across the editor and export screens, so undo and running work survive the trip.
+    val openId = screen.takeIf { it.startsWith("editor:") || it.startsWith("export:") || it.startsWith("plans:") }?.substringAfter(':')
+    val session =
+        remember(openId) {
+            openId?.let { id -> runCatching { store.load(id) }.getOrNull()?.let { com.zellahq.app.editor.EditorState(context, it) } }
+        }
+    androidx.compose.runtime.DisposableEffect(session) { onDispose { session?.release() } }
     Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).systemBarsPadding()) {
         when {
             screen == "welcome" ->
@@ -150,9 +161,11 @@ private fun Root(
                     Onboarding.finish(context)
                     screen = "home"
                 }
-            screen == "plans" -> {
-                BackHandler { screen = "home" }
-                com.zellahq.app.billing.PlansScreen { screen = "home" }
+            screen == "plans" || screen.startsWith("plans:") -> {
+                // From Export, back goes to Export.
+                val back = screen.substringAfter("plans:", "home").let { if (it == "home") it else "export:$it" }
+                BackHandler { screen = back }
+                com.zellahq.app.billing.PlansScreen { screen = back }
             }
             // A camera recording that is still running brings the camera screen back.
             status.camera || screen == "camera" ->
@@ -161,19 +174,24 @@ private fun Root(
                     CameraScreen(voice) { screen = "home" }
                 }
             screen.startsWith("editor:") -> {
-                val p = remember(screen) { runCatching { store.load(screen.removePrefix("editor:")) }.getOrNull() }
-                if (p == null) {
+                if (session == null) {
                     screen = "home"
                 } else {
-                    EditorScreen(p, onBack = {
-                        screen = "home"
-                    }, onExport = { screen = "export:${it.id}" })
+                    EditorScreen(session, onBack = { screen = "home" }, onExport = { screen = "export:${it.id}" })
                 }
             }
             screen.startsWith("export:") -> {
-                val p = remember(screen) { runCatching { store.load(screen.removePrefix("export:")) }.getOrNull() }
-                BackHandler { screen = "editor:${p?.id}" }
-                if (p == null) screen = "home" else ExportScreen(p) { screen = "editor:${p.id}" }
+                if (session == null) {
+                    screen = "home"
+                } else {
+                    val p by session.project.collectAsState()
+                    BackHandler { screen = "editor:${p.id}" }
+                    ExportScreen(
+                        p,
+                        { next -> session.edit("where it goes") { next } },
+                        { screen = "plans:${p.id}" },
+                    ) { screen = "editor:${p.id}" }
+                }
             }
             else ->
                 Home(
@@ -205,6 +223,9 @@ private fun Home(
     val status by RecordingService.status.collectAsState()
     var phoneSound by rememberSaveable { mutableStateOf(false) }
     var localNote by remember { mutableStateOf<Int?>(null) }
+    var busyImporting by remember { mutableStateOf(false) }
+    var unreadable by remember { mutableIntStateOf(0) }
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
     var items by remember { mutableStateOf(emptyList<RecordingItem>()) }
     val store = remember { Storage.store(context) }
     var projects by remember { mutableStateOf(emptyList<Project>()) }
@@ -221,13 +242,11 @@ private fun Home(
     LaunchedEffect(status.state, refresh) {
         if (status.state == RecorderState.Idle) {
             val now = recoverInterrupted(context)
-            // An export or a download cut short by a kill leaves a partial file. It is never a finished one.
-            withContext(Dispatchers.IO) {
-                listOf(Storage.exports(context), java.io.File(context.cacheDir, "mattes"), java.io.File(context.cacheDir, "transitions"))
-                    .forEach { d -> d.listFiles { f -> f.name.endsWith(".part") }?.forEach { it.delete() } }
-            }
+            withContext(Dispatchers.IO) { Housekeeping.once(context) }
             items = listRecordings(context, recovered + now)
-            projects = withContext(Dispatchers.IO) { store.list().projects.map { it.second } }
+            val listing = withContext(Dispatchers.IO) { store.list() }
+            projects = listing.projects.map { it.second }
+            unreadable = listing.unreadable.size
         }
     }
 
@@ -238,20 +257,33 @@ private fun Home(
 
     val videoPicker =
         rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
-            uri?.let { Storage.importUri(context, it) }?.let { openNew(it) }
+            if (uri != null) {
+                busyImporting = true
+                scope.launch {
+                    val f = withContext(Dispatchers.IO) { Storage.importUri(context, uri) }
+                    busyImporting = false
+                    if (f != null) openNew(f) else localNote = R.string.home_import_failed
+                }
+            }
         }
     val packagePicker =
         rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
             if (uri == null) return@rememberLauncherForActivityResult
-            val tmp = File(context.cacheDir, "import.zella.zip")
-            localNote =
-                runCatching {
-                    context.contentResolver.openInputStream(uri)!!.use { i -> tmp.outputStream().use { i.copyTo(it) } }
-                    val p = store.import(tmp)
-                    onOpen(p.id)
-                    null
-                }.getOrElse { if (it is NewerFormatException) R.string.home_import_newer else R.string.home_import_failed }
-            tmp.delete()
+            busyImporting = true
+            scope.launch {
+                val tmp = File(context.cacheDir, "import-${System.nanoTime()}.zella.zip")
+                val result =
+                    withContext(Dispatchers.IO) {
+                        runCatching {
+                            context.contentResolver.openInputStream(uri)!!.use { i -> tmp.outputStream().use { i.copyTo(it) } }
+                            store.import(tmp)
+                        }.also { tmp.delete() }
+                    }
+                busyImporting = false
+                result
+                    .onSuccess { onOpen(it.id) }
+                    .onFailure { localNote = if (it is NewerFormatException) R.string.home_import_newer else R.string.home_import_failed }
+            }
         }
 
     val projectionLauncher =
@@ -308,6 +340,13 @@ private fun Home(
                     ZellaChip(pluralStringResource(R.plurals.pro_week_chip, days, days))
                 }
                 com.zellahq.app.editor.Tool(stringResource(R.string.pl_open), onClick = onPlans)
+                if (busyImporting) Text(stringResource(R.string.home_importing), color = MaterialTheme.colorScheme.onBackground)
+                if (unreadable > 0) {
+                    Text(
+                        stringResource(R.string.home_unreadable, unreadable),
+                        color = MaterialTheme.colorScheme.onBackground,
+                    )
+                }
                 Text(stringResource(R.string.home_tagline), color = MaterialTheme.colorScheme.onBackground)
                 when (status.state) {
                     RecorderState.Idle -> {

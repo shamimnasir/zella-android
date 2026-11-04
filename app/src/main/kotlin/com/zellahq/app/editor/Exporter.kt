@@ -59,6 +59,8 @@ class Exporter(
 
     @Volatile private var cancelled = false
 
+    @Volatile private var matte: com.zellahq.app.cutout.MatteBaker? = null
+
     // The running export's result slot. Transformer.cancel() calls no listener, so cancel fills it.
     @Volatile private var pending: Pair<CountDownLatch, AtomicReference<ExportOutcome>>? = null
     private val thread = HandlerThread("export").apply { start() }
@@ -77,19 +79,23 @@ class Exporter(
         if (settings.shortSide > r.height || settings.fps > r.fps || (settings.bitrate != null && !r.customBitrate) ||
             project.duration > r.durationSeconds + 0.05
         ) {
-            return ExportOutcome.Failed("These export settings were not approved.", null)
+            return ExportOutcome.Failed(context.getString(com.zellahq.app.R.string.ex_failed_generic), null)
         }
         val canvas = canvasSize(project, settings.shortSide)
-        var built = builder.build(project, canvas)
+        var built = builder.build(project, canvas, settings.fps)
         if (built.missing.isNotEmpty()) {
             return ExportOutcome.Failed(
-                "${built.missing.size} clip(s) are missing their video file.",
+                context.getString(com.zellahq.app.R.string.ex_err_missing),
                 null,
             )
         }
+        // A clip that should play backwards and cannot must not quietly go out forwards.
+        if (built.needsReverse.isNotEmpty()) {
+            return ExportOutcome.Failed(context.getString(com.zellahq.app.R.string.ex_reverse_failed), null)
+        }
         // A person mask the preview has not finished yet comes before anything drawn from it.
         if (built.needsMatte.isNotEmpty()) {
-            val baker = com.zellahq.app.cutout.MatteBaker(context)
+            val baker = com.zellahq.app.cutout.MatteBaker(context).also { matte = it }
             built.needsMatte.forEach { f ->
                 if (cancelled || !baker.bake(f)) {
                     return if (cancelled) {
@@ -102,7 +108,7 @@ class Exporter(
                     }
                 }
             }
-            built = builder.build(project, canvas)
+            built = builder.build(project, canvas, settings.fps)
         }
         // Transitions the preview has not rendered at this size yet come first.
         if (built.needsBake.isNotEmpty()) {
@@ -111,7 +117,7 @@ class Exporter(
                 TransitionBaker.bake(context, builder, project, join, canvas)
                 onProgress((n + 1) * 5 / built.needsBake.size)
             }
-            built = builder.build(project, canvas)
+            built = builder.build(project, canvas, settings.fps)
         }
         if (cancelled) return ExportOutcome.Cancelled
         return run(built.composition, settings, out, onProgress)
@@ -126,6 +132,7 @@ class Exporter(
 
     fun cancel() {
         cancelled = true
+        matte?.stop()
         handler.post {
             transformer?.cancel()
             pending?.let { (latch, slot) ->
@@ -144,7 +151,8 @@ class Exporter(
         val done = CountDownLatch(1)
         val outcome = AtomicReference<ExportOutcome>()
         pending = done to outcome
-        val partial = File(out.parentFile, out.name + ".part").apply { delete() }
+        // A name of its own: two renders of one transition must not write into each other.
+        val partial = File(out.parentFile, out.name + "." + System.nanoTime() + ".part")
         val t0 = System.nanoTime()
         handler.post {
             val video =
@@ -171,11 +179,25 @@ class Exporter(
                                 exportResult: ExportResult,
                             ) {
                                 // Rename last: a half-written export never sits under the real name.
-                                out.delete()
-                                partial.renameTo(out)
+                                val moved =
+                                    runCatching {
+                                        java.nio.file.Files.move(
+                                            partial.toPath(),
+                                            out.toPath(),
+                                            java.nio.file.StandardCopyOption.REPLACE_EXISTING,
+                                            java.nio.file.StandardCopyOption.ATOMIC_MOVE,
+                                        )
+                                    }
                                 outcome.compareAndSet(
                                     null,
-                                    ExportOutcome.Done(out, exportResult, (System.nanoTime() - t0) / 1_000_000),
+                                    if (moved.isSuccess) {
+                                        ExportOutcome.Done(out, exportResult, (System.nanoTime() - t0) / 1_000_000)
+                                    } else {
+                                        ExportOutcome.Failed(
+                                            context.getString(com.zellahq.app.R.string.ex_failed_generic),
+                                            moved.exceptionOrNull(),
+                                        )
+                                    },
                                 )
                                 done.countDown()
                             }
@@ -195,7 +217,15 @@ class Exporter(
                         },
                     ).build()
             transformer = t
-            t.start(composition, partial.path)
+            // A refusal here arrives as a throw on this thread, which would take the whole app down.
+            try {
+                t.start(composition, partial.path)
+            } catch (e: Exception) {
+                android.util.Log.e("ZellaExport", "start", e)
+                outcome.compareAndSet(null, ExportOutcome.Failed(context.getString(com.zellahq.app.R.string.ex_failed_generic), e))
+                done.countDown()
+                return@post
+            }
             val holder = ProgressHolder()
 
             fun poll() {
@@ -209,19 +239,19 @@ class Exporter(
         transformer = null
         pending = null
         val o = outcome.get()
-        if (o is ExportOutcome.Cancelled) partial.delete()
+        if (o !is ExportOutcome.Done) partial.delete()
         return o
     }
 
     private fun plainMessage(e: ExportException) =
         when (e.errorCode) {
             ExportException.ERROR_CODE_ENCODER_INIT_FAILED, ExportException.ERROR_CODE_ENCODING_FORMAT_UNSUPPORTED ->
-                "This phone could not encode the video at these settings. Try 1080p or turn off HEVC."
+                context.getString(com.zellahq.app.R.string.ex_err_encode)
             ExportException.ERROR_CODE_DECODER_INIT_FAILED, ExportException.ERROR_CODE_DECODING_FORMAT_UNSUPPORTED ->
-                "This phone could not read one of the clips."
-            ExportException.ERROR_CODE_IO_FILE_NOT_FOUND -> "One of the clips is missing."
-            ExportException.ERROR_CODE_IO_NO_PERMISSION -> "Zella could not read one of the clips."
-            else -> "The export stopped: ${e.errorCodeName}."
+                context.getString(com.zellahq.app.R.string.ex_err_read)
+            ExportException.ERROR_CODE_IO_FILE_NOT_FOUND -> context.getString(com.zellahq.app.R.string.ex_err_missing)
+            ExportException.ERROR_CODE_IO_NO_PERMISSION -> context.getString(com.zellahq.app.R.string.ex_err_read)
+            else -> context.getString(com.zellahq.app.R.string.ex_failed_generic)
         }
 
     fun release() {

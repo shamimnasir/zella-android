@@ -61,13 +61,24 @@ fun BackgroundPanel(
     val finding by state.finding.collectAsState()
     val current = project.clips.firstOrNull()?.background
 
-    fun set(choice: BackgroundChoice?) = state.edit("background") { it.setBackgroundEverywhere(choice) }
+    fun set(choice: BackgroundChoice?) {
+        state.retryBackground()
+        state.edit("background") { it.setBackgroundEverywhere(choice) }
+    }
     val photo =
         rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri: Uri? ->
             if (uri == null) return@rememberLauncherForActivityResult
-            val f = File(Storage.imports(context), "background-${newId()}.jpg")
-            context.contentResolver.openInputStream(uri)?.use { i -> f.outputStream().use { i.copyTo(it) } }
-            set(BackgroundChoice("image", imagePath = f.absolutePath))
+            Thread({
+                val f = File(Storage.imports(context), "background-${newId()}.jpg")
+                val ok =
+                    runCatching {
+                        context.contentResolver.openInputStream(uri)?.use {
+                                i ->
+                            f.outputStream().use { i.copyTo(it) }
+                        } != null
+                    }.getOrDefault(false)
+                if (ok) state.onMain { set(BackgroundChoice("image", imagePath = f.absolutePath)) } else f.delete()
+            }, "background-photo").start()
         }
 
     Column(verticalArrangement = Arrangement.spacedBy(ZellaSpacing.S)) {

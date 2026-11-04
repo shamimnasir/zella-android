@@ -99,7 +99,7 @@ import kotlinx.serialization.json.put
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
-private fun fmt(v: Double) = "%.2f".format(v)
+private fun fmt(v: Double) = "%.2f".format(java.util.Locale.ROOT, v)
 
 private fun bad(name: String) = ToolResult("Missing or invalid argument: $name", true)
 
@@ -206,8 +206,35 @@ fun assistantTools(
         return null
     }
 
-    suspend fun autoFinished() {
-        state.auto.first { it == null }
+    /** Founder grades are for Founders, here as on the look panel. */
+    fun looksFor() = Looks.all(context).filter { !it.founder || PremiumGate.isFounder(com.zellahq.app.Entitlements.load(context)) }
+
+    val busyText = "Zella is still working on something else. Wait for it to finish and try again."
+
+    /** Runs one of the editor's long jobs and waits for its real answer. */
+    suspend fun finished(start: ((Boolean) -> Unit) -> Unit): Boolean {
+        val answer = kotlinx.coroutines.CompletableDeferred<Boolean>()
+        start { answer.complete(it) }
+        return answer.await()
+    }
+
+    suspend fun reshaped(aspect: Aspect): ToolResult {
+        if (project().clips.isEmpty()) return noClips
+        if (state.busy) return ToolResult(busyText, true)
+        val ok = finished { state.reshape(aspect, it) }
+        return if (ok) ToolResult("Reframed to ${aspect.raw}.") else ToolResult("The reframe did not work. The video is as it was.", true)
+    }
+
+    /** Applies work done from a copy of the project, unless the project moved on meanwhile. */
+    fun applied(
+        start: Project,
+        label: String,
+        out: Project,
+        said: String,
+    ) = if (state.applyResult(start, label, out)) {
+        ToolResult(said)
+    } else {
+        ToolResult("The project changed while this ran, so nothing was applied. Try again.", true)
     }
 
     suspend fun polish(
@@ -215,8 +242,8 @@ fun assistantTools(
         name: String,
     ): ToolResult {
         if (project().clips.isEmpty()) return noClips
-        state.runAuto(viral)
-        autoFinished()
+        if (state.busy) return ToolResult(busyText, true)
+        if (!finished { state.runAuto(viral, it) }) return ToolResult("$name did not finish. The video is as it was.", true)
         val r = state.receipt.value ?: return ToolResult("$name did not finish.", true)
         return ToolResult(
             "$name done: cut ${r.silencesCut} silences (${fmt(r.silenceSeconds)} s), ${r.fillersCut} filler words, " +
@@ -226,8 +253,8 @@ fun assistantTools(
 
     suspend fun words(): List<com.zellahq.core.project.CaptionWord>? {
         if (project().captions == null) {
-            state.makeCaptions(null, false)
-            state.captioning.first { it == null }
+            if (state.busy) return null
+            finished { state.makeCaptions(null, false, it) }
         }
         return project().captions?.cues?.flatMap { it.words }
     }
@@ -306,7 +333,8 @@ fun assistantTools(
                 val p = project()
                 val c = p.clips.firstOrNull { it.id == state.selected.value } ?: return@Tool ToolResult("No clip selected: call select_clip first.", true)
                 if (!c.isBRoll && p.duration > 0 && c.timelineDuration > 0.6 * p.duration) {
-                    val ok = confirm("Delete this clip? It is most of the video (${fmt(c.timelineDuration)}s of ${fmt(p.duration)}s).")
+                    val ok =
+                        confirm(context.getString(com.zellahq.app.R.string.as_confirm_delete, fmt(c.timelineDuration), fmt(p.duration)))
                     if (!ok) return@Tool ToolResult("Cancelled: the clip was not deleted.")
                 }
                 state.edit("delete") { it.rippleDelete(c.id) }
@@ -327,7 +355,7 @@ fun assistantTools(
                 ),
             ) { a ->
                 val (c, from) = clipFrom(a) ?: return@Tool bad("clip_index/clip_id")
-                val to = a.int("to_index") ?: return@Tool bad("to_index")
+                val to = (a.int("to_index") ?: return@Tool bad("to_index")).coerceIn(0, project().clips.lastIndex)
                 state.edit("move") { it.move(c.id, to) }
                 ToolResult("Moved clip $from to $to.")
             },
@@ -341,16 +369,13 @@ fun assistantTools(
         )
         add(Tool("auto_polish", "The full one-tap Auto-Polish, same as magic_edit.", emptyParams()) { polish(false, "Auto-Polish") })
         add(
-            Tool("make_it_viral", "Auto-Polish plus pattern interrupts, a brighter grade and cut sounds.", emptyParams()) {
+            Tool("make_it_viral", "Auto-Polish plus bold captions, a colour lift and sounds under the strongest cuts.", emptyParams()) {
                 polish(true, "Make it Viral")
             },
         )
         add(
             Tool("make_vertical", "Make it a Short: 9:16 canvas with a crop that keeps the speaker in frame. Reversible.", emptyParams()) {
-                if (project().clips.isEmpty()) return@Tool noClips
-                state.reshape(Aspect.Vertical)
-                autoFinished()
-                ToolResult("Vertical ready (9:16).")
+                reshaped(Aspect.Vertical)
             },
         )
         add(
@@ -360,10 +385,7 @@ fun assistantTools(
                 obj(mapOf("aspect" to enumProp(Aspect.entries.map { it.raw }, "Target shape.")), listOf("aspect")),
             ) { a ->
                 val aspect = Aspect.entries.firstOrNull { it.raw == a.str("aspect") } ?: return@Tool bad("aspect")
-                if (project().clips.isEmpty()) return@Tool noClips
-                state.reshape(aspect)
-                autoFinished()
-                ToolResult("Reframed to ${aspect.raw}.")
+                reshaped(aspect)
             },
         )
         add(
@@ -435,8 +457,7 @@ fun assistantTools(
                 if (project().clips.isEmpty()) return@Tool noClips
                 val p = project()
                 val (out, cut) = withContext(Dispatchers.Default) { com.zellahq.app.auto.AutoPolish(context).silencesOnly(p) }
-                state.edit("remove silences") { out }
-                ToolResult("Cut $cut silences. The video is now ${fmt(project().duration)}s.")
+                applied(p, "remove silences", out, "Cut $cut silences.")
             },
         )
         add(
@@ -448,8 +469,7 @@ fun assistantTools(
                 if (words() == null) return@Tool ToolResult("No speech was found to work from.", true)
                 val p = project()
                 val (out, n) = com.zellahq.app.auto.AutoPolish(context).fillersOnly(p)
-                state.edit("remove fillers") { out }
-                ToolResult("Cut $n filler words.")
+                applied(p, "remove fillers", out, "Cut $n filler words.")
             },
         )
         add(
@@ -472,9 +492,14 @@ fun assistantTools(
                             },
                     )
                 }
-                val done = kotlinx.coroutines.CompletableDeferred<Unit>()
-                state.analyseSound { done.complete(Unit) }
-                done.await()
+                if (!finished {
+                        state.analyseSound(
+                            it,
+                        )
+                    }
+                ) {
+                    return@Tool ToolResult("The voice is cleaned, but its level could not be measured.", true)
+                }
                 val g = Sounds.boostDb(project())
                 ToolResult("Voice cleaned and levelled (%+.1f dB).".format(g))
             },
@@ -486,16 +511,23 @@ fun assistantTools(
                 obj(mapOf("tone" to enumProp(VoiceChain.Voicing.entries.map { it.name }, "Tone.")), listOf("tone")),
             ) { a ->
                 val tone = VoiceChain.Voicing.entries.firstOrNull { it.name.equals(a.str("tone"), true) } ?: return@Tool bad("tone")
-                state.edit("voice tone") { it.copy(extras = JsonObject(it.extras + ("voiceTone" to JsonPrimitive(tone.name)))) }
+                // The tone is part of the voice polish, so it needs that on, or it would change nothing.
+                state.edit("voice tone") { p ->
+                    p.copy(
+                        clips = p.clips.map { c -> c.copy(extras = JsonObject(c.extras + ("voicePolish" to JsonPrimitive(true)))) },
+                        extras = JsonObject(p.extras + ("voiceTone" to JsonPrimitive(tone.name))),
+                    )
+                }
                 ToolResult("Voice tone set to ${tone.name}.")
             },
         )
         add(
             Tool("auto_duck", "Find where the voice is, so music steps back under speech.", emptyParams()) {
-                val done = kotlinx.coroutines.CompletableDeferred<Unit>()
-                state.analyseSound { done.complete(Unit) }
-                done.await()
-                ToolResult("Voice found: music will step back for it.")
+                if (finished { state.analyseSound(it) }) {
+                    ToolResult("Voice found: music will step back for it.")
+                } else {
+                    ToolResult("The voice could not be found in this video.", true)
+                }
             },
         )
         add(
@@ -505,8 +537,10 @@ fun assistantTools(
                 obj(mapOf("preset" to enumProp(CaptionBuilder.PRESETS, "Caption style."))),
             ) { a ->
                 if (project().clips.isEmpty()) return@Tool noClips
-                state.makeCaptions(project().captionLanguage, false)
-                state.captioning.first { it == null }
+                if (state.busy) return@Tool ToolResult(busyText, true)
+                if (!finished { state.makeCaptions(project().captionLanguage, false, it) }) {
+                    return@Tool ToolResult("No captions were added: no speech was found, or it could not be read.", true)
+                }
                 val cap = project().captions ?: return@Tool ToolResult("No speech was found, so no captions were added.")
                 a.str("preset")?.takeIf { it in CaptionBuilder.PRESETS }?.let { pr ->
                     state.edit(
@@ -661,12 +695,12 @@ fun assistantTools(
             Tool(
                 "set_speed",
                 "Set the selected clip's speed. 1 is normal, 2 is double.",
-                obj(mapOf("speed" to prop("number", "0.25 to 8.")), listOf("speed")),
+                obj(mapOf("speed" to prop("number", "0.1 to 8.")), listOf("speed")),
             ) { a ->
                 val v = a.num("speed") ?: return@Tool bad("speed")
                 val c = selected() ?: return@Tool noClips
                 state.edit("speed") { it.setSpeed(c.id, v) }
-                ToolResult("Speed set to ${fmt(v)}.")
+                ToolResult("Speed set to ${fmt(v.coerceIn(0.1, 8.0))}.")
             },
         )
         add(
@@ -676,18 +710,20 @@ fun assistantTools(
                 obj(mapOf("preset" to prop("string", "Look name.")), listOf("preset")),
             ) { a ->
                 if (project().clips.isEmpty()) return@Tool noClips
-                val look = Looks.all(context).firstOrNull { it.name.equals(a.str("preset"), true) } ?: return@Tool bad("preset")
+                val look = looksFor().firstOrNull { it.name.equals(a.str("preset"), true) } ?: return@Tool bad("preset")
                 state.edit("look all") { p -> p.copy(clips = p.clips.map { Looks.applyLook(it, look, Looks.DEFAULT_INTENSITY) }) }
                 ToolResult("Applied the ${look.name} look.")
             },
         )
         add(
-            Tool("clear_effects", "Clear the look and colour work on the selected clip. Keeps the footage.", emptyParams()) {
+            Tool(
+                "clear_effects",
+                "Clear the look and colour work on the selected clip. Keeps its place, background and keyframes.",
+                emptyParams(),
+            ) {
                 val c = selected() ?: return@Tool noClips
-                state.edit(
-                    "clear",
-                ) { p -> p.copy(clips = p.clips.map { if (it.id == c.id) it.copy(extras = JsonObject(it.extras - "effects")) else it }) }
-                ToolResult("Effects cleared on the selected clip.")
+                state.edit("clear") { p -> p.mapClipById(c.id) { Looks.applyLook(it, null) } }
+                ToolResult("Look cleared on the selected clip.")
             },
         )
         add(
@@ -698,7 +734,11 @@ fun assistantTools(
             ) { a ->
                 if (project().clips.isEmpty()) return@Tool noClips
                 val t = state.position.value
-                state.edit("zoom") { it.copy(zoomBlocks = it.zoomBlocks.orEmpty() + ZoomBlock(newId(), t, scale = a.num("scale") ?: 1.6)) }
+                state.edit("zoom") {
+                    it.copy(
+                        zoomBlocks = it.zoomBlocks.orEmpty() + ZoomBlock(newId(), t, scale = (a.num("scale") ?: 1.6).coerceIn(1.0, 5.0)),
+                    )
+                }
                 ToolResult("Zoom added at ${fmt(t)}s (${project().zoomBlocks?.size} in all).")
             },
         )
@@ -711,7 +751,7 @@ fun assistantTools(
                 val i = a.int("index") ?: return@Tool bad("index")
                 val list = project().zoomBlocks.orEmpty()
                 if (i !in list.indices) return@Tool bad("index")
-                val s = a.num("scale") ?: return@Tool bad("scale")
+                val s = a.num("scale")?.takeIf { it in 1.0..5.0 } ?: return@Tool bad("scale")
                 state.edit("zoom") { p -> p.copy(zoomBlocks = list.mapIndexed { k, z -> if (k == i) z.copy(scale = s) else z }) }
                 ToolResult("Zoom $i updated.")
             },
@@ -735,7 +775,7 @@ fun assistantTools(
             ) { a ->
                 val text = a.str("text")?.ifBlank { null } ?: return@Tool bad("text")
                 val spec = motion(a, null).getOrElse { return@Tool bad(it.message.orEmpty()) }
-                val d = a.num("duration") ?: 3.0
+                val d = (a.num("duration") ?: 3.0).coerceIn(0.2, 60.0)
                 val at = minOf(state.position.value, latestOverlayStart(project().duration, d))
                 val y =
                     when (a.str("position")) {
@@ -853,7 +893,7 @@ fun assistantTools(
         add(
             Tool(
                 "find_text_on_screen",
-                "Read the text visible in the video (on this phone, nothing is sent while reading) at one time or across a range. Each line comes back with its time and box: x, y top-left, width, height, 0 to 1, the same numbers add_callout takes. Secret-looking values come back masked.",
+                "Read the text visible in the video at one time or across a range. The reading happens on this phone, and the lines it finds come back to you, the Assistant. Each line has its time and box: x, y top-left, width, height, 0 to 1, the same numbers add_callout takes. Secret-looking values come back masked.",
                 obj(
                     mapOf(
                         "query" to prop("string", "Only lines containing this (optional)."),
@@ -892,8 +932,17 @@ fun assistantTools(
                     withContext(
                         Dispatchers.Default,
                     ) { findSensitiveText(context, p, m, a.num("start"), a.num("end"), a.str("style") == "pixelate") }
-                if (report.callouts.isNotEmpty()) state.edit("blur") { it.addCallouts(report.callouts) }
-                ToolResult(report.text)
+                if (report.failed) return@Tool ToolResult(report.text, true)
+                if (report.callouts.isNotEmpty()) {
+                    applied(
+                        p,
+                        "blur",
+                        p.addCallouts(report.callouts),
+                        report.text,
+                    )
+                } else {
+                    ToolResult(report.text)
+                }
             },
         )
         add(
@@ -955,8 +1004,7 @@ fun assistantTools(
                 val p = project()
                 val sel = state.selected.value
                 val r = withContext(Dispatchers.IO) { BRollMaker(context).cards(p, sel) }
-                if (r.placed > 0) state.edit("cutaways") { r.project }
-                ToolResult(r.note, r.placed == 0)
+                if (r.placed > 0) applied(p, "cutaways", r.project, r.note) else ToolResult(r.note, true)
             },
         )
         add(
@@ -971,8 +1019,7 @@ fun assistantTools(
                 val p = project()
                 val sel = state.selected.value
                 val r = withContext(Dispatchers.IO) { BRollMaker(context).stock(p, sel, provider, key) }
-                if (r.placed > 0) state.edit("cutaways") { r.project }
-                ToolResult(r.note, r.placed == 0)
+                if (r.placed > 0) applied(p, "cutaways", r.project, r.note) else ToolResult(r.note, true)
             },
         )
         add(
@@ -1150,8 +1197,7 @@ fun assistantTools(
                 val p = project()
                 val (out, n) = withContext(Dispatchers.Default) { BeatSync.apply(context, p, a.num("strength") ?: 0.5) }
                 if (n == 0) return@Tool ToolResult("No clear beats were found.")
-                state.edit("beat sync") { out }
-                ToolResult("$n beats synced.")
+                applied(p, "beat sync", out, "$n beats synced.")
             },
         )
         add(
@@ -1196,8 +1242,12 @@ fun assistantTools(
                 val p = project()
                 val at = state.position.value
                 val f = withContext(Dispatchers.IO) { Stills.freeze(context, p, at) } ?: return@Tool ToolResult("That frame could not be read.", true)
-                state.edit("freeze") { it.insertFreeze(f.toURI().toString(), at, Stills.FREEZE_SECONDS) }
-                ToolResult("Froze the picture at ${fmt(at)}s for ${fmt(Stills.FREEZE_SECONDS)}s.")
+                applied(
+                    p,
+                    "freeze",
+                    p.insertFreeze(f.toURI().toString(), at, Stills.FREEZE_SECONDS),
+                    "Froze the picture at ${fmt(at)}s for ${fmt(Stills.FREEZE_SECONDS)}s.",
+                )
             },
         )
         add(
@@ -1207,8 +1257,10 @@ fun assistantTools(
                 obj(mapOf("phrase" to prop("string", "The words to cut, as said.")), listOf("phrase")),
             ) { a ->
                 val phrase = a.str("phrase")?.trim()?.lowercase()?.split(Regex("\\s+"))?.filter { it.isNotEmpty() } ?: return@Tool bad("phrase")
+                if (phrase.isEmpty()) return@Tool bad("phrase")
                 if (words() == null) return@Tool ToolResult("No speech was found.", true)
                 val all = project().spokenWords()
+                if (all.size < phrase.size) return@Tool ToolResult("Those words were not found in that order.", true)
 
                 fun clean(s: String) = s.lowercase().trim { !it.isLetterOrDigit() }
                 val at =
@@ -1300,7 +1352,8 @@ fun assistantTools(
                 val f = CaptionExport.Format.entries.firstOrNull { it.raw == a.str("format") } ?: return@Tool bad("format")
                 val track = project().captions ?: return@Tool ToolResult("No captions to export: call add_captions first.", true)
                 val dir = android.os.Environment.DIRECTORY_DOCUMENTS
-                val out = java.io.File(context.getExternalFilesDir(dir), "${project().name.ifBlank { "captions" }}.${f.extension}")
+                val safeName = project().name.replace(Regex("[^\\p{L}\\p{M}\\p{N} _-]"), "").trim().ifEmpty { "captions" }
+                val out = java.io.File(context.getExternalFilesDir(dir), "$safeName.${f.extension}")
                 out.writeText(CaptionExport.text(track, f))
                 ToolResult("Saved ${out.name}. They can share it from Captions, Subtitle file.")
             },
@@ -1340,10 +1393,17 @@ fun assistantTools(
                 if (project().clips.isEmpty()) return@Tool noClips
                 val p0 = project()
                 val (cut, n) = withContext(Dispatchers.Default) { com.zellahq.app.auto.AutoPolish(context).silencesOnly(p0) }
-                state.edit("remove silences") { cut }
-                words()
-                state.reshape(Aspect.Vertical)
-                autoFinished()
+                if (state.busy) return@Tool ToolResult(busyText, true)
+                if (!state.applyResult(
+                        p0,
+                        "remove silences",
+                        cut,
+                    )
+                ) {
+                    return@Tool ToolResult("The project changed while this ran, so nothing was applied.", true)
+                }
+                val hasWords = !words().isNullOrEmpty()
+                val shaped = finished { state.reshape(Aspect.Vertical, it) }
                 val joins = project().clips.size - 1
                 if (joins > 0) {
                     val every = maxOf(1, kotlin.math.ceil(joins / 8.0).toInt())
@@ -1353,18 +1413,21 @@ fun assistantTools(
                         out
                     }
                 }
-                ToolResult("Reel ready: $n silences cut, captions added, vertical, a few transitions.")
+                ToolResult(
+                    "Reel: $n silences cut, ${if (hasWords) "captions added" else "no captions, since no speech was found"}, " +
+                        "${if (shaped) "vertical" else "not reshaped, which failed"}, a few transitions.",
+                )
             },
         )
         add(
             Tool(
                 "auto_color_match",
-                "Even out the colour of the selected clip from one frame, by balancing its average to neutral.",
+                "Even out the colour of the clip under the playhead from one frame, by balancing its average to neutral.",
                 emptyParams(),
             ) {
-                val c = selected() ?: return@Tool noClips
                 val p = project()
                 val at = state.position.value
+                val c = p.clipAt(at)?.first ?: return@Tool noClips
                 val shift = withContext(Dispatchers.Default) { grayWorld(context, p, at) } ?: return@Tool ToolResult("That frame could not be read.", true)
                 val o = colorAdjustOf(c.effects["colorAdjustments"])
                 state.edit("colour") { x ->
@@ -1411,7 +1474,7 @@ fun assistantTools(
                         "4k" -> 2160
                         else -> 1080
                     }
-                val ok = confirm("Export this video at ${if (short == 2160) "4K" else "${short}p"}? It can take a while.")
+                val ok = confirm(context.getString(com.zellahq.app.R.string.as_confirm_export, if (short == 2160) "4K" else "${short}p"))
                 if (!ok) return@Tool ToolResult("Export cancelled.")
                 state.saveNow()
                 ExportService.reset()
@@ -1445,7 +1508,7 @@ fun assistantTools(
                 ),
             ) { a ->
                 when (a.str("category")) {
-                    "color_looks" -> ToolResult(Looks.all(context).joinToString { it.name })
+                    "color_looks" -> ToolResult(looksFor().joinToString { it.name })
                     "caption_presets" -> ToolResult(CaptionBuilder.PRESETS.joinToString())
                     "transitions" -> ToolResult(TransitionTypes.all.joinToString())
                     "sound_effects" -> ToolResult(Sounds.effects(context).joinToString { it.id })
@@ -1506,7 +1569,14 @@ private suspend fun card(
         withContext(Dispatchers.IO) {
             Cards.add(context, p, atEnd, style, words, a.num("seconds") ?: 3.0)
         } ?: return ToolResult("The card could not be made.", true)
-    state.edit("card") { out }
+    if (!state.applyResult(
+            p,
+            "card",
+            out,
+        )
+    ) {
+        return ToolResult("The project changed while this ran, so nothing was applied. Try again.", true)
+    }
     return ToolResult(if (atEnd) "Outro card added." else "Intro card added.")
 }
 
@@ -1661,7 +1731,7 @@ fun assistantPrompt(): String =
     - To judge the picture ("is my face centred?", "is it too dark?"), use describe_frame.
     - To hide sensitive text on screen ("blur the access token", "hide my API key", "blur my email"), call blur_sensitive_text. It reads the frames on this phone and places the blurs itself. Pass the person's own words as query and leave secrets on. If it finds nothing, say exactly what was scanned and offer a blur box with add_callout (kind blur). To read or find other text use find_text_on_screen. Never repeat a secret's value.
     - "Clean this up for me" means magic_edit. "Make it a Short" means make_vertical.
-    - export_video is the only tool that asks the person to confirm; just call it. Everything else applies at once, and the person can undo it.
+    - export_video and deleting most of the video ask the person to confirm; just call them. Everything else applies at once, and the person can undo it.
     - Never invent file names. Tools needing a file the person has not picked do not exist here.
     - If a tool you want is not in your list, say that you cannot do that from here. Never say something was done unless a tool said so.
     - After tools run, say briefly in plain words what changed. If a tool returns an error, read it and try a corrected call or explain the problem. Reply in the language the person writes in.

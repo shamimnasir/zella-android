@@ -37,7 +37,6 @@ import com.zellahq.core.ProFeature
 import com.zellahq.core.project.Aspect
 import com.zellahq.core.project.Project
 import com.zellahq.core.project.duration
-import com.zellahq.core.project.isoNow
 import com.zellahq.ui.ZellaColors
 import com.zellahq.ui.ZellaSpacing
 
@@ -51,20 +50,28 @@ private enum class Preset(val id: String, val aspect: Aspect, val label: Int) {
 
 @Composable
 fun ExportScreen(
-    initial: Project,
+    project: Project,
+    onChange: (Project) -> Unit,
+    onPlans: () -> Unit,
     onBack: () -> Unit,
 ) {
     val context = LocalContext.current
     val store = remember { Storage.store(context) }
-    var project by remember { mutableStateOf(initial) }
     var shortSide by remember { mutableIntStateOf(1080) }
     var fps by remember { mutableIntStateOf(30) }
     var saved by remember { mutableStateOf(false) }
     var format by remember { mutableStateOf(Formats.VIDEO) }
     var bitrate by remember { mutableStateOf<Int?>(null) }
     var also by remember { mutableStateOf(emptySet<com.zellahq.core.project.Aspect>()) }
-    val status by ExportService.status.collectAsState()
-    DisposableEffect(Unit) { onDispose { ExportService.reset() } }
+    val anyStatus by ExportService.status.collectAsState()
+    val mine = ExportService.statusProject == project.id
+    // Another project's export is not this one's: its result stays with it.
+    val status = if (mine) anyStatus else ExportStatus.Idle
+    val otherRunning = !mine && anyStatus is ExportStatus.Running
+    DisposableEffect(Unit) { onDispose { ExportService.leftScreen() } }
+    var saveFailed by remember { mutableStateOf(false) }
+    var earlierTick by remember { mutableIntStateOf(0) }
+    val isPro = PremiumGate.isPro(Entitlements.load(context), System.currentTimeMillis())
 
     // The same question the service will ask, so the screen shows the real answer before Export is tapped.
     val decision =
@@ -82,8 +89,7 @@ fun ExportScreen(
         )
 
     fun setPreset(p: Preset) {
-        project = project.copy(aspect = p.aspect, platformPresetId = p.id, modifiedAt = isoNow())
-        store.save(project, allowCollapse = true)
+        onChange(project.copy(aspect = p.aspect, platformPresetId = p.id))
     }
 
     Column(
@@ -127,18 +133,21 @@ fun ExportScreen(
                 if (shortSide == 1080) ZellaColors.CardSun else null,
             ) { shortSide = 1080 }
             Tool(
-                stringResource(R.string.ex_4k),
+                stringResource(if (isPro) R.string.ex_4k_plain else R.string.ex_4k),
                 if (shortSide == 2160) ZellaColors.CardSun else null,
             ) { shortSide = 2160 }
         }
         Text(stringResource(R.string.ex_smoothness), color = MaterialTheme.colorScheme.onBackground)
         Row(horizontalArrangement = Arrangement.spacedBy(ZellaSpacing.S)) {
             Tool(stringResource(R.string.ex_30), if (fps == 30) ZellaColors.CardSun else null) { fps = 30 }
-            Tool(stringResource(R.string.ex_60), if (fps == 60) ZellaColors.CardSun else null) { fps = 60 }
+            Tool(
+                stringResource(if (isPro) R.string.ex_60_plain else R.string.ex_60),
+                if (fps == 60) ZellaColors.CardSun else null,
+            ) { fps = 60 }
         }
 
         // Pro's extras are shown to Pro only, so nothing here is a dead end for a free export.
-        if (PremiumGate.isPro(Entitlements.load(context), System.currentTimeMillis())) {
+        if (isPro) {
             Text(stringResource(R.string.ex_file_size), color = MaterialTheme.colorScheme.onBackground)
             Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(ZellaSpacing.S)) {
                 listOf(
@@ -182,17 +191,28 @@ fun ExportScreen(
             }
             is ExportStatus.Done -> {
                 Text(stringResource(R.string.ex_done), color = MaterialTheme.colorScheme.onBackground)
+                if (s.missed > 0) Text(stringResource(R.string.ex_queue_missed, s.missed), color = MaterialTheme.colorScheme.error)
                 if (!saved) {
                     Tool(
                         stringResource(R.string.ex_save),
                         ZellaColors.CardMint,
-                    ) { saved = (listOf(s.file) + s.more).map { ExportService.saveToGallery(context, it) }.all { it } }
+                    ) {
+                        val files = listOf(s.file) + s.more
+                        saveFailed = false
+                        Thread({
+                            val ok = files.map { ExportService.saveToGallery(context, it) }.all { it }
+                            saved = ok
+                            saveFailed = !ok
+                        }, "gallery").start()
+                    }
                 } else {
-                    Text(stringResource(R.string.ex_saved), color = MaterialTheme.colorScheme.onBackground)
+                    Text(stringResource(savedText(s.file)), color = MaterialTheme.colorScheme.onBackground)
                 }
+                if (saveFailed) Text(stringResource(R.string.ex_save_failed), color = MaterialTheme.colorScheme.error)
                 Tool(stringResource(R.string.ex_share), ZellaColors.CardViolet) {
-                    context.startActivity(ExportService.shareIntent(context, s.file))
+                    context.startActivity(ExportService.shareIntent(context, s.file, s.more))
                 }
+                Tool(stringResource(R.string.ex_again)) { ExportService.reset() }
             }
             else -> {
                 when (s) {
@@ -211,11 +231,23 @@ fun ExportScreen(
                             color = MaterialTheme.colorScheme.onBackground,
                         )
                     }
-                    Text(stringResource(R.string.ex_pro_later), color = MaterialTheme.colorScheme.onBackground)
+                    Tool(stringResource(R.string.ex_see_plans), ZellaColors.CardViolet, onClick = onPlans)
+                } else if (otherRunning) {
+                    Text(stringResource(R.string.ex_other_running), color = MaterialTheme.colorScheme.onBackground)
                 } else {
                     Tool(stringResource(R.string.ex_start), ZellaColors.CardViolet) {
                         saved = false
+                        saveFailed = false
                         store.save(project, allowCollapse = true)
+                        // The progress notice needs this on Android 13 and up. The export runs either way.
+                        if (android.os.Build.VERSION.SDK_INT >= 33 &&
+                            ContextCompat.checkSelfPermission(context, android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED
+                        ) {
+                            (context as? android.app.Activity)?.requestPermissions(
+                                arrayOf(android.Manifest.permission.POST_NOTIFICATIONS),
+                                7,
+                            )
+                        }
                         ContextCompat.startForegroundService(
                             context,
                             Intent(context, ExportService::class.java)
@@ -233,36 +265,106 @@ fun ExportScreen(
                 }
             }
         }
-        // Hand the project itself to another phone or a Mac: a .zella package with its media and fonts.
-        Tool(stringResource(R.string.ex_share_project)) {
-            val handoff =
-                java.io.File(context.getExternalFilesDir(null), "handoff").apply {
-                    deleteRecursively()
-                    mkdirs()
+        // A finished file is never lost by leaving the screen.
+        val shown = (status as? ExportStatus.Done)?.let { listOf(it.file) + it.more }.orEmpty().toSet()
+        val earlier =
+            remember(
+                project.name,
+                anyStatus,
+                earlierTick,
+            ) { ExportService.earlier(context, project.name).filter { it !in shown }.take(MAX_EARLIER) }
+        if (earlier.isNotEmpty()) {
+            Text(stringResource(R.string.ex_earlier), color = MaterialTheme.colorScheme.onBackground)
+            earlier.forEach { f ->
+                Text(f.name, color = MaterialTheme.colorScheme.onBackground)
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(ZellaSpacing.S)) {
+                    Tool(stringResource(R.string.ex_save)) {
+                        saveFailed = false
+                        Thread({ saveFailed = !ExportService.saveToGallery(context, f) }, "gallery").start()
+                    }
+                    Tool(stringResource(R.string.ex_share)) { context.startActivity(ExportService.shareIntent(context, f)) }
+                    Tool(stringResource(R.string.ex_delete_copy)) {
+                        f.delete()
+                        earlierTick++
+                    }
                 }
-            // A caption font the person imported travels in fonts/, as the iPhone does.
-            val fontName = (project.captions?.extras?.get("fontName") as? kotlinx.serialization.json.JsonPrimitive)?.content
-            val fontsDir = java.io.File(store.packageFor(project.id), com.zellahq.core.project.ProjectStore.FONTS)
-            java.io.File(context.filesDir, "fonts").listFiles { f -> f.nameWithoutExtension == fontName }?.forEach {
-                fontsDir.mkdirs()
-                it.copyTo(java.io.File(fontsDir, it.name), overwrite = true)
             }
-            store.exportSelfContained(project, handoff)
-            val zip = handoff.listFiles { f -> f.name.endsWith(".zella.zip") }!!.first()
-            val uri = androidx.core.content.FileProvider.getUriForFile(context, "${context.packageName}.files", zip)
-            val send =
-                Intent(Intent.ACTION_SEND)
-                    .setType("application/zip")
-                    .putExtra(Intent.EXTRA_STREAM, uri)
-                    .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            context.startActivity(Intent.createChooser(send, context.getString(R.string.ex_share_project)))
+            Text(stringResource(R.string.ex_earlier_note), color = MaterialTheme.colorScheme.onBackground)
+            if (saveFailed && status !is ExportStatus.Done) {
+                Text(
+                    stringResource(R.string.ex_save_failed),
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
         }
+        // Hand the project itself to another phone or a Mac: a .zella package with its media and fonts.
+        var packing by remember { mutableStateOf(false) }
+        var packFailed by remember { mutableStateOf(false) }
+        if (packing) {
+            Text(stringResource(R.string.ex_packing), color = MaterialTheme.colorScheme.onBackground)
+        } else {
+            Tool(stringResource(R.string.ex_share_project)) {
+                packing = true
+                packFailed = false
+                val title = context.getString(R.string.ex_share_project)
+                // Copies every video in the project: minutes on a big one, and a full disk must not crash it.
+                Thread({
+                    val intent =
+                        runCatching {
+                            val handoff =
+                                java.io.File(context.getExternalFilesDir(null), "handoff").apply {
+                                    deleteRecursively()
+                                    mkdirs()
+                                }
+                            // Every font the person imported that this project uses travels in fonts/, as the iPhone does.
+                            val names =
+                                (
+                                    listOfNotNull((project.captions?.extras?.get("fontName") as? kotlinx.serialization.json.JsonPrimitive)?.content) +
+                                        project.titles.orEmpty().flatMap { t ->
+                                            listOfNotNull(
+                                                (t.extras["fontName"] as? kotlinx.serialization.json.JsonPrimitive)?.content,
+                                                ((t.extras["accent"] as? kotlinx.serialization.json.JsonObject)?.get("fontName") as? kotlinx.serialization.json.JsonPrimitive)?.content,
+                                            )
+                                        }
+                                ).toSet()
+                            val fontsDir = java.io.File(store.packageFor(project.id), com.zellahq.core.project.ProjectStore.FONTS)
+                            java.io.File(context.filesDir, "fonts").listFiles { f -> f.nameWithoutExtension in names }?.forEach {
+                                fontsDir.mkdirs()
+                                it.copyTo(java.io.File(fontsDir, it.name), overwrite = true)
+                            }
+                            store.exportSelfContained(project, handoff)
+                            val zip = handoff.listFiles { f -> f.name.endsWith(".zella.zip") }!!.first()
+                            val uri = androidx.core.content.FileProvider.getUriForFile(context, "${context.packageName}.files", zip)
+                            Intent.createChooser(
+                                Intent(Intent.ACTION_SEND)
+                                    .setType("application/zip")
+                                    .putExtra(Intent.EXTRA_STREAM, uri)
+                                    .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION),
+                                title,
+                            )
+                        }.getOrNull()
+                    packing = false
+                    if (intent != null) context.startActivity(intent) else packFailed = true
+                }, "pack-project").start()
+            }
+        }
+        if (packFailed) Text(stringResource(R.string.ex_pack_failed), color = MaterialTheme.colorScheme.error)
         Text(stringResource(R.string.ex_privacy), color = MaterialTheme.colorScheme.onBackground)
     }
 }
 
+private const val MAX_EARLIER = 5
+
+private fun savedText(f: java.io.File) =
+    when (f.extension) {
+        "gif" -> R.string.ex_saved_gif
+        "m4a" -> R.string.ex_saved_sound
+        else -> R.string.ex_saved
+    }
+
 private fun reason(f: ProFeature) =
     when (f) {
+        ProFeature.FounderGrade -> R.string.ex_needs_founder
         ProFeature.Length -> R.string.ex_needs_length
         ProFeature.Export4K -> R.string.ex_needs_4k
         ProFeature.Fps60 -> R.string.ex_needs_60

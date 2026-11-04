@@ -17,6 +17,11 @@ Read this and tasks/lessons.md at the start of every session.
 | 8 Billing, first run, languages | Built. Billing never reached real Google Play. Translations not read by native speakers. |
 | 9 Release | Store kit written in `docs/store/`. Nothing submitted: that needs the owner's account. |
 
+## Full-suite audit (2026-11-04)
+
+About 90 findings, fixed and measured on the emulator: `docs/AUDIT-2026-11-04.md`. `AuditFlowTest` holds the new measurements.
+Not verified: a real phone, provider, stock site or Google Play.
+
 ## Phase 0 evidence (2026-11-04)
 
 - `./gradlew test lint ktlintCheck assembleDebug`: BUILD SUCCESSFUL. 12 unit tests, 0 failures

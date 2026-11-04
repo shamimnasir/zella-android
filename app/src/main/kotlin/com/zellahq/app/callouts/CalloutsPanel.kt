@@ -98,15 +98,18 @@ fun CalloutsPanel(
                 }
             state.onMain {
                 reading = null
+                if (out.isFailure) report = context.getString(R.string.co_hide_failed)
                 out.getOrNull()?.let { r ->
                     report =
-                        if (r.callouts.isEmpty()) {
+                        if (r.failed) {
+                            context.getString(R.string.co_hide_failed)
+                        } else if (r.callouts.isEmpty()) {
                             context.getString(R.string.co_hide_none)
                         } else {
                             context.getString(R.string.co_hide_done, r.callouts.size) +
                                 if (r.text.contains("Stopped early")) " " + context.getString(R.string.co_hide_short) else ""
                         }
-                    if (r.callouts.isNotEmpty()) state.edit("blur") { it.addCallouts(r.callouts) }
+                    if (r.callouts.isNotEmpty()) state.applyResult(start, "blur", start.addCallouts(r.callouts))
                 }
             }
         }, "read-screen").start()

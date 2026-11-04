@@ -35,14 +35,16 @@ object Entitlements {
         return gen.generateKey()
     }
 
+    /** Null when Keystore itself is broken, which some phones manage. That is not tampering, and must not crash. */
     private fun seal(
         plan: String,
         install: Long,
-    ): String {
-        val mac = Mac.getInstance("HmacSHA256")
-        mac.init(key())
-        return Base64.encodeToString(mac.doFinal("$plan|$install".toByteArray()), Base64.NO_WRAP)
-    }
+    ): String? =
+        runCatching {
+            val mac = Mac.getInstance("HmacSHA256")
+            mac.init(key())
+            Base64.encodeToString(mac.doFinal("$plan|$install".toByteArray()), Base64.NO_WRAP)
+        }.getOrNull()
 
     fun load(
         context: Context,
@@ -55,7 +57,11 @@ object Entitlements {
         }
         val install = if (storedInstall > 0L) storedInstall else nowMs
         val planName = prefs.getString("plan", Plan.Free.name)!!
-        val good = prefs.getString("seal", null)?.let { MessageDigest.isEqual(it.toByteArray(), seal(planName, install).toByteArray()) } ?: false
+        val expected = seal(planName, install)
+        val good =
+            expected == null || prefs.getString("seal", null)?.let {
+                MessageDigest.isEqual(it.toByteArray(), expected.toByteArray())
+            } ?: false
         val state =
             if (good) {
                 val plan = runCatching { Plan.valueOf(planName) }.getOrDefault(Plan.Free)
@@ -73,7 +79,12 @@ object Entitlements {
         plan: Plan,
     ) {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-        val install = prefs.getLong("install", 0L).takeIf { it > 0L } ?: System.currentTimeMillis()
+        val stored = prefs.getLong("install", 0L)
+        val before = prefs.getString("plan", Plan.Free.name)!!
+        val expected = seal(before, stored)
+        val tampered = stored > 0L && expected != null && prefs.getString("seal", null) != expected
+        // A reseal must not bless an install date someone edited: Pro Week stays over.
+        val install = if (tampered) 1L else stored.takeIf { it > 0L } ?: System.currentTimeMillis()
         prefs.edit().putLong("install", install).putString("plan", plan.name).putString("seal", seal(plan.name, install)).apply()
     }
 }

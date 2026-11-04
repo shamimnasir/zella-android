@@ -48,7 +48,7 @@
     <string name="ed_pause">Tạm dừng</string>
     <string name="ed_clip_label">Đoạn %1$d, %2$s</string>
     <string name="ed_fade_chip">Mờ dần</string>
-    <string name="ed_timeline_description">Dòng thời gian có %d đoạn. Kéo sang trái hoặc phải để di chuyển trong video.</string>
+    <string name="ed_timeline_description">Dòng thời gian. Số đoạn: %d. Kéo sang trái hoặc phải để di chuyển trong video.</string>
     <string name="ed_split">Cắt tại đây</string>
     <string name="ed_delete">Xóa đoạn</string>
     <string name="ed_move_earlier">Dời lên trước</string>
@@ -115,7 +115,6 @@
     <string name="ex_needs_4k">4K cần Zella Pro. 1080p miễn phí mãi mãi.</string>
     <string name="ex_needs_60">Cực mượt cần Zella Pro. Độ mượt thường là miễn phí.</string>
     <string name="ex_needs_other">Tùy chọn này cần Zella Pro.</string>
-    <string name="ex_pro_later">Mua Zella Pro ngay trong ứng dụng sẽ có ở một bản cập nhật sau.</string>
     <string name="ex_share_project">Chia sẻ tệp dự án (.zella)</string>
     <string name="ex_privacy">Việc xuất video diễn ra trên điện thoại này. Video của bạn chỉ rời khỏi điện thoại khi bạn chia sẻ.</string>
 
@@ -127,7 +126,7 @@
     <string name="cap_make">Tạo phụ đề</string>
     <string name="cap_making">Đang tạo phụ đề, %d%%</string>
     <string name="cap_stop">Dừng</string>
-    <string name="cap_made">Đã tạo phụ đề: %d từ. Chạm vào một dòng bên dưới để sửa từ.</string>
+    <string name="cap_made">Đã tạo phụ đề. Số từ: %d. Chạm vào một dòng bên dưới để sửa một từ.</string>
     <string name="cap_no_words">Không nghe thấy từ nào bằng ngôn ngữ đó. Hãy thử Tự nhận biết ngôn ngữ.</string>
     <string name="cap_no_sound">Video này không có âm thanh để tạo phụ đề.</string>
     <string name="cap_stopped">Đã dừng. Chưa thêm phụ đề nào.</string>
@@ -148,7 +147,7 @@
     <string name="cap_better_use">Dùng %1$s</string>
     <string name="cap_better_progress">Đang tải, %d%%. Bạn có thể tiếp tục chỉnh sửa.</string>
     <string name="cap_better_failed">Tải chưa xong. Chạm vào lần nữa để tiếp tục từ chỗ đã dừng.</string>
-    <string name="cap_better_privacy">Việc này chỉ tải về tệp mô hình nhận dạng giọng nói. Không có thông tin nào về bạn hay video của bạn được gửi đi.</string>
+    <string name="cap_better_privacy">Việc này chỉ tải một tệp nhận dạng giọng nói. Không có gì về bạn hay video của bạn được gửi đi.</string>
     <string name="cap_better_data_title">Bạn đang dùng dữ liệu di động</string>
     <string name="cap_better_data_body">Lượt tải này khoảng %d MB. Vẫn tải bằng dữ liệu di động?</string>
     <string name="cap_better_data_yes">Vẫn tải</string>
@@ -172,8 +171,8 @@
     <string name="look_cooler">Lạnh hơn</string>
     <string name="look_warmer">Ấm hơn</string>
     <string name="look_reset_wheels">Hoàn tác chỉnh màu</string>
-    <string name="look_cube_add">Thêm tệp LUT (.cube)</string>
-    <string name="look_cube_remove">Xóa tệp LUT</string>
+    <string name="look_cube_add">Thêm tệp màu (.cube)</string>
+    <string name="look_cube_remove">Xóa tệp màu</string>
     <string name="look_cube_bad">Tệp đó không phải tệp màu 3D .cube mà Zella đọc được.</string>
 
     <!-- Sound -->
@@ -186,14 +185,14 @@
     <string name="snd_duck">Hạ nhạc xuống khi có người nói</string>
     <string name="snd_music_note">Tất cả nhạc được làm riêng cho Zella và dùng miễn phí trong video của bạn. Nhạc lặp lại cho đủ độ dài video.</string>
     <string name="snd_music_once">Khi tắt, nhạc phát một lần từ đầu rồi dừng.</string>
-    <string name="snd_effect_here">Thêm hiệu ứng âm thanh tại vị trí con trỏ</string>
-    <string name="snd_more">Thêm âm thanh (%d)</string>
-    <string name="snd_remove_effects">Xóa tất cả hiệu ứng âm thanh (%d)</string>
+    <string name="snd_effect_here">Thêm hiệu ứng âm thanh tại điểm này trong video</string>
+    <string name="snd_more">Thêm âm thanh: %d</string>
+    <string name="snd_remove_effects">Xóa tất cả hiệu ứng âm thanh: %d</string>
     <string name="snd_clean">Làm sạch giọng nói trong đoạn này</string>
     <string name="snd_even">Cân bằng âm lượng</string>
     <string name="snd_even_again">Cân bằng âm lượng lại</string>
     <string name="snd_listening">Đang nghe video của bạn</string>
-    <string name="snd_even_done">Đã đặt âm lượng phù hợp cho video mạng xã hội (%1$s dB). Đoạn có người nói cũng được nhận ra, để nhạc biết hạ xuống.</string>
+    <string name="snd_even_done">Đã đặt âm lượng phù hợp cho video mạng xã hội. Đoạn có người nói cũng được nhận ra, để nhạc biết hạ xuống.</string>
 
     <!-- Text -->
     <string name="ed_text">Chữ</string>
@@ -202,7 +201,7 @@
     <string name="tt_add">Thêm chữ tại đây</string>
     <string name="tt_done">Xong</string>
     <string name="tt_remove">Xóa chữ này</string>
-    <string name="tt_to_playhead">Chuyển đến con trỏ</string>
+    <string name="tt_to_playhead">Chuyển đến điểm này trong video</string>
     <string name="tt_item">%1$d. %2$s lúc %3$s</string>
     <string name="tt_style">Kiểu chữ</string>
     <string name="tt_place">Vị trí và cỡ chữ</string>
@@ -212,7 +211,7 @@
     <string name="tt_small">Nhỏ</string>
     <string name="tt_medium">Vừa</string>
     <string name="tt_big">Lớn</string>
-    <string name="tt_seconds">%d giây</string>
+    <string name="tt_seconds">Giây: %d</string>
     <string name="tt_font">Phông chữ</string>
     <string name="tt_motion">Cách chuyển động</string>
     <string name="tt_motion_in">Khi xuất hiện</string>
@@ -234,7 +233,7 @@
     <!-- One tap -->
     <string name="ed_auto">Một chạm</string>
     <string name="au_polish">Auto-Polish</string>
-    <string name="au_polish_note">Làm gọn bản quay của bạn: bỏ chỗ ngừng và từ đệm, làm sạch giọng nói, thêm chuyển động nhẹ và nhạc nền nhỏ. Không có phụ đề, không chỉnh màu, không có hiệu ứng âm thanh.</string>
+    <string name="au_polish_note">Làm gọn đoạn quay của bạn: cắt các đoạn dừng và từ đệm, làm sạch giọng, thêm tiêu đề mở đầu, chuyển động nhẹ và nhạc nền nhỏ. Không có phụ đề, không chỉnh màu, không có hiệu ứng âm thanh.</string>
     <string name="au_viral">Make it Viral</string>
     <string name="au_viral_note">Có mọi thứ của Auto-Polish, cộng thêm phụ đề nổi bật, màu sắc tươi hơn và âm thanh ở những chỗ cắt mạnh nhất.</string>
     <string name="au_see">Xem nó thay đổi gì</string>
@@ -248,16 +247,16 @@
     <string name="au_starting">Đang chuẩn bị</string>
     <string name="au_undo">Hoàn tác tất cả</string>
     <string name="au_stays_on_phone">Tất cả việc này chạy trên điện thoại của bạn.</string>
-    <string name="au_receipt">Đã cắt %1$d chỗ ngừng (%2$s giây) và %3$d từ đệm. Đã thêm %4$d chuyển mờ, %5$d lần phóng to, %6$d chuyển động nhỏ và %7$d âm thanh.</string>
+    <string name="au_receipt">Đoạn dừng đã cắt: %1$d (%2$s giây). Từ đệm đã cắt: %3$d. Chuyển cảnh đã thêm: %4$d. Phóng to: %5$d. Chuyển động nhỏ: %6$d. Âm thanh: %7$d.</string>
     <string name="ps_silences">Cắt các đoạn im lặng</string>
     <string name="ps_silences_detail">Những khoảng lặng giữa các câu sẽ được bỏ đi.</string>
     <string name="ps_silences_doing">Đang cắt đoạn im lặng</string>
     <string name="ps_fillers">Cắt các từ đệm</string>
-    <string name="ps_fillers_detail">Những tiếng ừm, à được bỏ đi, và chỗ trống được nối lại. Chỉ dùng cho tiếng Anh.</string>
+    <string name="ps_fillers_detail">Các tiếng \"ừm\", \"à\", \"bạn biết đấy\" và từ lặp được cắt đi, chỗ trống được nối lại. Chỉ dùng được với tiếng Anh.</string>
     <string name="ps_fillers_doing">Đang cắt từ đệm</string>
-    <string name="ps_hook">Thêm tiêu đề thu hút và chuyển mờ</string>
-    <string name="ps_hook_detail">Một tiêu đề ở câu mở đầu, và chuyển mờ nhẹ ở tối đa tám chỗ nối.</string>
-    <string name="ps_hook_doing">Đang thêm tiêu đề thu hút và chuyển mờ</string>
+    <string name="ps_hook">Thêm tiêu đề mở đầu và chuyển cảnh</string>
+    <string name="ps_hook_detail">Một tiêu đề trên câu mở đầu, và hiệu ứng mờ dần nhẹ ở tối đa tám chỗ nối.</string>
+    <string name="ps_hook_doing">Đang thêm tiêu đề mở đầu và chuyển cảnh</string>
     <string name="ps_voice">Làm sạch giọng của bạn</string>
     <string name="ps_voice_detail">Giảm tiếng ồn nền, giữ giọng của bạn đều.</string>
     <string name="ps_voice_doing">Đang làm sạch giọng của bạn</string>
@@ -290,7 +289,7 @@
 
     <!-- Assistant. It reaches a provider the person chose, so nothing here may claim otherwise. -->
     <string name="ed_assistant">Trợ lý</string>
-    <string name="as_network">Trợ lý gửi những gì bạn gõ và một bản tóm tắt ngắn bằng chữ về dự án này, gồm cả nội dung phụ đề của bạn, đến %1$s. Trợ lý không bao giờ gửi video hay âm thanh của bạn. Việc đọc chữ trên màn hình diễn ra trên điện thoại này.</string>
+    <string name="as_network">Trợ lý gửi những gì bạn gõ và một bản tóm tắt ngắn bằng chữ về dự án này, gồm cả chữ trong phụ đề của bạn, đến %1$s. Nếu bạn nhờ nó đọc chữ trên màn hình, việc đọc diễn ra ngay trên điện thoại này và những từ tìm được cũng được gửi đến %1$s, với các giá trị trông như bí mật được che đi. Nó không bao giờ gửi video hay âm thanh của bạn.</string>
     <string name="as_setup">Trợ lý là tùy chọn và dùng khóa riêng của bạn. Hãy chọn bên trả lời, dán khóa của bạn, rồi hỏi bằng lời đơn giản.</string>
     <string name="as_provider">Ai trả lời</string>
     <string name="as_key">Khóa của bạn</string>
@@ -306,7 +305,6 @@
     <string name="as_stop">Dừng</string>
     <string name="as_settings">Cài đặt Trợ lý</string>
     <string name="as_chat">Quay lại cuộc trò chuyện</string>
-    <string name="as_working">Đang làm: %1$s</string>
     <string name="as_yes">Có</string>
     <string name="as_no">Không</string>
     <string name="as_clear">Xóa cuộc trò chuyện</string>
@@ -314,7 +312,7 @@
 
     <!-- Callouts. -->
     <string name="ed_callouts">Chú thích</string>
-    <string name="co_add">Thêm tại con trỏ</string>
+    <string name="co_add">Thêm tại điểm này trong video</string>
     <string name="co_on_video">Trên video này</string>
     <string name="co_none">Chưa có chú thích nào. Hãy chọn một cái ở trên.</string>
     <string name="co_words">Chữ trên đó</string>
@@ -357,7 +355,7 @@
     <string name="br_stock_network">Chỉ gửi từ khóa tìm kiếm và khóa miễn phí của riêng bạn đến %1$s, rồi tải về đoạn video tìm được. Không bao giờ gửi video của bạn. Hãy xem giấy phép trên trang đó trước khi đăng.</string>
     <string name="br_stock">Thêm video kho</string>
     <string name="br_working">Đang tạo cảnh chèn…</string>
-    <string name="br_remove">Xóa %1$d cảnh chèn</string>
+    <string name="br_remove">Xóa cảnh chèn: %1$d</string>
 
     <!-- Picture-in-picture, effects, moving things over time. -->
     <string name="ed_pip">Hình trong hình</string>
@@ -409,7 +407,7 @@
     <string name="mo_keys_title">Thay đổi theo thời gian</string>
     <string name="mo_keys_detail">Chọn thứ cần thay đổi, chỉnh nó, rồi chạm Đặt điểm tại đây. Di chuyển trên dòng thời gian và đặt thêm một điểm nữa: nó sẽ trượt mượt giữa các điểm.</string>
     <string name="mo_set_point">Đặt điểm tại đây</string>
-    <string name="mo_points">%1$d điểm</string>
+    <string name="mo_points">Điểm: %1$d</string>
     <string name="mo_clear_points">Xóa các điểm</string>
     <string name="mo_glide">Cách trượt</string>
     <string name="mo_smooth">Mượt</string>
@@ -429,7 +427,7 @@
     <string name="cap_text_open">Sửa bằng chữ</string>
     <string name="cap_text_close">Đóng chế độ sửa bằng chữ</string>
     <string name="cap_text_detail">Chạm vào những từ bạn muốn bỏ. Phần video nói những từ đó cũng bị cắt. Hoàn tác sẽ đưa mọi thứ trở lại.</string>
-    <string name="cap_text_cut">Cắt %1$d từ khỏi video</string>
+    <string name="cap_text_cut">Cắt từ khỏi video: %1$d</string>
     <string name="snd_levels">Mọi mức âm lượng ở một chỗ</string>
     <string name="snd_level_clip">Đoạn này</string>
     <string name="snd_level_music">Nhạc</string>
@@ -468,21 +466,20 @@
     <string name="pl_open">Gói</string>
     <string name="pl_title">Các gói của Zella</string>
     <string name="pl_free">Miễn phí, mãi mãi</string>
-    <string name="pl_free_detail">Trình chỉnh sửa đầy đủ và toàn bộ AI, không có hình mờ. Xuất tối đa 2 phút ở độ phân giải tối đa 1080p.</string>
+    <string name="pl_free_detail">Trình chỉnh sửa đầy đủ và toàn bộ AI, không có hình mờ. Xuất tối đa 2 phút ở độ phân giải tối đa 1080p. Pro thêm các bản xuất dài hơn, nét hơn và một vài công cụ nâng cao.</string>
     <string name="pl_pro">Zella Pro</string>
-    <string name="pl_pro_detail">Trả một lần, không đăng ký định kỳ. Xuất video dài hơn, 4K, 60 khung hình mỗi giây, tự chọn chất lượng, xuất nhiều khung hình cùng lúc, các kiểu đã lưu, cùng công cụ thay đổi theo thời gian, tô màu một vùng và đường cong tốc độ.</string>
+    <string name="pl_pro_detail">Trả một lần, không đăng ký định kỳ. Xuất video dài hơn, 4K, 60 khung hình mỗi giây, tự chọn chất lượng, xuất nhiều tỉ lệ khung hình cùng lúc, các kiểu đã lưu, cùng công cụ thay đổi theo thời gian, tô màu một vùng và đường cong tốc độ.</string>
     <string name="pl_founder">Zella Founder</string>
     <string name="pl_founder_detail">Trả một lần. Có mọi thứ của Pro, ba kiểu chỉnh màu chỉ dành cho Founder, và mọi phiên bản lớn trong tương lai đều miễn phí.</string>
     <string name="pl_buy">Mua với giá %1$s</string>
     <string name="pl_have">Bạn đã có gói này</string>
-    <string name="pl_week">Pro Week: bạn có đầy đủ bộ Pro trong %1$d ngày nữa. Không bị tính phí. Gói tự kết thúc và Zella vẫn miễn phí.</string>
+    <string name="pl_week">Pro Week: số ngày còn lại với đầy đủ bộ Pro: %1$d. Không bị tính phí. Gói tự kết thúc và Zella vẫn miễn phí.</string>
     <string name="pl_restore">Khôi phục giao dịch mua</string>
     <string name="pl_restored_none">Không tìm thấy giao dịch mua nào trên tài khoản Google này.</string>
     <string name="pl_restored">Các giao dịch mua của bạn đã trở lại.</string>
     <string name="pl_unavailable">Hiện không kết nối được với Google Play nên không thể hiện giá. Mọi thứ miễn phí vẫn dùng bình thường.</string>
     <string name="pl_pending">Thanh toán của bạn đang chờ xử lý. Zella sẽ mở khóa khi Google Play xác nhận.</string>
     <string name="pl_separate">Bạn đã mua Zella trên iPhone hoặc Mac? Apple và Google quản lý giao dịch mua riêng, nên giao dịch đó không mở khóa bản Android. Bản Android được bán riêng, cùng mức giá.</string>
-    <string name="pl_needs_pro">Tính năng này cần Zella Pro.</string>
     <string name="pl_back">Quay lại</string>
 
     <!-- First run. -->
@@ -490,13 +487,13 @@
     <string name="ob_welcome_detail">Quay màn hình hoặc quay chính bạn, để Zella cắt giúp, rồi chia sẻ video. Miễn phí, không có hình mờ và không cần tài khoản.</string>
     <string name="ob_how">Cách hoạt động</string>
     <string name="ob_how_1">Quay, hoặc chọn một video bạn đã có.</string>
-    <string name="ob_how_2">Chạm vào Auto-Polish, và Zella sẽ cắt các đoạn im lặng, làm sạch giọng và căn bạn vào khung hình.</string>
+    <string name="ob_how_2">Chạm vào Một chạm, rồi Auto-Polish, và Zella sẽ cắt các đoạn im lặng, làm sạch giọng và căn bạn vào khung hình.</string>
     <string name="ob_how_3">Thêm phụ đề, kiểu màu hoặc nhạc nếu bạn muốn, rồi xuất video.</string>
     <string name="ob_private">Những gì ở lại trên điện thoại của bạn</string>
     <string name="ob_private_detail">Quay, tạo phụ đề, cắt, xóa nền và xuất video đều diễn ra trên điện thoại này. Video của bạn không được gửi đi đâu cả.</string>
-    <string name="ob_private_extras">Ba thứ không bắt buộc có dùng internet, và mỗi thứ đều nói rõ khi bạn dùng: Trợ lý, nếu bạn thêm khóa riêng (nó gửi chữ bạn gõ và một bản tóm tắt ngắn bằng chữ, gồm cả phụ đề); video kho (nó gửi một từ khóa tìm kiếm); và các bản tải phụ đề tốt hơn.</string>
+    <string name="ob_private_extras">Có ba việc tùy chọn dùng internet, và mỗi việc đều cho bạn biết khi dùng: Trợ lý, nếu bạn thêm khóa riêng (nó gửi lời của bạn và một bản tóm tắt ngắn bằng chữ, gồm phụ đề và mọi chữ trên màn hình mà bạn nhờ nó đọc); video kho (nó gửi một từ khóa tìm kiếm); và các bản tải phụ đề lớn hơn.</string>
     <string name="ob_free">Những gì miễn phí</string>
-    <string name="ob_free_detail">Mọi thứ trong trình chỉnh sửa và toàn bộ AI, mãi mãi. Xuất tối đa 2 phút ở độ phân giải tối đa 1080p.</string>
+    <string name="ob_free_detail">Toàn bộ trình chỉnh sửa và toàn bộ AI, miễn phí lâu dài. Xuất tối đa 2 phút ở độ phân giải tối đa 1080p. Pro thêm các bản xuất dài hơn, nét hơn và một vài công cụ nâng cao.</string>
     <string name="ob_week">Trong 7 ngày đầu, bạn còn có đầy đủ bộ Pro mà không phải trả gì. Gói tự kết thúc và Zella vẫn miễn phí.</string>
     <string name="ob_next">Tiếp</string>
     <string name="ob_start">Bắt đầu</string>
@@ -560,16 +557,59 @@
     <string name="as_set_credits">Khóa dùng được, nhưng tài khoản đã hết tín dụng.</string>
     <string name="as_set_model">Không tìm thấy tên mô hình đó.</string>
     <string name="as_set_busy">Khóa dùng được, nhưng hiện đã vượt giới hạn.</string>
-    <string name="co_hide_done">Đã thêm %1$d vùng ẩn. Một lần hoàn tác sẽ bỏ tất cả. Hãy phát lại để kiểm tra.</string>
+    <string name="co_hide_done">Số vùng ẩn đã thêm: %1$d. Một lần hoàn tác sẽ xóa hết. Hãy phát lại toàn bộ để kiểm tra.</string>
     <string name="co_hide_none">Không tìm thấy gì cần ẩn. Chữ nhỏ, chạy nhanh hoặc không phải chữ Latinh có thể bị bỏ sót. Nếu bạn biết nó ở đâu, hãy thêm một khung làm mờ ở trên.</string>
     <string name="co_hide_short">Video quá dài để đọc một lần, nên phần cuối chưa được kiểm tra.</string>
     <string name="br_note_no_captions">Hãy tạo phụ đề trước, để Zella biết từ nào quan trọng.</string>
     <string name="br_note_no_words">Không tìm thấy từ nào hữu ích trong phụ đề.</string>
-    <string name="br_note_cards">Đã thêm %1$d thẻ chữ.</string>
-    <string name="br_note_stock">Đã thêm %1$d video kho.</string>
+    <string name="br_note_cards">Số thẻ chữ đã thêm: %1$d.</string>
+    <string name="br_note_stock">Số video kho đã thêm: %1$d.</string>
     <string name="br_note_no_cards">Không tạo được các thẻ.</string>
     <string name="br_note_bad_key">Khóa đó không được chấp nhận. Hãy sao chép lại từ trang của trang web.</string>
     <string name="br_note_busy">Trang video kho báo rằng bạn đã yêu cầu quá nhiều trong lúc này. Hãy chờ một chút và thử ít đoạn hơn.</string>
     <string name="br_note_offline">Không kết nối được với trang video kho. Hãy kiểm tra kết nối mạng.</string>
     <string name="br_note_none">Không tìm thấy video kho phù hợp.</string>
+    <string name="ex_see_plans">Xem các gói</string>
+    <string name="ex_4k_plain">4K</string>
+    <string name="ex_60_plain">Cực mượt</string>
+    <string name="ex_needs_founder">Video này dùng một kiểu màu đi kèm gói Zella Founder. Hãy chọn kiểu khác để xuất video.</string>
+    <string name="ex_other_running">Một video khác đang được xuất. Video này sẽ bắt đầu khi video kia xong.</string>
+    <string name="ex_no_sound">Video này không có âm thanh để lưu, nên không có tệp âm thanh nào được tạo.</string>
+    <string name="ex_done_notice">Mở video trong Zella và chạm vào Xuất video để lưu hoặc chia sẻ.</string>
+    <string name="ex_saved_gif">Đã lưu vào thư viện của bạn, trong Pictures, Zella.</string>
+    <string name="ex_saved_sound">Đã lưu vào điện thoại này, trong Music, Zella.</string>
+    <string name="ex_save_failed">Không lưu được. Điện thoại có thể đã đầy. Tệp của bạn vẫn còn ở đây trong Zella.</string>
+    <string name="ex_again">Xuất lại</string>
+    <string name="ex_earlier">Các lần xuất trước của video này</string>
+    <string name="ex_earlier_note">Những bản này được giữ trong Zella cho đến khi bạn xóa. Xóa một bản ở đây không ảnh hưởng đến các bản sao trong thư viện của bạn.</string>
+    <string name="ex_delete_copy">Xóa</string>
+    <string name="cap_better_check">Xem các bản tải phụ đề tốt hơn</string>
+    <string name="cap_better_looking">Đang tìm bản tải…</string>
+    <string name="cap_better_none">Hiện không kết nối được với bản tải nào. Phụ đề vẫn hoạt động bằng những gì có sẵn trên điện thoại này.</string>
+    <string name="as_confirm_delete">Xóa đoạn này? Nó chiếm gần hết video (%1$s giây trên %2$s).</string>
+    <string name="as_confirm_export">Xuất video này ở %1$s? Việc này có thể mất một lúc.</string>
+    <string name="as_busy">Trợ lý đang làm việc…</string>
+    <string name="as_silent">Lần này Trợ lý không trả lời. Hãy thử hỏi theo cách khác.</string>
+    <string name="as_key_not_saved">Khóa dùng được, nhưng điện thoại này không lưu trữ nó an toàn được, nên khóa chưa được lưu.</string>
+    <string name="pl_restored_no_answer">Google Play không trả lời. Gói của bạn không thay đổi. Hãy kiểm tra kết nối và thử lại.</string>
+    <string name="ed_background_failed">Không thành công. Video của bạn vẫn như cũ. Hãy thử lại.</string>
+    <string name="ed_changed_meanwhile">Bạn đã thay đổi video trong lúc việc này đang chạy, nên kết quả không được dùng. Các thay đổi của bạn vẫn an toàn. Hãy chạy lại khi bạn sẵn sàng.</string>
+    <string name="ed_save_failed">Zella không lưu được dự án này. Điện thoại của bạn có thể đã hết dung lượng.</string>
+    <string name="cap_failed">Không tạo được phụ đề. Hãy thử lại.</string>
+    <string name="bg_failed">Zella không tìm thấy người trong video này, nên video hiện nền gốc.</string>
+    <string name="ex_reverse_failed">Không chuẩn bị được một đoạn đang đặt chạy ngược. Hãy tắt chạy ngược cho đoạn đó hoặc thử lại.</string>
+    <string name="ex_queue_missed">%1$d trong các khổ video khác chưa được xuất.</string>
+    <string name="ex_packing">Đang đóng gói dự án…</string>
+    <string name="ex_pack_failed">Không đóng gói được dự án. Điện thoại của bạn có thể đã hết dung lượng.</string>
+    <string name="home_importing">Đang sao chép video của bạn…</string>
+    <string name="home_unreadable">Số dự án Zella không mở được: %1$d. Chúng vẫn còn trên điện thoại này. Cập nhật Zella có thể giúp ích.</string>
+    <string name="co_hide_failed">Không đọc được video. Chưa có gì bị ẩn. Hãy thử lại.</string>
+    <string name="ex_err_encode">Điện thoại này không tạo được video với các cài đặt này. Hãy thử 1080p.</string>
+    <string name="ex_err_read">Điện thoại này không đọc được một trong các đoạn.</string>
+    <string name="ex_err_missing">Một trong các đoạn bị mất tệp video.</string>
+    <string name="mo_ramp_none">Tốc độ đều</string>
+    <string name="mo_ramp_sfs">Chậm, nhanh, chậm</string>
+    <string name="mo_ramp_fsf">Nhanh, chậm, nhanh</string>
+    <string name="mo_ramp_up">Nhanh dần</string>
+    <string name="mo_ramp_down">Chậm dần</string>
 </resources>

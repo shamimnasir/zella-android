@@ -10,6 +10,7 @@ class BeginnerCopyTest {
         listOf(
             "ripple", "vad", "lufs", "codec", "mux", "transcode", "latency", "sample rate",
             "compositor", "matte", "denoise", "inference", "tensor", "shader", "bitrate", "keyframe",
+            "playhead", "lut", "hevc", "db", "hook", "dissolve", "dissolves",
         )
 
     private fun strings(): List<Pair<String, String>> {

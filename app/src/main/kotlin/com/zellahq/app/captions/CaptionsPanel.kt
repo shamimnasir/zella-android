@@ -238,17 +238,32 @@ private fun BetterModels() {
     var failed by remember { mutableStateOf(false) }
     val prefs = remember { context.getSharedPreferences("captions", android.content.Context.MODE_PRIVATE) }
     var chosen by remember { mutableStateOf(prefs.getString("model", null)) }
-    androidx.compose.runtime.LaunchedEffect(Unit) {
-        models = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { ModelDownloader.catalog() }
-    }
-    val list = models?.takeIf { it.isNotEmpty() } ?: return
+    var looking by remember { mutableStateOf(false) }
     val text = MaterialTheme.colorScheme.onBackground
+    // The list comes from the network, so it is fetched when asked for, never by opening this panel.
+    if (models.isNullOrEmpty()) {
+        if (looking) {
+            Text(stringResource(R.string.cap_better_looking), color = text)
+        } else {
+            Tool(stringResource(R.string.cap_better_check)) {
+                looking = true
+                Thread({
+                    val found = runCatching { ModelDownloader.catalog() }.getOrDefault(emptyList())
+                    models = found
+                    looking = false
+                }, "model-list").start()
+            }
+            if (models != null) Text(stringResource(R.string.cap_better_none), color = text)
+        }
+        return
+    }
+    val list = models.orEmpty()
 
     fun start(m: ModelDownloader.Model) {
         failed = false
         progress = 0f
         Thread {
-            val f = ModelDownloader.download(context, m, { p -> progress = p })
+            val f = runCatching { ModelDownloader.download(context, m, { p -> progress = p }) }.getOrNull()
             progress = null
             if (f == null) {
                 failed = true

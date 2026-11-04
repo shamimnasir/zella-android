@@ -52,7 +52,7 @@
     <string name="ed_pause">Pause</string>
     <string name="ed_clip_label">Clip %1$d, %2$s</string>
     <string name="ed_fade_chip">Fondu</string>
-    <string name="ed_timeline_description">Ligne de temps avec %d clips. Faites glisser à gauche ou à droite pour parcourir la vidéo.</string>
+    <string name="ed_timeline_description">Ligne de temps. Clips : %d. Faites glisser à gauche ou à droite pour parcourir la vidéo.</string>
     <string name="ed_split">Couper ici</string>
     <string name="ed_delete">Supprimer le clip</string>
     <string name="ed_move_earlier">Avancer</string>
@@ -119,7 +119,6 @@
     <string name="ex_needs_4k">La 4K nécessite Zella Pro. Le 1080p est gratuit pour toujours.</string>
     <string name="ex_needs_60">Très fluide nécessite Zella Pro. La fluidité normale est gratuite.</string>
     <string name="ex_needs_other">Ce réglage nécessite Zella Pro.</string>
-    <string name="ex_pro_later">L\'achat de Zella Pro dans l\'appli arrivera dans une prochaine mise à jour.</string>
     <string name="ex_share_project">Partager le fichier du projet (.zella)</string>
     <string name="ex_privacy">L\'exportation se fait sur ce téléphone. Votre vidéo ne le quitte que lorsque vous la partagez.</string>
 
@@ -131,7 +130,7 @@
     <string name="cap_make">Créer les sous-titres</string>
     <string name="cap_making">Création des sous-titres, %d %%</string>
     <string name="cap_stop">Arrêter</string>
-    <string name="cap_made">Sous-titres créés : %d mots. Touchez une ligne ci-dessous pour corriger un mot.</string>
+    <string name="cap_made">Sous-titres créés. Mots : %d. Touchez une ligne ci-dessous pour corriger un mot.</string>
     <string name="cap_no_words">Aucun mot n\'a été entendu dans cette langue. Essayez Détecter la langue.</string>
     <string name="cap_no_sound">Cette vidéo n\'a pas de son pour créer des sous-titres.</string>
     <string name="cap_stopped">Arrêté. Aucun sous-titre n\'a été ajouté.</string>
@@ -152,7 +151,7 @@
     <string name="cap_better_use">Utiliser %1$s</string>
     <string name="cap_better_progress">Téléchargement, %d %%. Vous pouvez continuer à monter.</string>
     <string name="cap_better_failed">Le téléchargement ne s\'est pas terminé. Touchez-le de nouveau pour reprendre là où il s\'est arrêté.</string>
-    <string name="cap_better_privacy">Cela télécharge uniquement le fichier du modèle de reconnaissance vocale. Rien sur vous ni sur votre vidéo n\'est envoyé.</string>
+    <string name="cap_better_privacy">Cela télécharge un seul fichier de reconnaissance vocale. Rien sur vous ni sur votre vidéo n\'est envoyé.</string>
     <string name="cap_better_data_title">Vous êtes en données mobiles</string>
     <string name="cap_better_data_body">Ce téléchargement pèse environ %d Mo. Le télécharger quand même en données mobiles ?</string>
     <string name="cap_better_data_yes">Télécharger quand même</string>
@@ -176,8 +175,8 @@
     <string name="look_cooler">Plus froid</string>
     <string name="look_warmer">Plus chaud</string>
     <string name="look_reset_wheels">Annuler les changements de couleur</string>
-    <string name="look_cube_add">Ajouter un fichier LUT (.cube)</string>
-    <string name="look_cube_remove">Retirer le fichier LUT</string>
+    <string name="look_cube_add">Ajouter un fichier de couleur (.cube)</string>
+    <string name="look_cube_remove">Retirer le fichier de couleur</string>
     <string name="look_cube_bad">Ce fichier n\'est pas un fichier de couleur 3D .cube que Zella peut lire.</string>
 
     <!-- Sound -->
@@ -190,14 +189,14 @@
     <string name="snd_duck">Baisser la musique quand quelqu\'un parle</string>
     <string name="snd_music_note">Toute la musique est faite pour Zella et libre d\'utilisation dans vos vidéos. Elle se répète pour remplir la vidéo.</string>
     <string name="snd_music_once">Sans cette option, la musique joue une fois depuis le début, puis s\'arrête.</string>
-    <string name="snd_effect_here">Ajouter un effet sonore à l\'endroit du curseur</string>
-    <string name="snd_more">Plus de sons (%d)</string>
-    <string name="snd_remove_effects">Retirer tous les effets sonores (%d)</string>
+    <string name="snd_effect_here">Ajouter un effet sonore à ce moment de la vidéo</string>
+    <string name="snd_more">Plus de sons : %d</string>
+    <string name="snd_remove_effects">Retirer tous les effets sonores : %d</string>
     <string name="snd_clean">Nettoyer la voix de ce clip</string>
     <string name="snd_even">Égaliser le volume</string>
     <string name="snd_even_again">Égaliser le volume à nouveau</string>
     <string name="snd_listening">Écoute de votre vidéo</string>
-    <string name="snd_even_done">Volume réglé pour les vidéos des réseaux sociaux (%1$s dB). Les passages parlés sont aussi repérés, pour que la musique puisse s\'effacer.</string>
+    <string name="snd_even_done">Volume réglé pour les vidéos des réseaux sociaux. Les passages parlés sont aussi repérés, pour que la musique puisse s\'effacer.</string>
 
     <!-- Text -->
     <string name="ed_text">Texte</string>
@@ -206,7 +205,7 @@
     <string name="tt_add">Ajouter du texte ici</string>
     <string name="tt_done">Terminé</string>
     <string name="tt_remove">Supprimer ce texte</string>
-    <string name="tt_to_playhead">Placer au curseur</string>
+    <string name="tt_to_playhead">Placer à ce moment de la vidéo</string>
     <string name="tt_item">%1$d. %2$s à %3$s</string>
     <string name="tt_style">Style</string>
     <string name="tt_place">Où et quelle taille</string>
@@ -216,7 +215,7 @@
     <string name="tt_small">Petit</string>
     <string name="tt_medium">Moyen</string>
     <string name="tt_big">Grand</string>
-    <string name="tt_seconds">%d secondes</string>
+    <string name="tt_seconds">Secondes : %d</string>
     <string name="tt_font">Police</string>
     <string name="tt_motion">Comment il bouge</string>
     <string name="tt_motion_in">À l\'arrivée</string>
@@ -238,7 +237,7 @@
     <!-- One tap -->
     <string name="ed_auto">Un seul geste</string>
     <string name="au_polish">Auto-Polish</string>
-    <string name="au_polish_note">Nettoie votre prise : retire les pauses et les mots parasites, nettoie la voix, ajoute des mouvements doux et une musique discrète. Pas de sous-titres, pas de couleur, pas d\'effets sonores.</string>
+    <string name="au_polish_note">Soigne votre prise : pauses et mots parasites coupés, voix nettoyée, titre d\'ouverture, mouvements discrets, musique en sourdine. Pas de sous-titres, pas de couleur, pas d\'effets sonores.</string>
     <string name="au_viral">Make it Viral</string>
     <string name="au_viral_note">Tout Auto-Polish, plus des sous-titres bien visibles, un coup d\'éclat de couleur et des sons sous les coupes les plus fortes.</string>
     <string name="au_see">Voir ce que ça change</string>
@@ -252,16 +251,16 @@
     <string name="au_starting">Préparation</string>
     <string name="au_undo">Tout annuler</string>
     <string name="au_stays_on_phone">Tout cela se passe sur votre téléphone.</string>
-    <string name="au_receipt">%1$d pauses retirées (%2$s secondes) et %3$d mots parasites. Ajouté : %4$d fondus, %5$d zooms, %6$d petits mouvements et %7$d sons.</string>
+    <string name="au_receipt">Pauses coupées : %1$d (%2$s secondes). Mots parasites coupés : %3$d. Transitions ajoutées : %4$d. Zooms : %5$d. Petits mouvements : %6$d. Sons : %7$d.</string>
     <string name="ps_silences">Couper les silences</string>
     <string name="ps_silences_detail">Les blancs entre les phrases sont retirés.</string>
     <string name="ps_silences_doing">Retrait des silences</string>
     <string name="ps_fillers">Couper les mots parasites</string>
-    <string name="ps_fillers_detail">Les euh et les hum sont retirés, et le trou est refermé. En anglais seulement.</string>
+    <string name="ps_fillers_detail">Les \"euh\", les \"tu vois\" et les mots répétés disparaissent, et le trou est refermé. Anglais uniquement.</string>
     <string name="ps_fillers_doing">Retrait des mots parasites</string>
-    <string name="ps_hook">Ajouter un titre d\'accroche et des fondus</string>
+    <string name="ps_hook">Ajouter un titre d\'ouverture et des transitions</string>
     <string name="ps_hook_detail">Un titre sur la première phrase, et un fondu doux sur huit raccords au plus.</string>
-    <string name="ps_hook_doing">Ajout d\'une accroche et de fondus</string>
+    <string name="ps_hook_doing">Ajout d\'un titre d\'ouverture et de transitions</string>
     <string name="ps_voice">Nettoyer votre voix</string>
     <string name="ps_voice_detail">Moins de bruit de fond, votre voix à un volume régulier.</string>
     <string name="ps_voice_doing">Nettoyage de votre voix</string>
@@ -294,7 +293,7 @@
 
     <!-- Assistant. It reaches a provider the person chose, so nothing here may claim otherwise. -->
     <string name="ed_assistant">Assistant</string>
-    <string name="as_network">L\'Assistant envoie ce que vous écrivez et un court résumé en texte de ce projet, y compris le texte de vos sous-titres, à %1$s. Il n\'envoie jamais votre vidéo ni votre son. La lecture du texte à l\'écran se fait sur ce téléphone.</string>
+    <string name="as_network">L\'Assistant envoie à %1$s ce que vous écrivez et un court résumé en texte de ce projet, y compris le texte de vos sous-titres. Si vous lui demandez de lire du texte à l\'écran, la lecture se fait sur ce téléphone et les mots trouvés sont aussi envoyés à %1$s, avec les valeurs qui ont l\'air secrètes masquées. Il n\'envoie jamais votre vidéo ni votre son.</string>
     <string name="as_setup">L\'Assistant est facultatif et utilise votre propre clé. Choisissez qui répond, collez votre clé, puis posez votre question avec des mots simples.</string>
     <string name="as_provider">Qui répond</string>
     <string name="as_key">Votre clé</string>
@@ -310,7 +309,6 @@
     <string name="as_stop">Arrêter</string>
     <string name="as_settings">Réglages de l\'Assistant</string>
     <string name="as_chat">Retour à la discussion</string>
-    <string name="as_working">En cours : %1$s</string>
     <string name="as_yes">Oui</string>
     <string name="as_no">Non</string>
     <string name="as_clear">Effacer la discussion</string>
@@ -318,7 +316,7 @@
 
     <!-- Callouts. -->
     <string name="ed_callouts">Annoter</string>
-    <string name="co_add">Ajouter au curseur</string>
+    <string name="co_add">Ajouter à ce moment de la vidéo</string>
     <string name="co_on_video">Sur cette vidéo</string>
     <string name="co_none">Aucune annotation pour l\'instant. Choisissez-en une ci-dessus.</string>
     <string name="co_words">Texte</string>
@@ -361,7 +359,7 @@
     <string name="br_stock_network">Envoie seulement chaque mot de recherche et votre propre clé gratuite à %1$s, puis télécharge le clip trouvé. N\'envoie jamais votre vidéo. Vérifiez la licence sur le site avant de publier.</string>
     <string name="br_stock">Ajouter des vidéos de banque d\'images</string>
     <string name="br_working">Création des plans de coupe…</string>
-    <string name="br_remove">Retirer %1$d plans de coupe</string>
+    <string name="br_remove">Retirer les plans de coupe : %1$d</string>
 
     <!-- Picture-in-picture, effects, moving things over time. -->
     <string name="ed_pip">Image dans l\'image</string>
@@ -413,7 +411,7 @@
     <string name="mo_keys_title">Le faire changer avec le temps</string>
     <string name="mo_keys_detail">Choisissez ce qui change, réglez-le, puis touchez Fixer un point ici. Avancez dans la ligne de temps et fixez-en un autre : ça glisse de l\'un à l\'autre.</string>
     <string name="mo_set_point">Fixer un point ici</string>
-    <string name="mo_points">%1$d points</string>
+    <string name="mo_points">Points : %1$d</string>
     <string name="mo_clear_points">Effacer les points</string>
     <string name="mo_glide">Comment ça glisse</string>
     <string name="mo_smooth">Fluide</string>
@@ -433,7 +431,7 @@
     <string name="cap_text_open">Monter par le texte</string>
     <string name="cap_text_close">Fermer le montage par le texte</string>
     <string name="cap_text_detail">Touchez les mots dont vous ne voulez plus. Le passage de la vidéo où ils sont dits est coupé aussi. Annuler remet tout.</string>
-    <string name="cap_text_cut">Couper %1$d mots de la vidéo</string>
+    <string name="cap_text_cut">Couper des mots de la vidéo : %1$d</string>
     <string name="snd_levels">Tous les niveaux au même endroit</string>
     <string name="snd_level_clip">Ce clip</string>
     <string name="snd_level_music">Musique</string>
@@ -472,21 +470,20 @@
     <string name="pl_open">Offres</string>
     <string name="pl_title">Offres Zella</string>
     <string name="pl_free">Gratuit, pour de bon</string>
-    <string name="pl_free_detail">L\'éditeur complet et toute l\'IA, sans filigrane. Exportations jusqu\'à 2 minutes et jusqu\'à 1080p.</string>
+    <string name="pl_free_detail">L\'éditeur complet et toute l\'IA, sans filigrane. Exportations jusqu\'à 2 minutes et jusqu\'à 1080p. Pro ajoute des exportations plus longues et plus nettes et quelques outils avancés.</string>
     <string name="pl_pro">Zella Pro</string>
     <string name="pl_pro_detail">Un seul paiement, sans abonnement. Exportations plus longues, 4K, 60 images par seconde, votre propre réglage de qualité, export de plusieurs formats à la fois, styles enregistrés, et les outils pour faire changer les choses avec le temps, colorer une zone et régler des courbes de vitesse.</string>
     <string name="pl_founder">Zella Founder</string>
     <string name="pl_founder_detail">Un seul paiement. Tout Pro, trois étalonnages de couleur réservés aux Founders, et toutes les futures versions majeures gratuites.</string>
     <string name="pl_buy">Acheter pour %1$s</string>
     <string name="pl_have">Vous l\'avez</string>
-    <string name="pl_week">Pro Week : vous avez tout Pro pendant %1$d jours de plus. Rien ne vous est facturé. Cela se termine tout seul et Zella reste gratuit.</string>
+    <string name="pl_week">Pro Week : jours restants avec tout Pro : %1$d. Rien ne vous est facturé. Cela se termine tout seul et Zella reste gratuit.</string>
     <string name="pl_restore">Restaurer les achats</string>
     <string name="pl_restored_none">Aucun achat trouvé sur ce compte Google.</string>
     <string name="pl_restored">Vos achats sont de retour.</string>
     <string name="pl_unavailable">Google Play est inaccessible pour le moment, donc les prix ne peuvent pas s\'afficher. Tout ce qui est gratuit continue de fonctionner.</string>
     <string name="pl_pending">Votre paiement est en attente. Zella débloquera cela quand Google Play le confirmera.</string>
     <string name="pl_separate">Vous avez acheté Zella sur iPhone ou Mac ? Apple et Google gardent les achats séparés, donc cet achat ne débloque pas Android. Android se vend à part, au même prix.</string>
-    <string name="pl_needs_pro">Cela nécessite Zella Pro.</string>
     <string name="pl_back">Retour</string>
 
     <!-- First run. -->
@@ -494,13 +491,13 @@
     <string name="ob_welcome_detail">Enregistrez votre écran ou vous-même, laissez Zella couper, et partagez une vidéo. Gratuit, sans filigrane et sans compte.</string>
     <string name="ob_how">Comment ça marche</string>
     <string name="ob_how_1">Enregistrez, ou choisissez une vidéo que vous avez déjà.</string>
-    <string name="ob_how_2">Touchez Auto-Polish, et Zella coupe les silences, nettoie votre voix et vous cadre.</string>
+    <string name="ob_how_2">Touchez Un seul geste, puis Auto-Polish, et Zella coupe les silences, nettoie votre voix et vous cadre.</string>
     <string name="ob_how_3">Ajoutez des sous-titres, un style ou de la musique si vous voulez, puis exportez.</string>
     <string name="ob_private">Ce qui reste sur votre téléphone</string>
     <string name="ob_private_detail">L\'enregistrement, les sous-titres, la coupe, le retrait de l\'arrière-plan et l\'exportation se font sur ce téléphone. Votre vidéo n\'est envoyée nulle part.</string>
-    <string name="ob_private_extras">Trois choses facultatives utilisent internet, et chacune l\'indique quand vous l\'utilisez : l\'Assistant, si vous ajoutez votre propre clé (il envoie vos mots et un court résumé en texte, sous-titres compris) ; les vidéos de banque d\'images (il envoie un mot de recherche) ; et les téléchargements de meilleurs sous-titres.</string>
+    <string name="ob_private_extras">Trois choses facultatives utilisent internet, et chacune vous le dit quand vous l\'utilisez : l\'Assistant, si vous ajoutez votre propre clé (il envoie vos mots et un court résumé en texte, y compris les sous-titres et tout texte à l\'écran que vous lui demandez de lire) ; les vidéos de banque d\'images (il envoie un mot de recherche) ; et les téléchargements de sous-titres plus performants.</string>
     <string name="ob_free">Ce qui est gratuit</string>
-    <string name="ob_free_detail">Tout l\'éditeur et toute l\'IA, pour de bon. Exportations jusqu\'à 2 minutes et jusqu\'à 1080p.</string>
+    <string name="ob_free_detail">Tout l\'éditeur et toute l\'IA, pour de bon. Exportations jusqu\'à 2 minutes et jusqu\'à 1080p. Pro ajoute des exportations plus longues et plus nettes et quelques outils avancés.</string>
     <string name="ob_week">Pendant vos 7 premiers jours, vous avez aussi tout Pro, sans rien payer. Cela se termine tout seul et Zella reste gratuit.</string>
     <string name="ob_next">Suivant</string>
     <string name="ob_start">Commencer</string>
@@ -564,16 +561,59 @@
     <string name="as_set_credits">La clé fonctionne, mais le compte n\'a plus de crédits.</string>
     <string name="as_set_model">Ce nom de modèle est introuvable.</string>
     <string name="as_set_busy">La clé fonctionne, mais elle a dépassé sa limite pour le moment.</string>
-    <string name="co_hide_done">%1$d zones masquées ajoutées. Un seul Annuler les retire toutes. Lisez la vidéo pour vérifier.</string>
+    <string name="co_hide_done">Zones masquées ajoutées : %1$d. Un seul retour en arrière les retire toutes. Lisez la vidéo en entier pour vérifier.</string>
     <string name="co_hide_none">Rien à masquer n\'a été trouvé. Un texte petit, rapide ou non latin peut échapper. Si vous savez où il est, ajoutez un rectangle de flou ci-dessus.</string>
     <string name="co_hide_short">La vidéo était trop longue pour être lue en une fois, donc la fin n\'a pas été vérifiée.</string>
     <string name="br_note_no_captions">Créez d\'abord les sous-titres, pour que Zella sache quels mots comptent.</string>
     <string name="br_note_no_words">Aucun mot utile n\'a été trouvé dans les sous-titres.</string>
-    <string name="br_note_cards">%1$d cartes de mots ajoutées.</string>
-    <string name="br_note_stock">%1$d vidéos de banque d\'images ajoutées.</string>
+    <string name="br_note_cards">Cartes de mots ajoutées : %1$d.</string>
+    <string name="br_note_stock">Vidéos de banque d\'images ajoutées : %1$d.</string>
     <string name="br_note_no_cards">Les cartes n\'ont pas pu être créées.</string>
     <string name="br_note_bad_key">Cette clé n\'a pas été acceptée. Copiez-la de nouveau depuis la page du site.</string>
     <string name="br_note_busy">Le site de banque d\'images indique que vous avez trop demandé pour le moment. Attendez un peu et essayez avec moins de clips.</string>
     <string name="br_note_offline">Impossible de joindre le site de banque d\'images. Vérifiez votre connexion.</string>
     <string name="br_note_none">Aucune vidéo de banque d\'images correspondante n\'a été trouvée.</string>
+    <string name="ex_see_plans">Voir les offres</string>
+    <string name="ex_4k_plain">4K</string>
+    <string name="ex_60_plain">Très fluide</string>
+    <string name="ex_needs_founder">Cette vidéo utilise un style fourni avec Zella Founder. Choisissez un autre style pour l\'exporter.</string>
+    <string name="ex_other_running">Une autre vidéo est en cours d\'exportation. Celle-ci pourra démarrer quand l\'autre sera terminée.</string>
+    <string name="ex_no_sound">Cette vidéo n\'a pas de son à enregistrer, donc aucun fichier son n\'a été créé.</string>
+    <string name="ex_done_notice">Ouvrez la vidéo dans Zella et touchez Exporter pour l\'enregistrer ou la partager.</string>
+    <string name="ex_saved_gif">Enregistré dans votre galerie, dans Pictures, Zella.</string>
+    <string name="ex_saved_sound">Enregistré sur ce téléphone, dans Music, Zella.</string>
+    <string name="ex_save_failed">L\'enregistrement n\'a pas pu se faire. Le téléphone est peut-être plein. Votre fichier est toujours ici, dans Zella.</string>
+    <string name="ex_again">Exporter à nouveau</string>
+    <string name="ex_earlier">Exportations précédentes de cette vidéo</string>
+    <string name="ex_earlier_note">Elles restent dans Zella jusqu\'à ce que vous les supprimiez. En supprimer une ici ne touche pas aux copies de votre galerie.</string>
+    <string name="ex_delete_copy">Supprimer</string>
+    <string name="cap_better_check">Voir de meilleurs téléchargements de sous-titres</string>
+    <string name="cap_better_looking">Recherche de téléchargements…</string>
+    <string name="cap_better_none">Aucun téléchargement n\'est accessible pour le moment. Les sous-titres fonctionnent déjà avec ce qui se trouve sur ce téléphone.</string>
+    <string name="as_confirm_delete">Supprimer ce clip ? Il représente presque toute la vidéo (%1$s secondes sur %2$s).</string>
+    <string name="as_confirm_export">Exporter cette vidéo en %1$s ? Cela peut prendre un moment.</string>
+    <string name="as_busy">L\'Assistant travaille…</string>
+    <string name="as_silent">L\'Assistant n\'a donné aucune réponse cette fois. Essayez de demander autrement.</string>
+    <string name="as_key_not_saved">La clé fonctionne, mais ce téléphone n\'a pas pu la stocker en toute sécurité, donc elle n\'a pas été enregistrée.</string>
+    <string name="pl_restored_no_answer">Google Play n\'a pas répondu. Votre offre n\'a pas changé. Vérifiez votre connexion et réessayez.</string>
+    <string name="ed_background_failed">Cela n\'a pas marché. Votre vidéo est telle qu\'elle était. Réessayez.</string>
+    <string name="ed_changed_meanwhile">Vous avez modifié la vidéo pendant ce travail, donc le résultat n\'a pas été utilisé. Vos modifications sont en sécurité. Relancez-le quand vous voulez.</string>
+    <string name="ed_save_failed">Zella n\'a pas pu enregistrer ce projet. Votre téléphone manque peut-être d\'espace.</string>
+    <string name="cap_failed">Les sous-titres n\'ont pas pu être créés. Réessayez.</string>
+    <string name="bg_failed">Zella n\'a pas pu repérer la personne dans cette vidéo, donc l\'arrière-plan d\'origine reste affiché.</string>
+    <string name="ex_reverse_failed">Un clip réglé pour être lu à l\'envers n\'a pas pu être préparé. Désactivez sa lecture à l\'envers ou réessayez.</string>
+    <string name="ex_queue_missed">%1$d des autres formats n\'ont pas été exportés.</string>
+    <string name="ex_packing">Préparation du projet…</string>
+    <string name="ex_pack_failed">Le projet n\'a pas pu être préparé. Votre téléphone manque peut-être d\'espace.</string>
+    <string name="home_importing">Copie de votre vidéo…</string>
+    <string name="home_unreadable">Projets que Zella n\'a pas pu ouvrir : %1$d. Ils sont toujours sur ce téléphone. Mettre Zella à jour peut aider.</string>
+    <string name="co_hide_failed">La vidéo n\'a pas pu être lue. Rien n\'a été masqué. Réessayez.</string>
+    <string name="ex_err_encode">Ce téléphone n\'a pas pu créer la vidéo avec ces réglages. Essayez 1080p.</string>
+    <string name="ex_err_read">Ce téléphone n\'a pas pu lire l\'un des clips.</string>
+    <string name="ex_err_missing">L\'un des clips n\'a plus son fichier vidéo.</string>
+    <string name="mo_ramp_none">Vitesse constante</string>
+    <string name="mo_ramp_sfs">Lent, rapide, lent</string>
+    <string name="mo_ramp_fsf">Rapide, lent, rapide</string>
+    <string name="mo_ramp_up">Accélère</string>
+    <string name="mo_ramp_down">Ralentit</string>
 </resources>

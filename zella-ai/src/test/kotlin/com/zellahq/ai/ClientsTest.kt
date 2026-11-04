@@ -222,4 +222,53 @@ class ClientsTest {
             assertTrue(it.defaultModel.isNotBlank())
         }
     }
+
+    @Test fun aStrangeAnswerIsAFailedAnswerNotACrash() {
+        val bad = HttpReply(200, """{"choices":"nope","content":7,"candidates":[3]}""")
+        listOf(
+            AnthropicClient("k", "m", Recorder(bad)),
+            OpenAiClient(ProviderKind.Groq, "k", "m", Recorder(bad)),
+            GeminiClient("k", "m", Recorder(bad)),
+        ).forEach { c ->
+            try {
+                val r = c.send("s", listOf(LlmMessage.User("hi")), emptyList())
+                assertTrue(r.text.isEmpty() && r.toolCalls.isEmpty())
+            } catch (e: LlmException) {
+                assertTrue(e.message.isNotEmpty())
+            }
+        }
+    }
+
+    @Test fun emptyAssistantTurnsAreNotSent() {
+        val t = Recorder(HttpReply(200, """{"content":[]}"""))
+        AnthropicClient("k", "m", t).send("s", listOf(LlmMessage.User("a"), LlmMessage.Assistant(""), LlmMessage.User("b")), emptyList())
+        assertEquals(2, json(t.body)["messages"]!!.jsonArray.size)
+    }
+
+    @Test fun geminiThoughtSignatureGoesBackWithItsCall() {
+        val t =
+            Recorder(
+                HttpReply(
+                    200,
+                    """{"candidates":[{"content":{"parts":[{"functionCall":{"name":"play_pause","args":{}},"thoughtSignature":"SIG"}]}}]}""",
+                ),
+            )
+        val c = GeminiClient("k", "m", t)
+        val call = c.send("s", listOf(LlmMessage.User("a")), emptyList()).toolCalls.single()
+        assertEquals("SIG", call.signature)
+        c.send("s", listOf(LlmMessage.User("a"), LlmMessage.Assistant("", listOf(call))), emptyList())
+        assertTrue(t.body.contains("\"thoughtSignature\":\"SIG\""))
+    }
+
+    @Test fun geminiBadKeyIsTheKeyMessageAndAModelNameWithASpaceIsSafe() {
+        val t = Recorder(HttpReply(400, """{"error":{"status":"INVALID_ARGUMENT","details":[{"reason":"API_KEY_INVALID"}]}}"""))
+        try {
+            GeminiClient("k", "my model", t).send("s", listOf(LlmMessage.User("a")), emptyList())
+            fail("must throw")
+        } catch (e: LlmException) {
+            assertEquals(401, e.status)
+        }
+        assertFalse(t.url.contains(" "))
+        java.net.URI(t.url)
+    }
 }

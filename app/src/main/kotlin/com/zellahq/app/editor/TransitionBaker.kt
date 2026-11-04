@@ -6,6 +6,7 @@ import androidx.annotation.OptIn
 import androidx.media3.common.util.Size
 import androidx.media3.common.util.UnstableApi
 import com.zellahq.core.project.Project
+import com.zellahq.core.project.background
 import com.zellahq.core.project.transitionAfter
 import com.zellahq.core.project.transitionOverlap
 import java.io.File
@@ -19,7 +20,14 @@ import java.security.MessageDigest
  */
 @OptIn(UnstableApi::class)
 object TransitionBaker {
+    private fun matteReady(
+        context: Context,
+        p: Project,
+        c: com.zellahq.core.project.Clip,
+    ) = c.background != null && com.zellahq.app.cutout.MatteBaker.isBaked(context, Storage.store(context).resolve(c.source, p.id))
+
     private fun key(
+        context: Context,
         p: Project,
         join: Int,
         canvas: Size,
@@ -32,6 +40,8 @@ object TransitionBaker {
                 canvas.width, canvas.height, t?.type, p.transitionOverlap(join), p.extras["reframe"], p.startTime0(join),
                 a.source, a.trimStart, a.trimEnd, a.speed, a.reversed, a.extras["effects"],
                 b.source, b.trimStart, b.trimEnd, b.speed, b.reversed, b.extras["effects"],
+                // A new background shows only once the person has been found. A render from before that is stale.
+                matteReady(context, p, a), matteReady(context, p, b), a.extras["speedRamp"], b.extras["speedRamp"],
             ).joinToString("|")
         return MessageDigest.getInstance("SHA-1").digest(text.encodeToByteArray()).joinToString("") { "%02x".format(it) }.take(24)
     }
@@ -45,7 +55,7 @@ object TransitionBaker {
         p: Project,
         join: Int,
         canvas: Size,
-    ) = File(context.cacheDir, "transitions/${key(p, join, canvas)}.mp4")
+    ) = File(context.cacheDir, "transitions/${key(context, p, join, canvas)}.mp4")
 
     fun cached(
         context: Context,

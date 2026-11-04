@@ -58,8 +58,8 @@ fun BRollPanel(
             state.onMain {
                 busy = null
                 val r = out.getOrNull()
-                note = r?.note ?: out.exceptionOrNull()?.message
-                if (r != null && r.placed > 0) state.edit("cutaways") { r.project }
+                note = r?.note ?: context.getString(R.string.ed_background_failed)
+                if (r != null && r.placed > 0) state.applyResult(start, "cutaways", r.project)
             }
         }, "b-roll").start()
     }

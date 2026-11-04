@@ -37,22 +37,28 @@ private class FrameReader(file: File, private val maxSide: Int) {
     private var pixels = IntArray(0)
 
     init {
-        ex.setDataSource(file.absolutePath)
-        val track = (0 until ex.trackCount).first { ex.getTrackFormat(it).getString(MediaFormat.KEY_MIME)?.startsWith("video/") == true }
-        ex.selectTrack(track)
-        val f = ex.getTrackFormat(track)
-        rotation = if (f.containsKey(MediaFormat.KEY_ROTATION)) f.getInteger(MediaFormat.KEY_ROTATION) else 0
-        codec = MediaCodec.createDecoderByType(f.getString(MediaFormat.KEY_MIME)!!)
-        f.setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Flexible)
-        codec.configure(f, null, null, 0)
-        codec.start()
+        try {
+            ex.setDataSource(file.absolutePath)
+            val track = (0 until ex.trackCount).first { ex.getTrackFormat(it).getString(MediaFormat.KEY_MIME)?.startsWith("video/") == true }
+            ex.selectTrack(track)
+            val f = ex.getTrackFormat(track)
+            rotation = if (f.containsKey(MediaFormat.KEY_ROTATION)) f.getInteger(MediaFormat.KEY_ROTATION) else 0
+            codec = MediaCodec.createDecoderByType(f.getString(MediaFormat.KEY_MIME)!!)
+            f.setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Flexible)
+            codec.configure(f, null, null, 0)
+            codec.start()
+        } catch (e: Exception) {
+            ex.release()
+            throw e
+        }
     }
 
     /** The newest frame at or before [us]. */
     fun at(us: Long): Bitmap? {
-        if (us < lastUs - 100_000 || (lastUs < 0 && us > 1_000_000)) seek(us)
+        // A jump either way goes straight there. Decoding forward through a long gap would hold up the picture.
+        if (us < lastUs - 100_000 || us > lastUs + 2_000_000) seek(us)
         var guard = 0
-        while (lastUs < us && !outputDone && guard++ < 2_000) step(us)
+        while (lastUs < us && !outputDone && guard++ < 300) step(us)
         return frame
     }
 
@@ -162,6 +168,7 @@ class PipOverlay(
 ) : CanvasOverlay(false) {
     private val ordered = overlays.sortedBy { it.z }
     private val readers = HashMap<String, FrameReader>()
+    private val unreadable = HashSet<String>()
     private val paint = Paint(Paint.FILTER_BITMAP_FLAG or Paint.ANTI_ALIAS_FLAG)
 
     init {
@@ -179,10 +186,17 @@ class PipOverlay(
                 readers.remove(o.id)?.release()
                 return@forEach
             }
+            if (o.id in unreadable) return@forEach
             val reader =
                 readers.getOrPut(o.id) {
-                    val f = fileFor(o) ?: return@forEach
-                    runCatching { FrameReader(f, MAX_SIDE) }.getOrNull() ?: return@forEach
+                    val f = fileFor(o)
+                    val opened = f?.let { runCatching { FrameReader(it, MAX_SIDE) }.getOrNull() }
+                    if (opened == null) {
+                        // Trying again on every frame would stall the whole picture.
+                        unreadable += o.id
+                        return@forEach
+                    }
+                    opened
                 }
             val frame = reader.at(((t - o.start + o.sourceOffset) * 1e6).toLong()) ?: return@forEach
             draw(canvas, o, frame)

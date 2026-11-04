@@ -132,7 +132,7 @@ private fun sourceFraction(
     return fT
 }
 
-internal fun Clip.sourceFractionAt(local: Double) = sourceFraction(this, local)
+fun Clip.sourceFractionAt(local: Double) = sourceFraction(this, local)
 
 fun rampMultiplier(
     ramp: String,

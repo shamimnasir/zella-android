@@ -10,6 +10,7 @@ Read from `app/src/main/AndroidManifest.xml`. Each is asked at the moment of use
 | POST_NOTIFICATIONS | The "Zella is recording" notice with Pause and Stop, and export progress | When recording starts |
 | FOREGROUND_SERVICE and the media projection, microphone and camera types | Recording keeps going when you leave the app | Not a prompt |
 | FOREGROUND_SERVICE_MEDIA_PROCESSING, DATA_SYNC | Export keeps going when you leave the app. mediaProcessing on Android 15, dataSync before | Not a prompt |
+| WAKE_LOCK | A long export keeps going with the screen off. Released when it ends, and never held past 6 hours | Not a prompt |
 | BILLING (added by the library) | Buying Pro or Founder | Not a prompt |
 
 Play asks for a declaration and a short video for the media projection foreground service. That video has to come

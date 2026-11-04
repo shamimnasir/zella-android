@@ -8,7 +8,7 @@ than that sentence.
 
 | Path | What leaves the phone | To whom | When |
 | --- | --- | --- | --- |
-| Assistant | What the person types, a short text summary of the project with caption text, tool results as text. Never video, sound or file paths (`AssistantTest`) | The provider the person picked, with their own key | Only when they send a message |
+| Assistant | What the person types, a short text summary of the project with caption text, tool results as text, including any on-screen text the person asks it to read (secret-looking values masked). Never video, sound or file paths (`AssistantTest`) | The provider the person picked, with their own key | Only when they send a message |
 | Stock B-roll | A search word and the person's own key; then the clip is downloaded (`BRollRenderTest`) | Pexels or Pixabay | Only when they tap Add stock clips, or ask the Assistant |
 | Caption models | A download request, no content | models.zellahq.com | Only when they tap download |
 | Play Billing | Whatever Google Play Billing sends, handled by Google | Google | When buying or restoring, and a read of purchases at start |

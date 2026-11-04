@@ -175,7 +175,7 @@ fun SoundPanel(
                 state.analyseSound { analysing = false }
             }
         }
-        gain?.let { Text(stringResource(R.string.snd_even_done, "%+.1f".format(it)), color = text) }
+        gain?.let { Text(stringResource(R.string.snd_even_done), color = text) }
     }
 }
 
@@ -279,7 +279,7 @@ private fun BeatPunch(state: EditorState) {
                 if (out != null && out.second > 0) {
                     found = out.second
                     note = R.string.snd_beat_done
-                    state.edit("beat sync") { out.first }
+                    state.applyResult(start, "beat sync", out.first)
                 } else {
                     note = R.string.snd_beat_none
                 }

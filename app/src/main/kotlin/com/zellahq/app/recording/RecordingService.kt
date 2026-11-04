@@ -24,6 +24,7 @@ import androidx.core.content.ContextCompat
 import com.zellahq.app.R
 import com.zellahq.core.RecorderState
 import com.zellahq.core.RecorderTransitions
+import com.zellahq.core.RecordingJournal
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -102,7 +103,9 @@ class RecordingService : Service() {
     private val storageWatch =
         object : Runnable {
             override fun run() {
-                if (freeBytes(this@RecordingService) < MIN_FREE_TO_CONTINUE) {
+                // Saving rewrites the whole recording, so it needs that much room too, on top of the margin.
+                val journal = file?.let { RecordingJournal(recordingsDir(this@RecordingService)).journalFor(it).length() } ?: 0L
+                if (freeBytes(this@RecordingService) < MIN_FREE_TO_CONTINUE + journal) {
                     notes += RecordingNote.StoppedStorageFull
                     stopRecording()
                 } else {
@@ -154,6 +157,15 @@ class RecordingService : Service() {
         val wantDevice = mode == Mode.Screen && intent.getBooleanExtra(EXTRA_DEVICE, false) && hasMic()
         val cameraInfo = if (mode == Mode.Camera) CameraHub.info else null
         if (mode == Mode.Camera && cameraInfo == null) {
+            // Android stops an app whose foreground service quits before going to the foreground.
+            runCatching {
+                ServiceCompat.startForeground(
+                    this,
+                    NOTIFICATION_ID,
+                    notification(RecorderState.Recording),
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_CAMERA,
+                )
+            }
             fail("camera is not open")
             return
         }
@@ -170,7 +182,13 @@ class RecordingService : Service() {
             return
         }
         // Must happen within seconds of startForegroundService, so it stays on the main thread.
-        ServiceCompat.startForeground(this, NOTIFICATION_ID, notification(RecorderState.Recording), type)
+        try {
+            ServiceCompat.startForeground(this, NOTIFICATION_ID, notification(RecorderState.Recording), type)
+        } catch (e: RuntimeException) {
+            // A permission taken back, or Android refusing from the background. Say so, do not crash.
+            fail("could not start in the foreground", e)
+            return
+        }
         starting = true
 
         // Everything else can block (camera session, codecs, the AAC delay probe): never on main.
@@ -323,6 +341,8 @@ class RecordingService : Service() {
         Log.e("ZellaRecorder", why, t)
         notes += RecordingNote.Failed
         file?.let { if (it.length() == 0L) it.delete() }
+        runCatching { projection?.stop() }
+        projection = null
         mutableStatus.value = RecordingStatus(RecorderState.Idle, notes.toList(), null)
         ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
         stopSelf()

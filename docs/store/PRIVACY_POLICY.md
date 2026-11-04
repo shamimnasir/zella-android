@@ -11,7 +11,9 @@ reading text on screen and export all run on the phone. Your video leaves only w
 
 - The Assistant. If you add your own key and send a message, what you type and a short text summary of your project,
   including caption text and the results of what it did, goes to the provider you picked (Google Gemini, Groq,
-  Cerebras, OpenRouter, Anthropic or OpenAI). Your video and sound are never sent. That provider's own privacy policy
+  Cerebras, OpenRouter, Anthropic or OpenAI). If you ask it to read text on screen, the reading happens on your
+  phone and the words it finds go to that provider too, with secret-looking values masked. Your video and sound are
+  never sent. That provider's own privacy policy
   applies. Your key is encrypted on your phone with Android Keystore and only ever goes to that provider.
 - Stock video clips. If you add your own Pexels or Pixabay key and ask for clips, each search word and your key goes
   to that site, and the clip comes back. Your video is never sent.

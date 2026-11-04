@@ -58,7 +58,7 @@
     <string name="ed_pause">إيقاف مؤقت</string>
     <string name="ed_clip_label">المقطع %1$d، %2$s</string>
     <string name="ed_fade_chip">تلاشٍ</string>
-    <string name="ed_timeline_description">الخط الزمني فيه %d مقاطع. اسحب يمينًا أو يسارًا للتنقل في الفيديو.</string>
+    <string name="ed_timeline_description">الخط الزمني. المقاطع: %d. اسحب يمينًا أو يسارًا للتنقل في الفيديو.</string>
     <string name="ed_split">قسّم هنا</string>
     <string name="ed_delete">احذف المقطع</string>
     <string name="ed_move_earlier">قدّمه</string>
@@ -125,7 +125,6 @@
     <string name="ex_needs_4k">4K يحتاج Zella Pro. أما 1080p فمجاني دائمًا.</string>
     <string name="ex_needs_60">الحركة السلسة جدًا تحتاج Zella Pro. أما السلاسة العادية فمجانية.</string>
     <string name="ex_needs_other">هذا الإعداد يحتاج Zella Pro.</string>
-    <string name="ex_pro_later">شراء Zella Pro من داخل التطبيق سيأتي في تحديث لاحق.</string>
     <string name="ex_share_project">شارك ملف المشروع (.zella)</string>
     <string name="ex_privacy">يتم التصدير على هذا الهاتف. لا يغادر الفيديو هاتفك إلا عندما تشاركه.</string>
 
@@ -137,7 +136,7 @@
     <string name="cap_make">أنشئ الترجمة النصية</string>
     <string name="cap_making">جارٍ إنشاء الترجمة النصية، %d%%</string>
     <string name="cap_stop">إيقاف</string>
-    <string name="cap_made">تم إنشاء الترجمة النصية: %d كلمة. اضغط على سطر في الأسفل لتصحيح كلمة.</string>
+    <string name="cap_made">تم إنشاء الترجمة النصية. الكلمات: %d. اضغط على سطر أدناه لتصحيح كلمة.</string>
     <string name="cap_no_words">لم تُسمع أي كلمات بهذه اللغة. جرّب تحديد اللغة تلقائيًا.</string>
     <string name="cap_no_sound">لا يحتوي هذا الفيديو على صوت لإنشاء ترجمة نصية منه.</string>
     <string name="cap_stopped">تم الإيقاف. لم تُضَف أي ترجمة نصية.</string>
@@ -158,7 +157,7 @@
     <string name="cap_better_use">استخدم %1$s</string>
     <string name="cap_better_progress">جارٍ التنزيل، %d%%. يمكنك متابعة التعديل.</string>
     <string name="cap_better_failed">لم يكتمل التنزيل. اضغط عليه مرة أخرى لتكمل من حيث توقف.</string>
-    <string name="cap_better_privacy">هذا ينزّل ملف نموذج الكلام فقط. لا يُرسل أي شيء عنك أو عن فيديوك.</string>
+    <string name="cap_better_privacy">يُنزّل هذا ملف تعرّف على الكلام واحدًا فقط. لا يُرسل أي شيء عنك أو عن فيديوك.</string>
     <string name="cap_better_data_title">أنت تستخدم بيانات الجوال</string>
     <string name="cap_better_data_body">حجم هذا التنزيل نحو %d ميغابايت. هل تريد تنزيله ببيانات الجوال؟</string>
     <string name="cap_better_data_yes">نزّل على أي حال</string>
@@ -182,8 +181,8 @@
     <string name="look_cooler">أبرد</string>
     <string name="look_warmer">أدفأ</string>
     <string name="look_reset_wheels">تراجع عن تغييرات اللون</string>
-    <string name="look_cube_add">أضف ملف LUT (.cube)</string>
-    <string name="look_cube_remove">احذف ملف LUT</string>
+    <string name="look_cube_add">أضف ملف ألوان (.cube)</string>
+    <string name="look_cube_remove">احذف ملف الألوان</string>
     <string name="look_cube_bad">هذا الملف ليس ملف ألوان ثلاثي الأبعاد بصيغة .cube يستطيع Zella قراءته.</string>
 
     <!-- Sound -->
@@ -196,14 +195,14 @@
     <string name="snd_duck">اخفض الموسيقى عند الكلام</string>
     <string name="snd_music_note">كل الموسيقى صُنعت لـ Zella ومجانية في فيديوهاتك. وتتكرر لتملأ الفيديو.</string>
     <string name="snd_music_once">عند إيقاف هذا الخيار، تُشغَّل الموسيقى مرة واحدة من البداية ثم تتوقف.</string>
-    <string name="snd_effect_here">أضف مؤثرًا صوتيًا عند مؤشر التشغيل</string>
-    <string name="snd_more">أصوات أكثر (%d)</string>
-    <string name="snd_remove_effects">احذف كل المؤثرات الصوتية (%d)</string>
+    <string name="snd_effect_here">أضف مؤثرًا صوتيًا عند هذه النقطة في الفيديو</string>
+    <string name="snd_more">أصوات أكثر: %d</string>
+    <string name="snd_remove_effects">احذف كل المؤثرات الصوتية: %d</string>
     <string name="snd_clean">نظّف الصوت في هذا المقطع</string>
     <string name="snd_even">وازن مستوى الصوت</string>
     <string name="snd_even_again">وازن مستوى الصوت مرة أخرى</string>
     <string name="snd_listening">جارٍ الاستماع إلى الفيديو</string>
-    <string name="snd_even_done">تم ضبط مستوى الصوت لفيديوهات التواصل الاجتماعي (%1$s ديسيبل). كما تم تحديد أماكن الكلام، لتخفض الموسيقى عندها.</string>
+    <string name="snd_even_done">تم ضبط مستوى الصوت لفيديوهات التواصل الاجتماعي. كما تم تحديد أماكن الكلام، لتخفض الموسيقى عندها.</string>
 
     <!-- Text -->
     <string name="ed_text">نص</string>
@@ -212,7 +211,7 @@
     <string name="tt_add">أضف نصًا هنا</string>
     <string name="tt_done">تم</string>
     <string name="tt_remove">احذف هذا النص</string>
-    <string name="tt_to_playhead">انقله إلى مؤشر التشغيل</string>
+    <string name="tt_to_playhead">انقله إلى هذه النقطة في الفيديو</string>
     <string name="tt_item">%1$d. %2$s عند %3$s</string>
     <string name="tt_style">الشكل</string>
     <string name="tt_place">المكان والحجم</string>
@@ -222,7 +221,7 @@
     <string name="tt_small">صغير</string>
     <string name="tt_medium">متوسط</string>
     <string name="tt_big">كبير</string>
-    <string name="tt_seconds">%d ثانية</string>
+    <string name="tt_seconds">الثواني: %d</string>
     <string name="tt_font">الخط</string>
     <string name="tt_motion">كيف يتحرك</string>
     <string name="tt_motion_in">عند الظهور</string>
@@ -244,7 +243,7 @@
     <!-- One tap -->
     <string name="ed_auto">بضغطة واحدة</string>
     <string name="au_polish">Auto-Polish</string>
-    <string name="au_polish_note">ينظّف تسجيلك: يحذف فترات الصمت وكلمات الحشو، وينقّي الصوت، ويضيف حركات خفيفة وموسيقى هادئة. بدون ترجمة نصية ولا ألوان ولا مؤثرات صوتية.</string>
+    <string name="au_polish_note">ينظّف تسجيلك: يحذف فترات الصمت وكلمات الحشو، وينقّي الصوت، ويضيف عنوان بداية وحركات خفيفة وموسيقى هادئة. بلا ترجمة نصية ولا ألوان ولا مؤثرات صوتية.</string>
     <string name="au_viral">Make it Viral</string>
     <string name="au_viral_note">كل ما في Auto-Polish، وتُضاف إليه ترجمة نصية بارزة وتحسين للألوان وأصوات تحت أقوى القطعات.</string>
     <string name="au_see">اعرف ما الذي يغيّره</string>
@@ -258,16 +257,16 @@
     <string name="au_starting">جارٍ التجهيز</string>
     <string name="au_undo">تراجع عن الكل</string>
     <string name="au_stays_on_phone">كل هذا يتم على هاتفك.</string>
-    <string name="au_receipt">تم حذف %1$d فترات صمت (%2$s ثانية) و%3$d كلمات حشو. وأُضيف %4$d انتقالات تلاشٍ و%5$d تكبيرات و%6$d حركات صغيرة و%7$d أصوات.</string>
+    <string name="au_receipt">فترات الصمت المحذوفة: %1$d (%2$s ثانية). كلمات الحشو المحذوفة: %3$d. الانتقالات المضافة: %4$d. التكبيرات: %5$d. الحركات الصغيرة: %6$d. الأصوات: %7$d.</string>
     <string name="ps_silences">احذف فترات الصمت</string>
     <string name="ps_silences_detail">تُحذف الفراغات الصامتة بين الجمل.</string>
     <string name="ps_silences_doing">جارٍ حذف فترات الصمت</string>
     <string name="ps_fillers">احذف كلمات الحشو</string>
-    <string name="ps_fillers_detail">تُحذف أصوات التردد مثل um وlike مع إغلاق الفراغ بعدها. للإنجليزية فقط.</string>
+    <string name="ps_fillers_detail">تُحذف كلمات مثل \"إيه\" و\"يعني\" والكلمات المكررة، ويُغلق الفراغ الذي تتركه. للإنجليزية فقط.</string>
     <string name="ps_fillers_doing">جارٍ حذف كلمات الحشو</string>
-    <string name="ps_hook">أضف عنوانًا جاذبًا وانتقالات تلاشٍ</string>
-    <string name="ps_hook_detail">عنوان على الجملة الأولى، وتلاشٍ ناعم عند ما يصل إلى ثمانية وصلات.</string>
-    <string name="ps_hook_doing">جارٍ إضافة العنوان الجاذب وانتقالات التلاشي</string>
+    <string name="ps_hook">أضف عنوان بداية وانتقالات</string>
+    <string name="ps_hook_detail">عنوان على السطر الأول، وتلاشٍ ناعم على ما يصل إلى ثمانية وصلات.</string>
+    <string name="ps_hook_doing">جارٍ إضافة عنوان بداية وانتقالات</string>
     <string name="ps_voice">نقّ صوتك</string>
     <string name="ps_voice_detail">خفض ضوضاء الخلفية وموازنة مستوى صوتك.</string>
     <string name="ps_voice_doing">جارٍ تنقية صوتك</string>
@@ -300,7 +299,7 @@
 
     <!-- Assistant -->
     <string name="ed_assistant">المساعد</string>
-    <string name="as_network">يرسل المساعد ما تكتبه وملخصًا نصيًا قصيرًا لهذا المشروع، بما فيه نص الترجمة النصية، إلى %1$s. ولا يرسل فيديوك ولا صوتك أبدًا. قراءة النص على الشاشة تتم على هذا الهاتف.</string>
+    <string name="as_network">يرسل المساعد ما تكتبه وملخصًا نصيًا قصيرًا عن هذا المشروع، بما في ذلك نص ترجمتك النصية، إلى %1$s. وإذا طلبت منه قراءة النص الظاهر على الشاشة، فإن القراءة تتم على هذا الهاتف والكلمات التي يجدها تذهب أيضًا إلى %1$s، مع إخفاء القيم التي تبدو سرية. وهو لا يرسل فيديوك أو صوتك أبدًا.</string>
     <string name="as_setup">المساعد اختياري ويعمل بمفتاحك الخاص. اختر الجهة التي تجيب، والصق مفتاحك، ثم اسأل بكلمات بسيطة.</string>
     <string name="as_provider">من يجيب</string>
     <string name="as_key">مفتاحك</string>
@@ -316,7 +315,6 @@
     <string name="as_stop">إيقاف</string>
     <string name="as_settings">إعدادات المساعد</string>
     <string name="as_chat">العودة إلى المحادثة</string>
-    <string name="as_working">جارٍ العمل: %1$s</string>
     <string name="as_yes">نعم</string>
     <string name="as_no">لا</string>
     <string name="as_clear">امسح المحادثة</string>
@@ -324,7 +322,7 @@
 
     <!-- Callouts -->
     <string name="ed_callouts">إضافة علامات</string>
-    <string name="co_add">أضف عند مؤشر التشغيل</string>
+    <string name="co_add">أضف عند هذه النقطة في الفيديو</string>
     <string name="co_on_video">على هذا الفيديو</string>
     <string name="co_none">لم تُضف أي علامة بعد. اختر واحدة من الأعلى.</string>
     <string name="co_words">الكلمات عليها</string>
@@ -367,7 +365,7 @@
     <string name="br_stock_network">يرسل كلمة البحث فقط ومفتاحك المجاني إلى %1$s، ثم ينزّل المقطع الذي يجده. ولا يرسل فيديوك أبدًا. تحقق من الترخيص في الموقع قبل أن تنشر.</string>
     <string name="br_stock">أضف مقاطع جاهزة</string>
     <string name="br_working">جارٍ إنشاء اللقطات الإضافية…</string>
-    <string name="br_remove">احذف %1$d لقطات إضافية</string>
+    <string name="br_remove">احذف اللقطات الإضافية: %1$d</string>
 
     <!-- Picture-in-picture, effects, moving things over time -->
     <string name="ed_pip">صورة داخل صورة</string>
@@ -419,7 +417,7 @@
     <string name="mo_keys_title">غيّره مع الوقت</string>
     <string name="mo_keys_detail">اختر ما الذي يتغير، واضبطه، ثم اضغط على ضع نقطة هنا. تحرك على الخط الزمني وضع نقطة أخرى: سينتقل بسلاسة بينهما.</string>
     <string name="mo_set_point">ضع نقطة هنا</string>
-    <string name="mo_points">%1$d نقاط</string>
+    <string name="mo_points">النقاط: %1$d</string>
     <string name="mo_clear_points">امسح النقاط</string>
     <string name="mo_glide">كيف ينتقل</string>
     <string name="mo_smooth">ناعم</string>
@@ -439,7 +437,7 @@
     <string name="cap_text_open">عدّل بالنص</string>
     <string name="cap_text_close">أغلق التعديل بالنص</string>
     <string name="cap_text_detail">اضغط على الكلمات التي تريد حذفها. ويُقص أيضًا الجزء من الفيديو الذي تُنطق فيه. زر التراجع يعيد كل شيء.</string>
-    <string name="cap_text_cut">احذف %1$d كلمات من الفيديو</string>
+    <string name="cap_text_cut">الكلمات المقطوعة من الفيديو: %1$d</string>
     <string name="snd_levels">كل المستويات في مكان واحد</string>
     <string name="snd_level_clip">هذا المقطع</string>
     <string name="snd_level_music">الموسيقى</string>
@@ -478,21 +476,20 @@
     <string name="pl_open">الخطط</string>
     <string name="pl_title">خطط Zella</string>
     <string name="pl_free">مجاني، للأبد</string>
-    <string name="pl_free_detail">المحرر الكامل وكل أدوات الذكاء الاصطناعي، بدون علامة مائية. تصدير حتى دقيقتين بدقة تصل إلى 1080p.</string>
+    <string name="pl_free_detail">المحرر الكامل وكل أدوات الذكاء الاصطناعي، بدون علامة مائية. تصدير حتى دقيقتين بدقة تصل إلى 1080p. يضيف Pro تصديرًا أطول وأوضح وبعض الأدوات المتقدمة.</string>
     <string name="pl_pro">Zella Pro</string>
     <string name="pl_pro_detail">دفعة واحدة، بدون اشتراك. تصدير أطول، وجودة 4K، و60 إطارًا في الثانية، وضبط الجودة بنفسك، وتصدير عدة أشكال في وقت واحد، ومظاهر محفوظة، وأدوات التغيير مع الوقت وتلوين منطقة واحدة ومنحنيات السرعة.</string>
     <string name="pl_founder">Zella Founder</string>
     <string name="pl_founder_detail">دفعة واحدة. كل ما في Pro، وثلاث تدرجات ألوان للمؤسسين فقط، وكل إصدار رئيسي قادم مجانًا.</string>
     <string name="pl_buy">اشترِ بـ %1$s</string>
     <string name="pl_have">لديك هذه الخطة</string>
-    <string name="pl_week">Pro Week: لديك مجموعة Pro الكاملة لمدة %1$d يومًا أخرى. لن يُخصم منك أي مبلغ. تنتهي من تلقاء نفسها ويبقى Zella مجانيًا.</string>
+    <string name="pl_week">Pro Week: الأيام المتبقية مع مجموعة Pro الكاملة: %1$d. لن يُخصم منك أي مبلغ. تنتهي من تلقاء نفسها ويبقى Zella مجانيًا.</string>
     <string name="pl_restore">استعادة المشتريات</string>
     <string name="pl_restored_none">لم يُعثر على أي مشتريات في حساب Google هذا.</string>
     <string name="pl_restored">عادت مشترياتك.</string>
     <string name="pl_unavailable">تعذّر الوصول إلى Google Play الآن، لذلك لا يمكن عرض الأسعار. كل ما هو مجاني يواصل العمل.</string>
     <string name="pl_pending">دفعتك قيد الانتظار. يفتح Zella هذه الميزة عندما يؤكد Google Play الدفع.</string>
     <string name="pl_separate">اشتريت Zella على iPhone أو Mac؟ تحتفظ Apple وGoogle بالمشتريات منفصلة، لذلك لا يفتح ذلك الشراء نسخة Android. تُباع نسخة Android على حدة وبالسعر نفسه.</string>
-    <string name="pl_needs_pro">هذا يحتاج Zella Pro.</string>
     <string name="pl_back">رجوع</string>
 
     <!-- First run -->
@@ -500,13 +497,13 @@
     <string name="ob_welcome_detail">سجّل شاشتك أو سجّل نفسك، ودع Zella يقصّه، ثم شارك الفيديو. مجاني، بدون علامة مائية وبدون حساب.</string>
     <string name="ob_how">كيف يعمل</string>
     <string name="ob_how_1">سجّل، أو اختر فيديو لديك.</string>
-    <string name="ob_how_2">اضغط على Auto-Polish ويحذف Zella فترات الصمت وينقّي صوتك ويضبط الإطار حولك.</string>
+    <string name="ob_how_2">اضغط على بضغطة واحدة ثم على Auto-Polish، ويحذف Zella فترات الصمت وينقّي صوتك ويضبط الإطار حولك.</string>
     <string name="ob_how_3">أضف ترجمة نصية أو مظهرًا أو موسيقى إن شئت، ثم صدّر.</string>
     <string name="ob_private">ما الذي يبقى على هاتفك</string>
     <string name="ob_private_detail">التسجيل والترجمة النصية والقص وإزالة الخلفية والتصدير كلها تتم على هذا الهاتف. لا يُرسل فيديوك إلى أي مكان.</string>
-    <string name="ob_private_extras">ثلاثة أشياء اختيارية تستخدم الإنترنت، وكل واحد منها يذكر ذلك عند استخدامه: المساعد، إذا أضفت مفتاحك الخاص (يرسل كلماتك وملخصًا نصيًا قصيرًا، بما فيه الترجمة النصية)؛ ومقاطع الفيديو الجاهزة (يرسل كلمة بحث)؛ وتنزيلات الترجمة النصية الأكبر.</string>
+    <string name="ob_private_extras">ثلاثة أمور اختيارية تستخدم الإنترنت، وكل واحد منها يخبرك بذلك عند استخدامه: المساعد، إذا أضفت مفتاحك الخاص (يرسل كلماتك وملخصًا نصيًا قصيرًا، بما في ذلك الترجمة النصية وأي نص على الشاشة تطلب منه قراءته)؛ ومقاطع الفيديو الجاهزة (يرسل كلمة بحث)؛ وتنزيلات الترجمة النصية الأكبر.</string>
     <string name="ob_free">ما المجاني</string>
-    <string name="ob_free_detail">كل ما في المحرر وكل أدوات الذكاء الاصطناعي، للأبد. تصدير حتى دقيقتين بدقة تصل إلى 1080p.</string>
+    <string name="ob_free_detail">المحرر كاملًا وكل أدوات الذكاء الاصطناعي، بلا مقابل ودائمًا. تصدير حتى دقيقتين بدقة تصل إلى 1080p. يضيف Pro تصديرًا أطول وأوضح وبعض الأدوات المتقدمة.</string>
     <string name="ob_week">في أول 7 أيام تحصل أيضًا على مجموعة Pro الكاملة، بدون أي دفع. تنتهي من تلقاء نفسها ويبقى Zella مجانيًا.</string>
     <string name="ob_next">التالي</string>
     <string name="ob_start">ابدأ</string>
@@ -570,16 +567,59 @@
     <string name="as_set_credits">المفتاح يعمل، لكن الحساب بلا رصيد.</string>
     <string name="as_set_model">لم يُعثر على اسم هذا النموذج.</string>
     <string name="as_set_busy">المفتاح يعمل، لكنه تجاوز حدّه الآن.</string>
-    <string name="co_hide_done">أُضيفت %1$d مناطق مخفية. تراجع واحد يزيلها كلها. شغّل الفيديو كاملًا للتحقق.</string>
+    <string name="co_hide_done">المناطق المخفية المضافة: %1$d. تراجع واحد يزيلها كلها. شغّل الفيديو كاملًا للتأكد.</string>
     <string name="co_hide_none">لم يُعثر على شيء لإخفائه. قد يفوت النص الصغير أو السريع أو غير اللاتيني. إذا كنت تعرف مكانه، أضف مربع طمس من الأعلى.</string>
     <string name="co_hide_short">كان الفيديو أطول من أن يُقرأ دفعة واحدة، لذلك لم تُفحص نهايته.</string>
     <string name="br_note_no_captions">أنشئ الترجمة النصية أولًا، حتى يعرف Zella أي الكلمات مهمة.</string>
     <string name="br_note_no_words">لم يُعثر على كلمات مفيدة في الترجمة النصية.</string>
-    <string name="br_note_cards">أُضيفت %1$d بطاقات كلمات.</string>
-    <string name="br_note_stock">أُضيفت %1$d مقاطع جاهزة.</string>
+    <string name="br_note_cards">بطاقات الكلمات المضافة: %1$d.</string>
+    <string name="br_note_stock">المقاطع الجاهزة المضافة: %1$d.</string>
     <string name="br_note_no_cards">تعذّر إنشاء البطاقات.</string>
     <string name="br_note_bad_key">لم يُقبل هذا المفتاح. انسخه مرة أخرى من صفحة الموقع.</string>
     <string name="br_note_busy">يقول موقع المقاطع الجاهزة إنك سألت كثيرًا في الوقت الحالي. انتظر قليلًا وجرّب عددًا أقل من المقاطع.</string>
     <string name="br_note_offline">تعذّر الوصول إلى موقع المقاطع الجاهزة. تحقق من اتصالك.</string>
     <string name="br_note_none">لم يُعثر على مقاطع جاهزة مطابقة.</string>
+    <string name="ex_see_plans">اطّلع على الباقات</string>
+    <string name="ex_4k_plain">4K</string>
+    <string name="ex_60_plain">سلس جدًا</string>
+    <string name="ex_needs_founder">يستخدم هذا الفيديو مظهرًا يأتي مع Zella Founder. اختر مظهرًا آخر لتصديره.</string>
+    <string name="ex_other_running">هناك فيديو آخر قيد التصدير. سيبدأ هذا الفيديو عندما ينتهي ذلك.</string>
+    <string name="ex_no_sound">ليس في هذا الفيديو صوت ليُحفظ، لذلك لم يُنشأ ملف صوتي.</string>
+    <string name="ex_done_notice">افتح الفيديو في Zella واضغط على تصدير لحفظه أو مشاركته.</string>
+    <string name="ex_saved_gif">تم الحفظ في معرضك، داخل Pictures ثم Zella.</string>
+    <string name="ex_saved_sound">تم الحفظ على هذا الهاتف، داخل Music ثم Zella.</string>
+    <string name="ex_save_failed">تعذّر الحفظ. ربما الهاتف ممتلئ. ملفك ما زال هنا في Zella.</string>
+    <string name="ex_again">صدّر مرة أخرى</string>
+    <string name="ex_earlier">عمليات التصدير السابقة لهذا الفيديو</string>
+    <string name="ex_earlier_note">تبقى هذه في Zella حتى تحذفها. حذف نسخة من هنا لا يمس النسخ الموجودة في معرضك.</string>
+    <string name="ex_delete_copy">حذف</string>
+    <string name="cap_better_check">اطّلع على تنزيلات أفضل للترجمة النصية</string>
+    <string name="cap_better_looking">جارٍ البحث عن تنزيلات…</string>
+    <string name="cap_better_none">تعذّر الوصول إلى أي تنزيل الآن. الترجمة النصية تعمل أصلًا بما هو موجود على هذا الهاتف.</string>
+    <string name="as_confirm_delete">حذف هذا المقطع؟ إنه معظم الفيديو (%1$s ثانية من %2$s).</string>
+    <string name="as_confirm_export">تصدير هذا الفيديو بدقة %1$s؟ قد يستغرق ذلك بعض الوقت.</string>
+    <string name="as_busy">المساعد يعمل…</string>
+    <string name="as_silent">لم يعطِ المساعد أي إجابة هذه المرة. جرّب أن تسأل بطريقة أخرى.</string>
+    <string name="as_key_not_saved">المفتاح يعمل، لكن هذا الهاتف لم يستطع تخزينه بأمان، لذلك لم يُحفظ.</string>
+    <string name="pl_restored_no_answer">لم يرد Google Play. باقتك لم تتغير. تحقق من اتصالك وحاول مرة أخرى.</string>
+    <string name="ed_background_failed">لم ينجح ذلك. فيديوك كما كان. حاول مرة أخرى.</string>
+    <string name="ed_changed_meanwhile">غيّرت الفيديو أثناء عمل هذا، لذلك لم تُستخدم النتيجة. تغييراتك بأمان. شغّله مرة أخرى عندما تكون مستعدًا.</string>
+    <string name="ed_save_failed">تعذّر على Zella حفظ هذا المشروع. ربما لم تعد في هاتفك مساحة كافية.</string>
+    <string name="cap_failed">تعذّر إنشاء الترجمة النصية. حاول مرة أخرى.</string>
+    <string name="bg_failed">لم يستطع Zella العثور على الشخص في هذا الفيديو، لذلك تظهر الخلفية الأصلية.</string>
+    <string name="ex_reverse_failed">تعذّر تجهيز مقطع مضبوط على التشغيل بالعكس. أوقف تشغيله بالعكس أو حاول مرة أخرى.</string>
+    <string name="ex_queue_missed">لم يُصدَّر %1$d من الأشكال الأخرى.</string>
+    <string name="ex_packing">جارٍ تجميع المشروع…</string>
+    <string name="ex_pack_failed">تعذّر تجميع المشروع. ربما لم تعد في هاتفك مساحة كافية.</string>
+    <string name="home_importing">جارٍ نسخ الفيديو…</string>
+    <string name="home_unreadable">المشاريع التي تعذّر على Zella فتحها: %1$d. ما زالت على هذا الهاتف. قد يساعد تحديث Zella.</string>
+    <string name="co_hide_failed">تعذّرت قراءة الفيديو. لم يُخفَ أي شيء. حاول مرة أخرى.</string>
+    <string name="ex_err_encode">لم يستطع هذا الهاتف إنشاء الفيديو بهذه الإعدادات. جرّب 1080p.</string>
+    <string name="ex_err_read">لم يستطع هذا الهاتف قراءة أحد المقاطع.</string>
+    <string name="ex_err_missing">أحد المقاطع ينقصه ملف الفيديو الخاص به.</string>
+    <string name="mo_ramp_none">سرعة ثابتة</string>
+    <string name="mo_ramp_sfs">بطيء، سريع، بطيء</string>
+    <string name="mo_ramp_fsf">سريع، بطيء، سريع</string>
+    <string name="mo_ramp_up">يتسارع</string>
+    <string name="mo_ramp_down">يتباطأ</string>
 </resources>

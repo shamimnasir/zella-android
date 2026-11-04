@@ -1,3 +1,5 @@
+@file:Suppress("ktlint:standard:max-line-length")
+
 package com.zellahq.core.project
 
 import kotlinx.serialization.json.Json

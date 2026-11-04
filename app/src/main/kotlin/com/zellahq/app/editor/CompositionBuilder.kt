@@ -35,6 +35,7 @@ import com.zellahq.core.project.keyframes
 import com.zellahq.core.project.opacity
 import com.zellahq.core.project.overlays
 import com.zellahq.core.project.rampMultiplier
+import com.zellahq.core.project.sourceFractionAt
 import com.zellahq.core.project.sourceTimeAt
 import com.zellahq.core.project.special
 import com.zellahq.core.project.startTime
@@ -83,6 +84,8 @@ class CompositionBuilder(
     fun build(
         p: Project,
         canvas: Size = canvasSize(p),
+        /** The most frames a second to keep, for an export. Null keeps them all. */
+        maxFps: Int? = null,
     ): Built {
         val missing = ArrayList<Clip>()
         val needsReverse = ArrayList<Clip>()
@@ -207,7 +210,10 @@ class CompositionBuilder(
                 .setEffects(
                     Effects(
                         emptyList(),
-                        listOfNotNull(zoomEffect(p.zoomBlocks.orEmpty(), canvas)) + pipEffect(p, canvas) + calloutEffects(p, canvas) +
+                        listOfNotNull(
+                            maxFps?.let { androidx.media3.effect.FrameDropEffect.createDefaultFrameDropEffect(it.toFloat()) },
+                            zoomEffect(p.zoomBlocks.orEmpty(), canvas),
+                        ) + pipEffect(p, canvas) + calloutEffects(p, canvas) +
                             listOfNotNull(titleEffect(p, canvas), captionEffect(p, canvas)),
                     ),
                 )
@@ -241,6 +247,17 @@ class CompositionBuilder(
 
     private class Resolved(val media: MediaItem, val file: File, val sourceUs: Long, val isReversedCopy: Boolean)
 
+    /** Source seconds played in the first [local] seconds on the timeline. A ramp does not run at one speed. */
+    private fun sourceSpan(
+        clip: Clip,
+        reversedCopy: Boolean,
+        local: Double,
+    ) = if (clip.speedRamp != null && !reversedCopy) {
+        clip.sourceFractionAt(local).coerceIn(0.0, 1.0) * clip.trimmedDuration
+    } else {
+        local * clip.speed
+    }
+
     /** [cutHead] and [cutTail] take timeline seconds off the ends of the clip's trimmed range. */
     private fun resolved(
         p: Project,
@@ -257,8 +274,8 @@ class CompositionBuilder(
         if (!file.isFile && clip !in missing) missing += clip
         // A reversed copy holds only the trimmed range, already backwards, starting at zero.
         val base = if (reversed != null) 0.0 else clip.trimStart
-        val fromUs = ((base + cutHead * clip.speed) * 1e6).toLong()
-        val toUs = ((base + clip.trimmedDuration - cutTail * clip.speed) * 1e6).toLong()
+        val fromUs = ((base + sourceSpan(clip, reversed != null, cutHead)) * 1e6).toLong()
+        val toUs = ((base + sourceSpan(clip, reversed != null, clip.timelineDuration - cutTail)) * 1e6).toLong()
         val media =
             MediaItem
                 .Builder()
@@ -424,7 +441,7 @@ class CompositionBuilder(
             val cutHead = if (segmentIn != null) minOf(overlapIn, lengthOf(segmentIn)) else overlapIn / 2
             val cutTail = if (segmentOut != null) overlapOut else overlapOut / 2
             val body = resolved(p, clip, missing, needsReverse, cutHead, cutTail)
-            val offsetUs = (cutHead * clip.speed * 1e6).toLong()
+            val offsetUs = (sourceSpan(clip, body.isReversedCopy, cutHead) * 1e6).toLong()
             picture.addItem(
                 EditedMediaItem
                     .Builder(body.media)
@@ -505,6 +522,7 @@ class CompositionBuilder(
             r: Resolved,
             clip: Clip,
             effect: TransitionEffect,
+            offsetUs: Long,
         ) = EditedMediaItemSequence
             .Builder(setOf(C.TRACK_TYPE_VIDEO))
             .addItem(
@@ -512,15 +530,20 @@ class CompositionBuilder(
                     .Builder(r.media)
                     .setDurationUs(r.sourceUs)
                     .setRemoveAudio(true)
-                    .setSpeed(ConstantSpeed(clip.speed.toFloat()))
+                    .setSpeed(speedProvider(clip, r.isReversedCopy, offsetUs))
                     .setEffects(Effects(emptyList(), videoEffects(p, clip, canvas, clock) + effect))
                     .build(),
             ).build()
         return Composition
             .Builder(
                 listOf(
-                    item(tail, a, TransitionEffect(null, window, isTop = true)),
-                    item(head, b, TransitionEffect(window, null, isTop = false)),
+                    item(
+                        tail,
+                        a,
+                        TransitionEffect(null, window, isTop = true),
+                        (sourceSpan(a, tail.isReversedCopy, a.timelineDuration - d) * 1e6).toLong(),
+                    ),
+                    item(head, b, TransitionEffect(window, null, isTop = false), 0L),
                 ),
             ).setVideoCompositorSettings(
                 object : VideoCompositorSettings {
@@ -628,7 +651,8 @@ class CompositionBuilder(
 
             override fun getNextSpeedChangeTimeUs(timeUs: Long): Long {
                 val k = ((timeUs + offsetUs) / srcChunkUs).toInt() + 1
-                return if (k >= n) C.TIME_UNSET else (k * srcChunkUs).toLong() - offsetUs
+                // Rounded up: rounded down, the next change can land on this very time, and Media3 refuses that with a crash.
+                return if (k >= n) C.TIME_UNSET else kotlin.math.ceil(k * srcChunkUs).toLong() - offsetUs
             }
         }
     }
