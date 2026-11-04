@@ -87,6 +87,23 @@ class Exporter(
                 null,
             )
         }
+        // A person mask the preview has not finished yet comes before anything drawn from it.
+        if (built.needsMatte.isNotEmpty()) {
+            val baker = com.zellahq.app.cutout.MatteBaker(context)
+            built.needsMatte.forEach { f ->
+                if (cancelled || !baker.bake(f)) {
+                    return if (cancelled) {
+                        ExportOutcome.Cancelled
+                    } else {
+                        ExportOutcome.Failed(
+                            "The new background could not be prepared.",
+                            null,
+                        )
+                    }
+                }
+            }
+            built = builder.build(project, canvas)
+        }
         // Transitions the preview has not rendered at this size yet come first.
         if (built.needsBake.isNotEmpty()) {
             built.needsBake.forEachIndexed { n, join ->

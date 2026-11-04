@@ -342,4 +342,21 @@
     <string name="co_hide_blur">Find and blur</string>
     <string name="co_hide_pixel">Find and pixelate</string>
     <string name="co_reading">Reading the video…</string>
+
+    <!-- Background. -->
+    <string name="ed_background">Background</string>
+    <string name="bg_detail">Zella finds the person in your video on this phone and replaces what is behind them. The whole video gets the same background.</string>
+    <string name="bg_finding">Finding the person: %1$d%%. The preview shows the new background when this is done.</string>
+    <string name="bg_stop">Stop</string>
+    <string name="bg_original">Original</string>
+    <string name="bg_blur">Blur</string>
+    <string name="bg_black">Black</string>
+    <string name="bg_color">Colour</string>
+    <string name="bg_photo">Your photo</string>
+    <string name="bg_ready">Ready-made</string>
+    <string name="bg_moving">Moving</string>
+    <string name="bg_strength">Blur strength</string>
+    <string name="bg_soft">Soft</string>
+    <string name="bg_medium">Medium</string>
+    <string name="bg_strong">Strong</string>
 </resources>

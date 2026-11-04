@@ -29,8 +29,10 @@ import com.zellahq.core.project.Clip
 import com.zellahq.core.project.Project
 import com.zellahq.core.project.ProjectStore
 import com.zellahq.core.project.ZoomBlock
+import com.zellahq.core.project.background
 import com.zellahq.core.project.duration
 import com.zellahq.core.project.rampMultiplier
+import com.zellahq.core.project.sourceTimeAt
 import com.zellahq.core.project.startTime
 import com.zellahq.core.project.transitionAfter
 import com.zellahq.core.project.transitionOverlap
@@ -69,6 +71,8 @@ class CompositionBuilder(
         val needsReverse: List<Clip>,
         /** Joins whose transition has not been rendered yet. Until then they play as a plain cut. */
         val needsBake: List<Int>,
+        /** Source files with a new background chosen whose person mask is not made yet. The clip plays as it was until then. */
+        val needsMatte: List<java.io.File> = emptyList(),
     )
 
     fun build(
@@ -174,7 +178,13 @@ class CompositionBuilder(
                     ),
                 )
                 .build()
-        return Built(composition, missing, needsReverse, needsBake)
+        val needsMatte =
+            p.clips
+                .filter { it.background != null }
+                .map { store.resolve(it.source, p.id) }
+                .distinct()
+                .filter { it.isFile && matteFile(it) == null }
+        return Built(composition, missing, needsReverse, needsBake, needsMatte)
     }
 
     /** A clip with its picture and sound together, for the single track path. */
@@ -241,12 +251,31 @@ class CompositionBuilder(
         clockOffset: Double = 0.0,
     ): List<Effect> {
         val video = ArrayList<Effect>()
+        // First of all, on the frame as the file holds it: the matte lines up with the source.
+        backgroundEffect(p, clip, clockOffset)?.let { video += it }
         reframeEffect(p, clip, canvas, clockOffset)?.let { video += it }
         // Fill the canvas, cropping the edges, like the iPhone's default fill mode.
         video += Presentation.createForWidthAndHeight(canvas.width, canvas.height, Presentation.LAYOUT_SCALE_TO_FIT_WITH_CROP)
         // The clip's look, colour board and imported LUT (the iPhone's ClipEffects), as one LUT.
         video += clipLook(clip, canvas)
         return video
+    }
+
+    private fun backgroundEffect(
+        p: Project,
+        clip: Clip,
+        clockOffset: Double,
+    ): Effect? {
+        val choice = clip.background ?: return null
+        val video = store.resolve(clip.source, p.id)
+        val matte = matteFile(video) ?: return null
+        val start = p.startTime(clip.id)
+        return com.zellahq.app.cutout.BackgroundEffect(
+            matte,
+            choice,
+            { us -> clip.sourceTimeAt(clockOffset + us / 1e6 - start) },
+            { us -> clockOffset + us / 1e6 },
+        )
     }
 
     /** Slides the source under the crop so the speaker stays framed. Runs ahead of the fill, in full-frame terms. */
@@ -492,6 +521,9 @@ class CompositionBuilder(
             listOf(com.zellahq.app.captions.CaptionOverlay(track, canvas.width, canvas.height, typeface(track))),
         )
     }
+
+    /** The worked-out person mask for a source file, or null until it is made. Set by the app. */
+    var matteFile: (java.io.File) -> java.io.File? = { null }
 
     /** Blur boxes and drawn callouts, after the zoom so a box stays where it was put on the canvas. */
     var calloutEffects: (Project, Size) -> List<Effect> = { _, _ -> emptyList() }

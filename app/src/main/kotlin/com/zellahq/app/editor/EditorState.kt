@@ -367,6 +367,30 @@ class EditorState(
 
     fun saveNow() = save(project.value)
 
+    /** How far along finding the person is, or null. The clip plays as it was until this finishes. */
+    private val mutableFinding = MutableStateFlow<Float?>(null)
+    val finding: StateFlow<Float?> = mutableFinding
+    private var matteBaker: com.zellahq.app.cutout.MatteBaker? = null
+
+    private fun startMatte(files: List<java.io.File>) {
+        if (matteBaker != null) return
+        val baker = com.zellahq.app.cutout.MatteBaker(context)
+        matteBaker = baker
+        mutableFinding.value = 0f
+        Thread({
+            files.forEachIndexed { i, f ->
+                baker.bake(f) { x -> main.post { if (matteBaker === baker) mutableFinding.value = (i + x) / files.size } }
+            }
+            main.post {
+                matteBaker = null
+                mutableFinding.value = null
+                rebuild()
+            }
+        }, "find-person").start()
+    }
+
+    fun stopFinding() = matteBaker?.stop()
+
     private fun rebuild() {
         val p = project.value
         if (p.clips.isEmpty()) {
@@ -377,6 +401,7 @@ class EditorState(
         mutableMissing.value = built.missing.map { it.id }
         player.setComposition(built.composition, (position.value * 1000).toLong())
         player.prepare()
+        if (built.needsMatte.isNotEmpty()) startMatte(built.needsMatte)
         // Clips marked reversed get their reversed copy made in the background, then the preview rebuilds.
         mutableReversing.value = built.needsReverse.isNotEmpty()
         if (built.needsReverse.isNotEmpty()) {
@@ -419,6 +444,7 @@ class EditorState(
     }
 
     fun release() {
+        matteBaker?.stop()
         main.removeCallbacks(ticker)
         saveNow()
         player.release()

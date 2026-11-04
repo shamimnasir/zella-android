@@ -68,7 +68,7 @@ import com.zellahq.ui.ZellaColors
 import com.zellahq.ui.ZellaRadius
 import com.zellahq.ui.ZellaSpacing
 
-private enum class Sheet { None, Speed, Volume, Captions, Look, Sound, Text, Transition, Auto, Callouts, Assistant }
+private enum class Sheet { None, Speed, Volume, Captions, Look, Sound, Text, Transition, Auto, Callouts, Assistant, Background }
 
 @OptIn(UnstableApi::class)
 @Composable
@@ -217,6 +217,9 @@ fun EditorScreen(
             Tool(stringResource(R.string.ed_sound), if (sheet == Sheet.Sound) ZellaColors.CardSun else null) {
                 sheet = if (sheet == Sheet.Sound) Sheet.None else Sheet.Sound
             }
+            Tool(stringResource(R.string.ed_background), if (sheet == Sheet.Background) ZellaColors.CardSun else null) {
+                sheet = if (sheet == Sheet.Background) Sheet.None else Sheet.Background
+            }
             Tool(stringResource(R.string.ed_callouts), if (sheet == Sheet.Callouts) ZellaColors.CardSun else null) {
                 sheet = if (sheet == Sheet.Callouts) Sheet.None else Sheet.Callouts
             }
@@ -286,6 +289,11 @@ fun EditorScreen(
         if (sheet == Sheet.Text) {
             androidx.compose.foundation.layout.Box(Modifier.heightIn(max = 360.dp).verticalScroll(rememberScrollState())) {
                 com.zellahq.app.titles.TitlesPanel(state, project, position)
+            }
+        }
+        if (sheet == Sheet.Background) {
+            androidx.compose.foundation.layout.Box(Modifier.heightIn(max = 320.dp).verticalScroll(rememberScrollState())) {
+                com.zellahq.app.cutout.BackgroundPanel(state, project)
             }
         }
         if (sheet == Sheet.Callouts) {
