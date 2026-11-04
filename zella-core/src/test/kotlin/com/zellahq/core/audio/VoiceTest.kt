@@ -5,6 +5,7 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import kotlin.math.PI
 import kotlin.math.sin
@@ -68,5 +69,75 @@ class VoiceTest {
     @Test fun aVoiceoverStaysFlat() {
         val e = MusicEnvelope.of(volume = 0.7, duck = false, voice = listOf(Window(1.0, 2.0)), total = 5.0)
         listOf(0.0, 1.5, 4.99).forEach { assertEquals(0.7, e.gain(it), 1e-9) }
+    }
+}
+
+class VoiceChainTest {
+    private val rate = 48_000
+
+    private fun tone(
+        f: Double,
+        level: Double,
+        seconds: Double = 1.0,
+    ) = FloatArray((seconds * rate).toInt()) { (level * sin(2 * PI * f * it / rate)).toFloat() }
+
+    private fun rmsDb(
+        x: FloatArray,
+        from: Double = 0.5,
+    ): Double {
+        val a = (from * rate).toInt()
+        var s = 0.0
+        for (i in a until x.size) s += x[i] * x[i]
+        return 10 * kotlin.math.log10((s / (x.size - a)).coerceAtLeast(1e-20))
+    }
+
+    @Test fun rumbleIsCutAndVoiceIsKept() {
+        fun through(f: Double) = rmsDb(VoiceChain(rate, 1).processAll(tone(f, 0.05)))
+        val rumble = through(30.0)
+        val voice = through(1000.0)
+        assertTrue("30 Hz $rumble dB against 1 kHz $voice dB", rumble < voice - 15)
+    }
+
+    @Test fun denoisedVoiceHoldsThePresenceBandBack() {
+        val full = rmsDb(VoiceChain(rate, 1).processAll(tone(3500.0, 0.01)))
+        val held = rmsDb(VoiceChain(rate, 1, denoised = true).processAll(tone(3500.0, 0.01)))
+        assertTrue("presence $full dB, held back $held dB", held < full - 2)
+    }
+
+    @Test fun loudAndQuietComeCloser() {
+        fun out(level: Double) = rmsDb(VoiceChain(rate, 1).processAll(tone(1000.0, level)))
+        val inSpread = 20 * kotlin.math.log10(0.5 / 0.05)
+        val outSpread = out(0.5) - out(0.05)
+        assertTrue("20 dB in became $outSpread dB out", outSpread < inSpread * 0.6)
+    }
+
+    @Test fun peaksNeverPassTheCeiling() {
+        val out = VoiceChain(rate, 1).processAll(tone(1000.0, 1.0))
+        val peak = out.drop(rate / 10).maxOf { kotlin.math.abs(it) }
+        assertTrue("peak $peak", peak <= 0.95f)
+    }
+
+    @Test fun gapsBetweenWordsGoQuieter() {
+        // A quiet room tone at about -50 dBFS, under the expander's line.
+        val quiet = tone(1000.0, 0.004, 2.0)
+        val out = VoiceChain(rate, 1, voicing = VoiceChain.Voicing.Natural).processAll(quiet)
+        assertTrue("room tone ${rmsDb(out)} dB", rmsDb(out) < rmsDb(quiet) + 6)
+    }
+
+    @Test fun everyVoicingRunsAndStaysFinite() {
+        for (v in VoiceChain.Voicing.entries) {
+            val out =
+                VoiceChain(rate, 2, v).let { c ->
+                    val frame = DoubleArray(2)
+                    val l = tone(220.0, 0.3)
+                    FloatArray(l.size) { i ->
+                        frame[0] = l[i].toDouble()
+                        frame[1] = l[i].toDouble()
+                        c.frame(frame)
+                        frame[0].toFloat()
+                    }
+                }
+            assertTrue("$v", out.all { it.isFinite() })
+        }
     }
 }

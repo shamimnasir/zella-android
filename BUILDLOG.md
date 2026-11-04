@@ -12,7 +12,8 @@ Read this and tasks/lessons.md at the start of every session.
 | 3 Export and limits | Mostly built. Export service, gate at the boundary, gallery save, share. Open items below. |
 | 4 Captions | Built and measured on the emulator. Gate NOT passed (needs a phone and a real Bangla clip). |
 | 5 Looks, sound, text | Built and measured on the emulator. Open items below. |
-| 6 to 9 | Not started |
+| 6 One-tap AI | Built and measured on the emulator. Open items below. |
+| 7 to 9 | In progress |
 
 ## Phase 0 evidence (2026-11-04)
 
@@ -177,6 +178,9 @@ Everything measured from the file a real export wrote, on `zella_p0`. Numbers in
 | Sound effect against the picture | +0.3 ms from the cut; an effect at the very end does not stretch the video (video 4018 ms, audio 3993 ms, timeline 4000 ms) | `SoundRenderTest` |
 | Voice clean-up, hiss against the voice | -17.0 to -22.3 dB through the export; the voice stays within 0.83 ms of where it was | `SoundRenderTest`, `DenoiseHissTest` |
 
+| All 25 transitions | each starts exactly on the outgoing clip and ends exactly on the incoming one, with the outgoing clip on either track; middles looked at by eye | `TransitionRenderTest`, `docs/evidence/phase5-transitions.png` |
+| Frames against the timeline | single track: every one of 23 cuts within one frame. Two tracks: every change within 31 ms, no black frames, 4 runs out of 4 identical | `TimelineDriftTest` |
+
 Sound found by this test and fixed: an export with clean-up on never finished (a 10 s clip grew past
 139 MB), loudness read 3 dB low so every video came out 3 dB hot, and the wet and dry voice were 10 ms
 apart. See `tasks/lessons.md`.
@@ -192,6 +196,41 @@ apart. See `tasks/lessons.md`.
 - Text card photos and the picture-in-picture, callout and sticker collections are kept in the file
   and move with edits, but Android does not draw them yet.
 - Loudness on a phone speaker, and hearing any of this, has not been done. It was measured, not heard.
+
+## Phase 6 evidence (2026-11-04, emulator and Mac only)
+
+Run with the real speech engine and exported, on a 34 s clip of the iPhone's voice fixture with two
+inserted 2 s pauses. Nothing here ran on a phone, and the sample is one voice, not the battery of 20
+clips the brief asks for.
+
+| Gate | Result | How |
+| --- | --- | --- |
+| The plan shown is the plan run | Both lists come from `PolishStep.plan`; the run reports each step it starts and the test compares | `AutoPolishRunTest`, `AutoEditTest` |
+| A second run stacks nothing | titles, transitions, zooms and music identical after a second run, on device and on 5 lengths in unit tests. A second run does find more quiet to cut (22.8 to 20.4 s), because it listens again | `AutoPolishRunTest`, `AutoEditTest` |
+| Effect density under the cap | 0.308 and 0.344 per second measured; capped at 0.35 by `Polish.capDensity`, 7 lengths from 8 s to 20 min | `AutoPolishRunTest`, `AutoEditTest` |
+| Decisions match the iPhone | silence detector, filler rules, witness words, interrupts, emphasis zooms, sounds under cuts, zoom scale and music mood all compared with the iPhone's own code on generated inputs | `AutoEditTest`, `tools/ios-conformance/plans-main.swift` |
+| Pauses gone from the file | longest pause 4.56 s before, 0.39 s after; 15 pauses, 10.2 s | `AutoPolishRunTest` |
+| Loudness | -14.25 LUFS from the exported file, with voice clean-up and the studio chain on | `AutoPolishRunTest` |
+| Make Vertical keeps the face in frame | face at x = 0.506 of the vertical export; a plain centre crop has no face in it at all | `makeVerticalKeepsTheFaceInTheFrame`, needs `tools/push-test-media.sh` |
+
+### Where this differs from the iPhone, on purpose
+
+- Dissolves: Auto-Polish on the iPhone puts one on every join (`autoPolishBody`), while `makeReel` on the
+  same phone caps them at about eight after a 100 minute take froze the editor. The brief says about
+  eight of the widest spaced, so Android does that, and the density budget can lower it further.
+- Emphasis zooms: Android replaces its own on a re-run. The iPhone keeps them as "occupied", which lets
+  last run's runners-up land in the gaps, so its count grows with each tap. Reported below.
+- Words: the iPhone transcribes twice per run. Android transcribes once and moves the words with the edits.
+- Emphasis: the iPhone uses Apple's part-of-speech tagger. Android has no tagger on the device and uses
+  the iPhone's stop words plus a list of connecting words, with the same ranking and cap. Not the same list of chosen words.
+- Faces: Android's built-in detector, not Apple Vision. It found the test face. Not tested on real footage.
+
+### Open in Phase 6
+
+- Voice clean-up is RNNoise, with the presence and air bands held back the way the iPhone does for that
+  engine. No isolation engine exists on Android.
+- The battery of 20 sample clips does not exist yet. Density and re-run gates were measured on one voice and on generated data.
+- The one-tap screens have been built but only exercised through tests, not by a person.
 
 ## Phase 1 exit gate: NOT passed
 

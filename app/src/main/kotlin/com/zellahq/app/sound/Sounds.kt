@@ -10,7 +10,9 @@ import com.zellahq.app.captions.AudioExtractor
 import com.zellahq.app.editor.Storage
 import com.zellahq.core.audio.Loudness
 import com.zellahq.core.audio.Voice
+import com.zellahq.core.audio.VoiceChain
 import com.zellahq.core.audio.Window
+import com.zellahq.core.project.Clip
 import com.zellahq.core.project.Project
 import com.zellahq.core.project.startTime
 import com.zellahq.whisper.Denoiser
@@ -75,8 +77,18 @@ object Sounds {
         return f
     }
 
+    fun isClean(clip: Clip) = (clip.extras["voiceNoise"] as? JsonPrimitive)?.content == "true"
+
+    fun isPolished(clip: Clip) = (clip.extras["voicePolish"] as? JsonPrimitive)?.content == "true"
+
+    /** The voicing the project asks for. The iPhone stores it as voiceTone, with its names. */
+    fun voicing(p: Project) = VoiceChain.Voicing.named((p.extras["voiceTone"] as? JsonPrimitive)?.content)
+
     /** Whether the project already knows where the voice is. Without it, music has nothing to step back for. */
     fun hasVoiceWindows(p: Project) = !(p.extras["voiceWindows"] as? JsonArray).isNullOrEmpty() || !p.captions?.cues.isNullOrEmpty()
+
+    /** The boost "Even out the loudness" measured for this project, in dB. */
+    fun boostDb(p: Project) = (p.extras[LOUDNESS_KEY] as? JsonPrimitive)?.content?.toDoubleOrNull() ?: 0.0
 
     /** Voice windows the iPhone stores in the project (`voiceWindows`). */
     fun voiceWindows(p: Project): List<Window> =
@@ -87,6 +99,8 @@ object Sounds {
             Window(start, end)
         } ?: Voice.fromCaptions(p)
 
+    const val FLOOR_LIMIT_DB = -46.0
+    const val MAX_BOOST_DB = 18.0
     private const val MEASURE_RATE = 48_000
 
     private fun toMeasureRate(
@@ -123,8 +137,9 @@ object Sounds {
     ): Project {
         val store = Storage.store(context)
         val windows = ArrayList<Window>()
-        val left = ArrayList<FloatArray>()
-        val right = ArrayList<FloatArray>()
+
+        class Piece(val clip: Clip, val left: FloatArray, val right: FloatArray)
+        val pieces = ArrayList<Piece>()
         for (clip in p.clips) {
             if (clip.reversed || clip.volume <= 0.0) continue
             val until = minOf(clip.trimEnd, clip.trimStart + 600)
@@ -135,14 +150,54 @@ object Sounds {
             }
             // Loudness is measured the way the export carries it: stereo, at one rate, a mono clip on both channels.
             // BS.1770 adds the channels up, so measuring a mono mix read 3 dB low and every video came out 3 dB hot.
-            val l = toMeasureRate(pcm.channels[0], pcm.rate)
-            val r = if (pcm.channels.size > 1) toMeasureRate(pcm.channels[1], pcm.rate) else l
-            left += FloatArray(l.size) { (l[it] * clip.volume).toFloat() }
-            right += FloatArray(r.size) { (r[it] * clip.volume).toFloat() }
+            var l = toMeasureRate(pcm.channels[0], pcm.rate)
+            var r = if (pcm.channels.size > 1) toMeasureRate(pcm.channels[1], pcm.rate) else l
+            if (isClean(clip)) {
+                val same = r === l
+                l = Denoiser().use { it.processAll(l) }
+                r = if (same) l else Denoiser().use { it.processAll(r) }
+            }
+            pieces += Piece(clip, l, r)
         }
-        val measured = listOf(join(left), join(right))
-        val lufs = if (measured[0].isEmpty()) Double.NEGATIVE_INFINITY else Loudness.integrated(measured, MEASURE_RATE)
-        val gain = Loudness.gainToTarget(lufs)
+
+        /** The voice as it will come out with this boost. A polished clip takes it ahead of its limiter. */
+        fun rendered(boostDb: Double): List<FloatArray> {
+            val g = Loudness.dbToLinear(boostDb)
+            val left = ArrayList<FloatArray>()
+            val right = ArrayList<FloatArray>()
+            for (c in pieces) {
+                val polished = isPolished(c.clip)
+
+                fun one(x: FloatArray): FloatArray {
+                    val y =
+                        if (polished) {
+                            VoiceChain(MEASURE_RATE, 1, voicing(p), denoised = isClean(c.clip), makeupDb = boostDb).processAll(x)
+                        } else {
+                            FloatArray(x.size) { (x[it] * g).toFloat() }
+                        }
+                    return FloatArray(y.size) { (y[it] * c.clip.volume).toFloat() }
+                }
+                val a = one(c.left)
+                left += a
+                right += if (c.right === c.left) a else one(c.right)
+            }
+            return listOf(join(left), join(right))
+        }
+
+        val plain = rendered(0.0)
+        val lufs = if (plain[0].isEmpty()) Double.NEGATIVE_INFINITY else Loudness.integrated(plain, MEASURE_RATE)
+        // Every decibel of boost also lifts what the clean-up left behind, so on a cleaned voice the boost may
+        // not raise the quiet between words above -46 dBFS (the iPhone's floor cap: clean but quieter beats on
+        // target but hissy). A raw take has its room sound either way, so only the +12 dB ceiling applies.
+        val floorDb = Loudness.floorDb(plain[0])
+        val room = if (pieces.any { isClean(it.clip) }) maxOf(0.0, FLOOR_LIMIT_DB - floorDb) else MAX_BOOST_DB
+        var gain = minOf(Loudness.gainToTarget(lufs), room)
+        // A limiter gives back less than the boost it was handed, so measure the result and correct once.
+        if (gain > 0.1 && pieces.any { isPolished(it.clip) }) {
+            val got = rendered(gain).let { Loudness.integrated(it, MEASURE_RATE) }
+            if (got.isFinite()) gain = (gain + (Loudness.TARGET_LUFS - got)).coerceIn(0.0, minOf(room, MAX_BOOST_DB))
+        }
+        android.util.Log.i("ZellaSound", "measured %.2f LUFS, floor %.1f dBFS, boost %.2f dB".format(lufs, floorDb, gain))
         val vw =
             JsonArray(
                 Voice.merge(windows, 0.35).map { JsonObject(mapOf("start" to JsonPrimitive(it.start), "end" to JsonPrimitive(it.end))) },
@@ -271,5 +326,50 @@ class CleanupProcessor(private val wet: Float = Sounds.CLEANUP_WET) : BaseAudioP
         filled = 0
         started = false
         ended = false
+    }
+}
+
+/** The polish chain in the audio pipeline, on 16-bit sound at any rate. */
+@OptIn(UnstableApi::class)
+class VoicePolishProcessor(
+    private val project: Project,
+    private val denoised: Boolean,
+) : BaseAudioProcessor() {
+    private var chain: VoiceChain? = null
+
+    override fun onConfigure(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
+        if (inputAudioFormat.encoding != C.ENCODING_PCM_16BIT) throw AudioProcessor.UnhandledAudioFormatException(inputAudioFormat)
+        return inputAudioFormat
+    }
+
+    override fun queueInput(inputBuffer: ByteBuffer) {
+        if (!inputBuffer.hasRemaining()) return
+        val ch = inputAudioFormat.channelCount
+        val c =
+            chain ?: VoiceChain(
+                inputAudioFormat.sampleRate,
+                ch,
+                Sounds.voicing(project),
+                denoised,
+                Sounds.boostDb(project),
+            ).also { chain = it }
+        val input = inputBuffer.order(ByteOrder.nativeOrder())
+        val bytes = input.remaining()
+        val out = replaceOutputBuffer(bytes).order(ByteOrder.nativeOrder())
+        val frame = DoubleArray(ch)
+        for (f in 0 until bytes / 2 / ch) {
+            for (k in 0 until ch) frame[k] = input.short / 32768.0
+            c.frame(frame)
+            for (k in 0 until ch) out.putShort((frame[k] * 32767).toInt().coerceIn(-32768, 32767).toShort())
+        }
+        out.flip()
+    }
+
+    override fun onFlush(streamMetadata: AudioProcessor.StreamMetadata) {
+        chain = null
+    }
+
+    override fun onReset() {
+        chain = null
     }
 }

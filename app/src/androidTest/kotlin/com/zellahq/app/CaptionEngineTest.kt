@@ -6,7 +6,6 @@ import android.util.Log
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.zellahq.app.captions.CaptionEngine
-import com.zellahq.app.editor.CompositionBuilder
 import com.zellahq.app.editor.ExportOutcome
 import com.zellahq.app.editor.ExportSettings
 import com.zellahq.app.editor.Exporter
@@ -107,7 +106,11 @@ class CaptionEngineTest {
                     ) as ExportDecision.Allowed
                 ).permit
             val out = File(context.cacheDir, name)
-            val o = Exporter(context, CompositionBuilder(Storage.store(context))).export(p, permit, ExportSettings(shortSide = 720), out)
+            val o =
+                Exporter(
+                    context,
+                    com.zellahq.app.editor.appComposition(context, Storage.store(context)),
+                ).export(p, permit, ExportSettings(shortSide = 720), out)
             assertTrue("export $o", o is ExportOutcome.Done)
             return out
         }

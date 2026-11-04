@@ -31,6 +31,28 @@ import java.util.concurrent.Executors
 
 /** Where Zella keeps projects and imported media. */
 object Storage {
+    private val sizes = java.util.concurrent.ConcurrentHashMap<String, Pair<Int, Int>>()
+
+    /** A video's width and height as it plays, with its rotation applied. Null if it cannot be read. */
+    fun videoSize(file: File): Pair<Int, Int>? {
+        sizes[file.path]?.let { return it }
+        if (!file.isFile) return null
+        val mmr = android.media.MediaMetadataRetriever()
+        return try {
+            mmr.setDataSource(file.path)
+            val w = mmr.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)?.toIntOrNull() ?: return null
+            val h = mmr.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)?.toIntOrNull() ?: return null
+            val r = mmr.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION)?.toIntOrNull() ?: 0
+            val size = if (r % 180 == 0) w to h else h to w
+            sizes[file.path] = size
+            size
+        } catch (_: Exception) {
+            null
+        } finally {
+            mmr.release()
+        }
+    }
+
     fun projects(context: Context) = File(context.getExternalFilesDir(null), "projects").apply { mkdirs() }
 
     fun imports(context: Context) = File(context.getExternalFilesDir(null), "imports").apply { mkdirs() }
@@ -176,6 +198,67 @@ class EditorState(
     }
 
     fun stopCaptions() = captionEngine?.stop()
+
+    /** One-tap editing: what is running now, and what the last run did. */
+    data class AutoProgress(val viral: Boolean, val step: com.zellahq.core.auto.PolishStep?, val index: Int, val total: Int)
+
+    private val mutableAuto = MutableStateFlow<AutoProgress?>(null)
+    val auto: StateFlow<AutoProgress?> = mutableAuto
+    private val mutableReceipt = MutableStateFlow<com.zellahq.core.auto.PolishReceipt?>(null)
+    val receipt: StateFlow<com.zellahq.core.auto.PolishReceipt?> = mutableReceipt
+    private var autoRunner: com.zellahq.app.auto.AutoPolish? = null
+
+    /** The project as it was before the last one-tap run this session, for undoing the whole run at once. */
+    private val mutableBeforeAuto = MutableStateFlow<Project?>(null)
+    val beforeAuto: StateFlow<Project?> = mutableBeforeAuto
+
+    fun runAuto(viral: Boolean) {
+        if (mutableAuto.value != null) return
+        val start = project.value
+        val runner = com.zellahq.app.auto.AutoPolish(context)
+        autoRunner = runner
+        mutableAuto.value = AutoProgress(viral, null, 0, 0)
+        mutableReceipt.value = null
+        Thread({
+            val r =
+                runCatching {
+                    runner.run(start, viral) { step, i, total -> main.post { mutableAuto.value = AutoProgress(viral, step, i, total) } }
+                }.getOrNull()
+            main.post {
+                mutableAuto.value = null
+                autoRunner = null
+                if (r != null && !r.stopped) {
+                    mutableBeforeAuto.value = start
+                    mutableReceipt.value = r.receipt
+                    edit(if (viral) "make it viral" else "auto polish") { r.project }
+                }
+            }
+        }, "auto-polish").start()
+    }
+
+    fun stopAuto() = autoRunner?.stop()
+
+    fun undoAuto() {
+        val before = mutableBeforeAuto.value ?: return
+        mutableBeforeAuto.value = null
+        mutableReceipt.value = null
+        edit("undo one tap") { before }
+    }
+
+    /** Make Vertical and the other shapes. Keeps the speaker in the crop. */
+    fun reshape(aspect: com.zellahq.core.project.Aspect) {
+        if (mutableAuto.value != null) return
+        val start = project.value
+        mutableAuto.value = AutoProgress(false, com.zellahq.core.auto.PolishStep.Reframe, 1, 1)
+        val runner = com.zellahq.app.auto.AutoPolish(context)
+        Thread({
+            val out = runCatching { runner.reshape(start, aspect) }.getOrNull()
+            main.post {
+                mutableAuto.value = null
+                if (out != null) edit("shape") { out }
+            }
+        }, "reshape").start()
+    }
 
     /** Finds the voice in the background so music can step back for it. Changes nothing else. */
     fun findVoice() = analyse(setOf("voiceWindows")) {}

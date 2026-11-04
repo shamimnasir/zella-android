@@ -13,7 +13,6 @@ import androidx.media3.effect.MultipleInputVideoGraph
 import androidx.media3.transformer.CompositionPlayer
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import com.zellahq.app.editor.CompositionBuilder
 import com.zellahq.app.recording.PatternSource
 import com.zellahq.app.recording.Recorder
 import com.zellahq.app.recording.RecorderConfig
@@ -70,7 +69,11 @@ class PausedSeekTest {
         toMs: Long,
         after: (CompositionPlayer) -> Unit = {},
     ): Pair<Int?, Int> {
-        val composition = CompositionBuilder(ProjectStore(File(context.filesDir, "projects-test"))).build(project).composition
+        val composition =
+            com.zellahq.app.editor.appComposition(
+                context,
+                ProjectStore(File(context.filesDir, "projects-test")),
+            ).build(project).composition
         val thread = HandlerThread("reader").apply { start() }
         val reader = ImageReader.newInstance(720, 1280, PixelFormat.RGBA_8888, 3)
 

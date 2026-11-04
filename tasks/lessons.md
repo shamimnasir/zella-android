@@ -135,3 +135,31 @@ in one glance. For anything visual, write the sheet and open it.
 The clean-up test said the voice moved 44 ms. It had compared a 44.1 kHz export with a 48 kHz one sample
 by sample. The export rate follows the first sound in the mix, so check it before comparing.
 
+## 2026-11-04: Media3 two tracks: gaps must be the canvas size and media kinds must not mix
+
+On two video tracks, Media3's own gap frames are 1 by 1. Every change of frame size rebuilds the
+pre-compositor texture pool under frames still queued, and from then on each picture is drawn 2 to 4
+frames ahead of its timestamp, with black frames at the end of clips. Burning the time into the frame
+before and after the compositor showed it in one picture. Use a black video item at the canvas size.
+And never let a track's first item lack a kind of media it declares: Media3 invents a silent track
+and crashes if the other sequence has not started (SequenceAssetLoader:343). Keep picture and sound on
+separate sequences on this path.
+
+## 2026-11-04: read the POM before adding a dependency
+
+MediaPipe tasks-vision crashed the process with SIGILL on the emulator, and `tasks-core` depends on
+Google's datatransport libraries. Both would have shipped. Android's own FaceDetector found the test
+face correctly with no dependency at all. Try what the platform already has first.
+
+## 2026-11-04: word times from whisper.cpp need the aligner and a reality check
+
+Without DTW, words stretch across pauses ("Yes" from 0.00 to 5.24 s). That silently disabled silence
+cutting, because the words protected the pauses, and misplaced captions. With DTW and trimming words to
+where there is sound, the same take lost 15 pauses and 10.2 s. A green test on sample speech with no
+pauses hid this for a whole phase.
+
+## 2026-11-04: loudness belongs to the voice, not the mix
+
+A gain on the whole composition lifted the music with the voice. Measured 3 dB over target, and the
+balance was wrong. Apply it per clip, ahead of the limiter, and correct once against the measured result.
+

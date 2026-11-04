@@ -62,6 +62,28 @@ object Loudness {
         return Biquad(1.0, -2.0, 1.0, 2 * (k * k - 1) / a0, (1 - k / q + k * k) / a0)
     }
 
+    /**
+     * The level of the quiet between words: the 10th percentile of 30 ms windows, leaving out digital
+     * silence, which has no noise to lift. Very low when there is nothing but silence.
+     */
+    fun floorDb(
+        mono: FloatArray,
+        rate: Int = 48_000,
+    ): Double {
+        val window = (0.03 * rate).toInt()
+        val levels = ArrayList<Double>()
+        var i = 0
+        while (i + window <= mono.size) {
+            var s = 0.0
+            for (k in i until i + window) s += mono[k] * mono[k]
+            if (s > 0) levels += 10 * log10(s / window)
+            i += window
+        }
+        if (levels.isEmpty()) return -120.0
+        levels.sort()
+        return levels[levels.size / 10]
+    }
+
     /** [channels] are equal-length sample arrays, -1..1. Returns LUFS, or -inf for silence. */
     fun integrated(
         channels: List<FloatArray>,

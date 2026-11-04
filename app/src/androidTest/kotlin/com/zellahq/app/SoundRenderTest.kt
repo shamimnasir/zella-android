@@ -7,7 +7,6 @@ import android.media.MediaMetadataRetriever
 import android.util.Log
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import com.zellahq.app.editor.CompositionBuilder
 import com.zellahq.app.editor.ExportOutcome
 import com.zellahq.app.editor.ExportSettings
 import com.zellahq.app.editor.Exporter
@@ -55,7 +54,7 @@ class SoundRenderTest {
     private val store = ProjectStore(File(context.filesDir, "projects-test"))
 
     private fun builder() =
-        CompositionBuilder(store).apply {
+        com.zellahq.app.editor.appComposition(context, store).apply {
             soundEffectFile = { id -> Sounds.effects(context).firstOrNull { it.id == id }?.let { Sounds.file(context, it, "sfx") } }
             voiceWindows = { Sounds.voiceWindows(it) }
         }

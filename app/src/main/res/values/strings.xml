@@ -63,8 +63,6 @@
     <string name="ed_rewind">Rewind</string>
     <string name="ed_reverse">Play backwards</string>
     <string name="ed_play_forward">Play forwards</string>
-    <string name="ed_add_fade">Fade into next clip</string>
-    <string name="ed_remove_fade">Remove fade</string>
     <string name="ed_add_clip">Add clip</string>
     <string name="ed_undo">Undo</string>
     <string name="ed_redo">Redo</string>
@@ -234,6 +232,67 @@
     <string name="tt_motion_out">Going away</string>
     <string name="tt_motion_none">No movement</string>
     <string name="tt_motion_empty">Nothing in this group moves this way. Try another group.</string>
+
+    <!-- Transitions -->
+    <string name="ed_transition">Transition</string>
+    <string name="tr_title">How this clip joins the next one</string>
+    <string name="tr_length">How long it takes</string>
+    <string name="tr_short">Quick</string>
+    <string name="tr_medium">Medium</string>
+    <string name="tr_long">Slow</string>
+    <string name="tr_remove">Plain cut</string>
+
+    <!-- One tap -->
+    <string name="ed_auto">One tap</string>
+    <string name="au_polish">Auto-Polish</string>
+    <string name="au_polish_note">Cleans your take: pauses and filler words out, voice cleaned up, gentle moves, quiet music. No captions, no colour, no sound effects.</string>
+    <string name="au_viral">Make it Viral</string>
+    <string name="au_viral_note">Everything in Auto-Polish, plus bold captions, a colour lift and sounds under the strongest cuts.</string>
+    <string name="au_see">See what it changes</string>
+    <string name="au_hide">Hide the list</string>
+    <string name="au_vertical">Make Vertical</string>
+    <string name="au_square">Make Square</string>
+    <string name="au_wide">Make Wide</string>
+    <string name="au_shape_note">Changes the shape of the video and keeps the speaker in the frame.</string>
+    <string name="au_stop">Stop</string>
+    <string name="au_working">Step %1$d of %2$d: %3$s</string>
+    <string name="au_starting">Getting ready</string>
+    <string name="au_undo">Undo all of it</string>
+    <string name="au_stays_on_phone">All of this runs on your phone.</string>
+    <string name="au_receipt">Cut %1$d pauses (%2$s seconds) and %3$d filler words. Added %4$d dissolves, %5$d zooms, %6$d small moves and %7$d sounds.</string>
+    <string name="ps_silences">Cut the silences</string>
+    <string name="ps_silences_detail">Dead air between sentences comes out.</string>
+    <string name="ps_silences_doing">Removing silences</string>
+    <string name="ps_fillers">Cut the filler words</string>
+    <string name="ps_fillers_detail">Ums and likes come out, with the gap closed behind them. English only.</string>
+    <string name="ps_fillers_doing">Removing filler words</string>
+    <string name="ps_hook">Add a hook title and dissolves</string>
+    <string name="ps_hook_detail">A title on the opening line, and a soft dissolve on up to eight joins.</string>
+    <string name="ps_hook_doing">Adding a hook and dissolves</string>
+    <string name="ps_voice">Clean up your voice</string>
+    <string name="ps_voice_detail">Background noise down, your voice evened out.</string>
+    <string name="ps_voice_doing">Cleaning up your voice</string>
+    <string name="ps_captions">Write the captions</string>
+    <string name="ps_captions_detail">Every word, written on your phone, with the strongest words standing out.</string>
+    <string name="ps_captions_doing">Writing the captions</string>
+    <string name="ps_framing">Frame you in the shot</string>
+    <string name="ps_framing_detail">Starts close and settles out, with slow pushes on strong words. Steps aside if you move around.</string>
+    <string name="ps_framing_doing">Framing the speaker</string>
+    <string name="ps_music">Add background music</string>
+    <string name="ps_music_detail">Quiet music underneath that gets quieter whenever you speak. Skipped if you already have music.</string>
+    <string name="ps_music_doing">Adding music</string>
+    <string name="ps_interrupts">Break up the static stretches</string>
+    <string name="ps_interrupts_detail">Small moves where the picture would otherwise sit still for 6 seconds or more.</string>
+    <string name="ps_interrupts_doing">Breaking up static stretches</string>
+    <string name="ps_colors">Make the colours pop</string>
+    <string name="ps_colors_detail">A colour lift, skipped completely if you have already coloured any clip yourself.</string>
+    <string name="ps_colors_doing">Making the colours pop</string>
+    <string name="ps_sounds">Add sounds under the cuts</string>
+    <string name="ps_sounds_detail">Under the strongest cuts only, not every one. Spacing and loudness are capped so it does not get busy.</string>
+    <string name="ps_sounds_doing">Adding sounds under the cuts</string>
+    <string name="ps_reframe">Reframe the shape</string>
+    <string name="ps_reframe_detail">Only when you ask for a different shape. Otherwise your video keeps its shape.</string>
+    <string name="ps_reframe_doing">Reframing</string>
 
     <string name="rec_list_title">Your recordings</string>
     <string name="rec_list_empty">Nothing recorded yet.</string>

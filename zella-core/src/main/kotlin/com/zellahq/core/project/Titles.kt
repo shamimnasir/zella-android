@@ -141,3 +141,24 @@ fun latestOverlayStart(
     projectDuration: Double,
     overlayDuration: Double,
 ) = maxOf(0.0, projectDuration - minOf(1.0, overlayDuration))
+
+/** The 25 transitions, named exactly as the iPhone and Mac store them. */
+object TransitionTypes {
+    val all =
+        listOf(
+            "Cross Dissolve", "Fade to Black", "Dip to White", "Zoom In", "Zoom Out", "Whip Pan", "Spin", "Glitch Cut",
+            "Smooth Zoom", "Cube Flip", "Slide Push", "Blur Transition", "Velocity Cut", "Shake Cut", "Luma Fade",
+            "Light Leak", "Lens Flare", "Warp", "Flashback", "Ink Bleed", "Film Burn", "Whip Up", "Zoom Punch",
+            "Circle Wipe", "Pixelate",
+        )
+
+    /** Picker groups in the iPhone's order. */
+    val categories =
+        listOf(
+            "Classic" to listOf("Cross Dissolve", "Fade to Black", "Dip to White", "Luma Fade", "Circle Wipe"),
+            "Zoom" to listOf("Zoom In", "Zoom Out", "Smooth Zoom", "Zoom Punch"),
+            "Motion" to listOf("Whip Pan", "Whip Up", "Spin", "Cube Flip", "Slide Push", "Warp", "Ink Bleed"),
+            "Energy" to listOf("Glitch Cut", "Velocity Cut", "Shake Cut", "Pixelate"),
+            "Cinematic" to listOf("Blur Transition", "Light Leak", "Lens Flare", "Flashback", "Film Burn"),
+        )
+}

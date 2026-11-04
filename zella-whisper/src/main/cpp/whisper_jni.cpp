@@ -28,6 +28,21 @@ void progress_cb(whisper_context *, whisper_state *, int progress, void *user) {
 }
 
 bool abort_cb(void *user) { return static_cast<Engine *>(user)->cancelled.load(); }
+
+/** The attention heads to align with, from the model's file name. */
+whisper_alignment_heads_preset aheads_for(const std::string &path) {
+    const size_t slash = path.find_last_of('/');
+    const std::string name = slash == std::string::npos ? path : path.substr(slash + 1);
+    const bool english = name.find(".en") != std::string::npos;
+    if (name.find("tiny") != std::string::npos) return english ? WHISPER_AHEADS_TINY_EN : WHISPER_AHEADS_TINY;
+    if (name.find("base") != std::string::npos) return english ? WHISPER_AHEADS_BASE_EN : WHISPER_AHEADS_BASE;
+    if (name.find("small") != std::string::npos) return english ? WHISPER_AHEADS_SMALL_EN : WHISPER_AHEADS_SMALL;
+    if (name.find("medium") != std::string::npos) return english ? WHISPER_AHEADS_MEDIUM_EN : WHISPER_AHEADS_MEDIUM;
+    if (name.find("large-v3") != std::string::npos) return WHISPER_AHEADS_LARGE_V3;
+    if (name.find("large-v2") != std::string::npos) return WHISPER_AHEADS_LARGE_V2;
+    if (name.find("large") != std::string::npos) return WHISPER_AHEADS_LARGE_V1;
+    return WHISPER_AHEADS_BASE;
+}
 }  // namespace
 
 extern "C" JNIEXPORT jlong JNICALL
@@ -35,6 +50,10 @@ Java_com_zellahq_whisper_WhisperNative_init(JNIEnv *env, jobject, jstring path) 
     const char *p = env->GetStringUTFChars(path, nullptr);
     whisper_context_params cp = whisper_context_default_params();
     cp.use_gpu = false;
+    // Aligned word times. Without this, whisper.cpp stretches words across pauses ("Yes" from 0.00 s
+    // to 5.24 s, measured), which misplaces captions and hides silences from the cutter.
+    cp.dtw_token_timestamps = true;
+    cp.dtw_aheads_preset = aheads_for(p);
     whisper_context *ctx = whisper_init_from_file_with_params(p, cp);
     env->ReleaseStringUTFChars(path, p);
     if (!ctx) return 0;
@@ -107,6 +126,7 @@ Java_com_zellahq_whisper_WhisperNative_transcribe(JNIEnv *env, jobject, jlong ha
     const int segs = whisper_full_n_segments(e->ctx);
     std::vector<std::string> out;
     out.emplace_back(whisper_lang_str(whisper_full_lang_id(e->ctx)));
+    int64_t lastEnd = -1;
     for (int i = 0; i < segs; i++) {
         std::string text = whisper_full_get_segment_text(e->ctx, i);
         if (text.empty()) continue;
@@ -114,15 +134,25 @@ Java_com_zellahq_whisper_WhisperNative_transcribe(JNIEnv *env, jobject, jlong ha
         const int nt = whisper_full_n_tokens(e->ctx, i);
         float sum = 0;
         int cnt = 0;
+        int64_t aligned = -1;  // when the aligner moved on from this word's last token
         for (int k = 0; k < nt; k++) {
             whisper_token_data td = whisper_full_get_token_data(e->ctx, i, k);
             if (td.id >= whisper_token_eot(e->ctx)) continue;  // special tokens
             sum += td.p;
             cnt++;
+            if (td.t_dtw >= 0) aligned = td.t_dtw;
         }
+        // Centiseconds to ms. The aligner gives each word's end; a word starts where the one before it ended.
+        int64_t t0 = whisper_full_get_segment_t0(e->ctx, i);
+        int64_t t1 = whisper_full_get_segment_t1(e->ctx, i);
+        if (aligned >= 0) {
+            t0 = lastEnd >= 0 ? lastEnd : t0;
+            t1 = aligned > t0 ? aligned : t0 + 1;
+        }
+        lastEnd = t1;
         out.push_back(text);
-        out.push_back(std::to_string(whisper_full_get_segment_t0(e->ctx, i) * 10));  // centiseconds to ms
-        out.push_back(std::to_string(whisper_full_get_segment_t1(e->ctx, i) * 10));
+        out.push_back(std::to_string(t0 * 10));
+        out.push_back(std::to_string(t1 * 10));
         out.push_back(std::to_string(cnt ? sum / cnt : 0.0f));
     }
     jobjectArray arr = env->NewObjectArray((jsize) out.size(), env->FindClass("java/lang/String"), nullptr);

@@ -57,22 +57,19 @@ import com.zellahq.core.project.duration
 import com.zellahq.core.project.insertClip
 import com.zellahq.core.project.instantReplay
 import com.zellahq.core.project.move
-import com.zellahq.core.project.removeTransition
 import com.zellahq.core.project.reverse
 import com.zellahq.core.project.rewind
 import com.zellahq.core.project.rippleDelete
 import com.zellahq.core.project.setSpeed
-import com.zellahq.core.project.setTransition
 import com.zellahq.core.project.setVolume
 import com.zellahq.core.project.split
-import com.zellahq.core.project.transitionAfter
 import com.zellahq.core.project.trimEnd
 import com.zellahq.core.project.trimStart
 import com.zellahq.ui.ZellaColors
 import com.zellahq.ui.ZellaRadius
 import com.zellahq.ui.ZellaSpacing
 
-private enum class Sheet { None, Speed, Volume, Captions, Look, Sound, Text }
+private enum class Sheet { None, Speed, Volume, Captions, Look, Sound, Text, Transition, Auto }
 
 @OptIn(UnstableApi::class)
 @Composable
@@ -221,6 +218,9 @@ fun EditorScreen(
             Tool(stringResource(R.string.ed_captions), if (sheet == Sheet.Captions) ZellaColors.CardSun else ZellaColors.CardMint) {
                 sheet = if (sheet == Sheet.Captions) Sheet.None else Sheet.Captions
             }
+            Tool(stringResource(R.string.ed_auto), if (sheet == Sheet.Auto) ZellaColors.CardSun else ZellaColors.CardMint) {
+                sheet = if (sheet == Sheet.Auto) Sheet.None else Sheet.Auto
+            }
             Tool(stringResource(R.string.ed_text), if (sheet == Sheet.Text) ZellaColors.CardSun else null) {
                 sheet = if (sheet == Sheet.Text) Sheet.None else Sheet.Text
             }
@@ -259,14 +259,8 @@ fun EditorScreen(
                     state.edit("reverse") { it.reverse(selected.id) }
                 }
                 if (index < project.clips.size - 1) {
-                    if (project.transitionAfter(selected.id) == null) {
-                        Tool(stringResource(R.string.ed_add_fade)) {
-                            state.edit("fade") { it.setTransition(selected.id, "Cross Dissolve", 0.5) }
-                        }
-                    } else {
-                        Tool(
-                            stringResource(R.string.ed_remove_fade),
-                        ) { state.edit("fade") { it.removeTransition(selected.id) } }
+                    Tool(stringResource(R.string.ed_transition), if (sheet == Sheet.Transition) ZellaColors.CardSun else null) {
+                        sheet = if (sheet == Sheet.Transition) Sheet.None else Sheet.Transition
                     }
                 }
             }
@@ -281,6 +275,16 @@ fun EditorScreen(
             // Captions can be long; the panel scrolls on its own so the tools above stay in place.
             androidx.compose.foundation.layout.Box(Modifier.heightIn(max = 320.dp).verticalScroll(rememberScrollState())) {
                 com.zellahq.app.captions.CaptionsPanel(state, project)
+            }
+        }
+        if (selected != null && sheet == Sheet.Transition && selected.id != project.clips.lastOrNull()?.id) {
+            androidx.compose.foundation.layout.Box(Modifier.heightIn(max = 240.dp).verticalScroll(rememberScrollState())) {
+                TransitionPanel(state, project, selected.id)
+            }
+        }
+        if (sheet == Sheet.Auto) {
+            androidx.compose.foundation.layout.Box(Modifier.heightIn(max = 360.dp).verticalScroll(rememberScrollState())) {
+                com.zellahq.app.auto.AutoPanel(state, project)
             }
         }
         if (sheet == Sheet.Text) {

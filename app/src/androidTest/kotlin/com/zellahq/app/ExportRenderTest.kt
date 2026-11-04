@@ -9,7 +9,6 @@ import android.util.Log
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.rule.GrantPermissionRule
-import com.zellahq.app.editor.CompositionBuilder
 import com.zellahq.app.editor.ExportOutcome
 import com.zellahq.app.editor.ExportSettings
 import com.zellahq.app.editor.Exporter
@@ -103,7 +102,7 @@ class ExportRenderTest {
                 ) as ExportDecision.Allowed
             ).permit
         val store = ProjectStore(File(context.filesDir, "projects-test"))
-        val exporter = Exporter(context, CompositionBuilder(store))
+        val exporter = Exporter(context, com.zellahq.app.editor.appComposition(context, store))
         val out = File(dir, "out.mp4")
         val outcome = exporter.export(p, permit, ExportSettings(shortSide = 720), out)
         assertTrue("export: $outcome", outcome is ExportOutcome.Done)
@@ -174,7 +173,7 @@ class ExportRenderTest {
         val o =
             Exporter(
                 context,
-                CompositionBuilder(ProjectStore(File(context.filesDir, "projects-test"))),
+                com.zellahq.app.editor.appComposition(context, ProjectStore(File(context.filesDir, "projects-test"))),
             ).export(p, permit, ExportSettings(shortSide = 720), out)
         assertTrue("export: $o", o is ExportOutcome.Done)
         val ex = MediaExtractor().apply { setDataSource(out.path) }
@@ -212,7 +211,8 @@ class ExportRenderTest {
                     System.currentTimeMillis(),
                 ) as ExportDecision.Allowed
             ).permit
-        val exporter = Exporter(context, CompositionBuilder(ProjectStore(File(context.filesDir, "projects-test"))))
+        val exporter =
+            Exporter(context, com.zellahq.app.editor.appComposition(context, ProjectStore(File(context.filesDir, "projects-test"))))
         val outcome = exporter.export(p, permit, ExportSettings(shortSide = 2160), File(dir, "never.mp4"))
         assertTrue("4K on a 1080p permit must be refused: $outcome", outcome is ExportOutcome.Failed)
         assertTrue(!File(dir, "never.mp4").exists())

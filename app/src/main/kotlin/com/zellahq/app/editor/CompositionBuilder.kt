@@ -32,6 +32,7 @@ import com.zellahq.core.project.ZoomBlock
 import com.zellahq.core.project.duration
 import com.zellahq.core.project.rampMultiplier
 import com.zellahq.core.project.startTime
+import com.zellahq.core.project.transitionAfter
 import com.zellahq.core.project.transitionOverlap
 import java.io.File
 import java.nio.ByteBuffer
@@ -56,6 +57,8 @@ private fun even(v: Double) = (Math.round(v / 2) * 2).toInt()
  * tracks with gaps between them, so neighbours overlap by exactly the transition's overlap and the
  * compositor fades between them. Times come from the same Project.startTime the timeline uses.
  */
+private const val BLACK_VIDEO_MS = 10_000L
+
 @OptIn(UnstableApi::class)
 class CompositionBuilder(
     private val store: ProjectStore,
@@ -71,34 +74,15 @@ class CompositionBuilder(
         val missing = ArrayList<Clip>()
         val needsReverse = ArrayList<Clip>()
         val fade = !p.transitions.isNullOrEmpty() && p.clips.size > 1
-        val tracks = if (fade) listOf(ArrayList<Any>(), ArrayList()) else listOf(ArrayList<Any>())
-        val cursor = LongArray(tracks.size)
-
-        p.clips.forEachIndexed { i, clip ->
-            val track = if (fade) i % 2 else 0
-            val startUs = (p.startTime(clip.id) * 1e6).toLong()
-            if (startUs > cursor[track]) tracks[track] += startUs - cursor[track] // a gap
-            val item = item(p, clip, i, canvas, missing, needsReverse)
-            tracks[track] += item
-            cursor[track] = startUs + (clip.timelineDuration * 1e6).toLong()
-        }
-
-        // Media3 takes the video's length from the FIRST track. With two clips and a fade, track 0
-        // ends with clip 1 and clip 2 was cut off (export of a real edit, 2026-11-04). Pad track 0
-        // to the full timeline; its gaps are fully transparent in CrossfadeSettings.
-        val totalUs = (p.duration * 1e6).toLong()
-        if (fade && cursor[0] < totalUs) tracks[0] += totalUs - cursor[0]
-
         val sequences =
-            tracks.map { list ->
+            if (fade) {
+                twoTrackSequences(p, canvas, missing, needsReverse)
+            } else {
                 // Declaring both track types makes Media3 fill silence for a clip without sound (a reversed copy).
-                val b =
-                    EditedMediaItemSequence.Builder(
-                        setOf(C.TRACK_TYPE_AUDIO, C.TRACK_TYPE_VIDEO),
-                    )
-                list.forEach { if (it is Long) b.addGap(it) else b.addItem(it as EditedMediaItem) }
-                b.build()
-            }.toMutableList()
+                val one = EditedMediaItemSequence.Builder(setOf(C.TRACK_TYPE_AUDIO, C.TRACK_TYPE_VIDEO))
+                p.clips.forEachIndexed { i, clip -> one.addItem(item(p, clip, i, canvas, missing, needsReverse)) }
+                mutableListOf(one.build())
+            }
 
         // Music on its own audio-only track. The iPhone's rule: a bed that steps back for the voice
         // repeats to cover its span; one that does not (a voiceover) plays once. A stored play length caps both.
@@ -138,23 +122,30 @@ class CompositionBuilder(
             sequences += b.build()
         }
 
-        // Each sound effect on its own short audio track, at its time, cut off at the end of the video.
-        p.soundBites?.forEach { bite ->
-            val file = soundEffectFile(bite.effectId) ?: return@forEach
-            if (bite.atTime >= total) return@forEach
-            val len = com.zellahq.app.editor.Storage.durationSeconds(file) ?: 1.0
-            val b = EditedMediaItemSequence.Builder(setOf(C.TRACK_TYPE_AUDIO))
-            if (bite.atTime > 0) b.addGap((bite.atTime * 1e6).toLong())
+        // Sound effects share tracks where they do not overlap: every track is a player of its own,
+        // and Make it Viral can place many effects.
+        val effects =
+            p.soundBites.orEmpty().mapNotNull { bite ->
+                val file = soundEffectFile(bite.effectId) ?: return@mapNotNull null
+                if (bite.atTime >= total) return@mapNotNull null
+                val len = com.zellahq.app.editor.Storage.durationSeconds(file) ?: 1.0
+                Triple(bite, file, len)
+            }.sortedBy { it.first.atTime }
+        val effectTracks = ArrayList<Pair<EditedMediaItemSequence.Builder, DoubleArray>>()
+        for ((bite, file, len) in effects) {
+            val played = minOf(len, total - bite.atTime)
+            val lane =
+                effectTracks.firstOrNull { it.second[0] <= bite.atTime + 1e-6 }
+                    ?: (EditedMediaItemSequence.Builder(setOf(C.TRACK_TYPE_AUDIO)) to doubleArrayOf(0.0)).also { effectTracks += it }
+            val gapUs = ((bite.atTime - lane.second[0]) * 1e6).toLong()
+            if (gapUs > 0) lane.first.addGap(gapUs)
             val media =
                 MediaItem
                     .Builder()
                     .setUri(Uri.fromFile(file))
-                    .setClippingConfiguration(
-                        MediaItem.ClippingConfiguration.Builder().setEndPositionUs(
-                            (minOf(len, total - bite.atTime) * 1e6).toLong(),
-                        ).build(),
-                    ).build()
-            b.addItem(
+                    .setClippingConfiguration(MediaItem.ClippingConfiguration.Builder().setEndPositionUs((played * 1e6).toLong()).build())
+                    .build()
+            lane.first.addItem(
                 EditedMediaItem
                     .Builder(media)
                     .setDurationUs((len * 1e6).toLong())
@@ -162,8 +153,9 @@ class CompositionBuilder(
                     .setEffects(Effects(listOf(GainProcessor { bite.volume.coerceIn(0.0, 1.0).toFloat() }), emptyList()))
                     .build(),
             )
-            sequences += b.build()
+            lane.second[0] = bite.atTime + played
         }
+        effectTracks.forEach { sequences += it.first.build() }
 
         val composition =
             Composition
@@ -171,8 +163,7 @@ class CompositionBuilder(
                 // Zoom first, captions after: a zoom must not enlarge the captions.
                 .setEffects(
                     Effects(
-                        // Evened-out loudness for the whole video, with a soft limit so a boost never clips.
-                        listOfNotNull(loudness(p)),
+                        emptyList(),
                         listOfNotNull(zoomEffect(p.zoomBlocks.orEmpty(), canvas), titleEffect(p, canvas), captionEffect(p, canvas)),
                     ),
                 )
@@ -181,6 +172,7 @@ class CompositionBuilder(
         return Built(composition, missing, needsReverse)
     }
 
+    /** A clip with its picture and sound together, for the single track path. */
     private fun item(
         p: Project,
         clip: Clip,
@@ -189,11 +181,28 @@ class CompositionBuilder(
         missing: MutableList<Clip>,
         needsReverse: MutableList<Clip>,
     ): EditedMediaItem {
+        val r = resolved(p, clip, missing, needsReverse)
+        return EditedMediaItem
+            .Builder(r.media)
+            .setDurationUs(r.sourceUs)
+            .setSpeed(speedProvider(clip, r.isReversedCopy))
+            .setEffects(Effects(audioEffects(p, clip, index), videoEffects(p, clip, index, canvas)))
+            .build()
+    }
+
+    private class Resolved(val media: MediaItem, val file: File, val sourceUs: Long, val isReversedCopy: Boolean)
+
+    private fun resolved(
+        p: Project,
+        clip: Clip,
+        missing: MutableList<Clip>,
+        needsReverse: MutableList<Clip>,
+    ): Resolved {
         val forward = store.resolve(clip.source, p.id)
         val reversed = if (clip.reversed) reversedFile(clip) else null
-        if (clip.reversed && reversed == null) needsReverse += clip
+        if (clip.reversed && reversed == null && clip !in needsReverse) needsReverse += clip
         val file = reversed ?: forward
-        if (!file.isFile) missing += clip
+        if (!file.isFile && clip !in missing) missing += clip
         // A reversed copy holds only the trimmed range, already backwards, starting at zero.
         val (fromUs, toUs) =
             if (reversed != null) {
@@ -213,30 +222,257 @@ class CompositionBuilder(
                         .setEndPositionUs(toUs)
                         .build(),
                 ).build()
+        // The preview player needs each source's full length up front; export works without it, so
+        // only the preview crashed when this was missing (lessons.md, 2026-11-04).
+        val sourceUs = ((if (reversed != null) clip.trimmedDuration else clip.sourceDuration) * 1e6).toLong()
+        return Resolved(media, file, sourceUs, reversed != null)
+    }
+
+    private fun videoEffects(
+        p: Project,
+        clip: Clip,
+        index: Int,
+        canvas: Size,
+    ): List<Effect> {
         val video = ArrayList<Effect>()
+        reframeEffect(p, clip, canvas)?.let { video += it }
         // Fill the canvas, cropping the edges, like the iPhone's default fill mode.
         video += Presentation.createForWidthAndHeight(canvas.width, canvas.height, Presentation.LAYOUT_SCALE_TO_FIT_WITH_CROP)
         // The clip's look, colour board and imported LUT (the iPhone's ClipEffects), as one LUT.
         video += clipLook(clip, canvas)
+        transitionEffect(p, clip, index)?.let { video += it }
+        return video
+    }
+
+    /** Slides the source under the crop so the speaker stays framed. Runs ahead of the fill, in full-frame terms. */
+    private fun reframeEffect(
+        p: Project,
+        clip: Clip,
+        canvas: Size,
+    ): Effect? {
+        val plan = p.extras["reframe"] as? kotlinx.serialization.json.JsonObject ?: return null
+        val raw = plan["keys"] as? kotlinx.serialization.json.JsonArray ?: return null
+        val keys =
+            raw.mapNotNull { e ->
+                val o = e as? kotlinx.serialization.json.JsonObject ?: return@mapNotNull null
+
+                fun v(k: String) = (o[k] as? kotlinx.serialization.json.JsonPrimitive)?.content?.toDoubleOrNull()
+                com.zellahq.core.auto.Reframe.Key(
+                    v("time") ?: return@mapNotNull null,
+                    v("centerX") ?: return@mapNotNull null,
+                    v("centerY") ?: return@mapNotNull null,
+                )
+            }
+        if (keys.isEmpty()) return null
+        val size = Storage.videoSize(store.resolve(clip.source, p.id)) ?: return null
+        val sourceAspect = size.first.toDouble() / size.second
+        val canvasAspect = canvas.width.toDouble() / canvas.height
+        val roomX = (1 - minOf(1.0, canvasAspect / sourceAspect)) / 2
+        val roomY = (1 - minOf(1.0, sourceAspect / canvasAspect)) / 2
+        if (roomX <= 0 && roomY <= 0) return null
+        return androidx.media3.effect.MatrixTransformation { us ->
+            val (cx, cy) = com.zellahq.core.auto.Reframe.centerAt(keys, us / 1e6)
+            android.graphics.Matrix().apply {
+                setTranslate(
+                    ((0.5 - cx).coerceIn(-roomX, roomX) * 2).toFloat(),
+                    ((cy - 0.5).coerceIn(-roomY, roomY) * 2).toFloat(),
+                )
+            }
+        }
+    }
+
+    private fun audioEffects(
+        p: Project,
+        clip: Clip,
+        index: Int,
+    ): List<AudioProcessor> {
         val audio = ArrayList<AudioProcessor>()
         val fadeIn = if (index > 0) p.transitionOverlap(index - 1) else 0.0
         val fadeOut = p.transitionOverlap(index)
         val len = clip.timelineDuration
         // Voice clean-up on this clip (the iPhone's per-clip voiceNoise flag): resample to 48 kHz, then RNNoise.
-        if ((clip.extras["voiceNoise"] as? kotlinx.serialization.json.JsonPrimitive)?.content == "true") {
+        val cleaned = com.zellahq.app.sound.Sounds.isClean(clip)
+        if (cleaned) {
             audio += androidx.media3.common.audio.SonicAudioProcessor().apply { setOutputSampleRateHz(48_000) }
             audio += com.zellahq.app.sound.CleanupProcessor()
         }
-        audio += GainProcessor { tSec -> (clip.volume * crossfadeGain(tSec, len, fadeIn, fadeOut)).toFloat() }
-        // The preview player needs each source's full length up front; export works without it, so
-        // only the preview crashed when this was missing (lessons.md, 2026-11-04).
-        val sourceUs = ((if (reversed != null) clip.trimmedDuration else clip.sourceDuration) * 1e6).toLong()
-        return EditedMediaItem
-            .Builder(media)
-            .setDurationUs(sourceUs)
-            .setSpeed(speedProvider(clip, reversed != null))
-            .setEffects(Effects(audio, video))
-            .build()
+        // The iPhone's voicePolish flag: the studio chain on the cleaned voice.
+        if (com.zellahq.app.sound.Sounds.isPolished(clip)) audio += com.zellahq.app.sound.VoicePolishProcessor(p, denoised = cleaned)
+        // Loudness belongs to the voice, not the mix: boosting everything lifted the music with it, 3 dB over
+        // the target and far too loud against the speech. A polished clip took its boost inside the chain above.
+        val polished = com.zellahq.app.sound.Sounds.isPolished(clip)
+        val boost = if (polished) 1.0 else com.zellahq.core.audio.Loudness.dbToLinear(com.zellahq.app.sound.Sounds.boostDb(p))
+        audio +=
+            GainProcessor(softLimit = boost > 1.0) { tSec ->
+                (clip.volume * boost * crossfadeGain(tSec, len, fadeIn, fadeOut)).toFloat()
+            }
+        return audio
+    }
+
+    /**
+     * Clips with a transition need two picture tracks, so neighbours can overlap. Picture and sound go
+     * on separate tracks here. When a track's first item has no sound Media3 invents a silent audio
+     * track for it, and crashes if the other track has not started yet (SequenceAssetLoader:343), which
+     * made exports fail at random on silent clips. Tracks with only one kind of media never go there.
+     */
+    private fun twoTrackSequences(
+        p: Project,
+        canvas: Size,
+        missing: MutableList<Clip>,
+        needsReverse: MutableList<Clip>,
+    ): MutableList<EditedMediaItemSequence> {
+        val pictures = List(2) { EditedMediaItemSequence.Builder(setOf(C.TRACK_TYPE_VIDEO)) }
+        val sounds = List(2) { EditedMediaItemSequence.Builder(setOf(C.TRACK_TYPE_AUDIO)) }
+        val pictureAt = LongArray(2)
+        val soundAt = LongArray(2)
+        val heard = BooleanArray(2)
+        val trackOf = trackLayout(p)
+        p.clips.forEachIndexed { i, clip ->
+            val t = trackOf[i]
+            val startUs = (p.startTime(clip.id) * 1e6).toLong()
+            val lengthUs = (clip.timelineDuration * 1e6).toLong()
+            val r = resolved(p, clip, missing, needsReverse)
+
+            val gapMs = (startUs - pictureAt[t]) / 1000
+            if (gapMs > 0) {
+                addGap(pictures[t], gapMs, canvas)
+                pictureAt[t] += gapMs * 1000
+            }
+            pictures[t].addItem(
+                EditedMediaItem
+                    .Builder(r.media)
+                    .setDurationUs(r.sourceUs)
+                    .setRemoveAudio(true)
+                    .setSpeed(speedProvider(clip, r.isReversedCopy))
+                    .setEffects(Effects(emptyList(), videoEffects(p, clip, i, canvas)))
+                    .build(),
+            )
+            pictureAt[t] += lengthUs
+
+            if (hasSound(r.file)) {
+                if (startUs > soundAt[t]) sounds[t].addGap(startUs - soundAt[t])
+                sounds[t].addItem(
+                    EditedMediaItem
+                        .Builder(r.media)
+                        .setDurationUs(r.sourceUs)
+                        .setRemoveVideo(true)
+                        .setSpeed(speedProvider(clip, r.isReversedCopy))
+                        .setEffects(Effects(audioEffects(p, clip, i), emptyList()))
+                        .build(),
+                )
+                soundAt[t] = startUs + lengthUs
+                heard[t] = true
+            }
+        }
+        // Media3 takes the video's length from the FIRST track. With two clips and a fade, track 0
+        // ends with clip 1 and clip 2 was cut off (export of a real edit, 2026-11-04). Pad track 0
+        // to the full timeline; its gaps are fully transparent in CrossfadeSettings.
+        val totalUs = (p.duration * 1e6).toLong()
+        if (pictureAt[0] < totalUs) {
+            val ms = (totalUs - pictureAt[0]) / 1000
+            if (ms > 0) addGap(pictures[0], ms, canvas)
+        }
+        val out = pictures.map { it.build() }.toMutableList()
+        sounds.forEachIndexed { t, b -> if (heard[t]) out += b.build() }
+        return out
+    }
+
+    private val soundKnown = java.util.concurrent.ConcurrentHashMap<String, Boolean>()
+
+    private fun hasSound(file: File): Boolean =
+        soundKnown.getOrPut(file.path + "|" + file.length()) {
+            if (!file.isFile) return@getOrPut false
+            val ex = android.media.MediaExtractor()
+            try {
+                ex.setDataSource(file.path)
+                (0 until ex.trackCount).any {
+                    ex.getTrackFormat(it).getString(android.media.MediaFormat.KEY_MIME)?.startsWith("audio/") == true
+                }
+            } catch (_: Exception) {
+                false
+            } finally {
+                ex.release()
+            }
+        }
+
+    /**
+     * Empty time on a video track, as a short black video at the canvas size. Media3's own gap frames
+     * are 1 by 1, and on two tracks every change of frame size rebuilds the texture pool under frames
+     * still waiting to be composited: from then on each picture was drawn 2 to 4 frames early, and a
+     * clip's last frames came out black (timestamps burnt in before and after the compositor showed
+     * it). A black image item fixed that but then failed exports at random with "The surface has been
+     * released" when the input switched between image and video, so this stays video all the way.
+     */
+    private fun addGap(
+        track: EditedMediaItemSequence.Builder,
+        totalMs: Long,
+        canvas: Size,
+    ) {
+        val file = blackVideo()
+        var left = totalMs
+        while (left > 0) {
+            val ms = minOf(left, BLACK_VIDEO_MS)
+            val media =
+                MediaItem
+                    .Builder()
+                    .setUri(Uri.fromFile(file))
+                    .setClippingConfiguration(MediaItem.ClippingConfiguration.Builder().setEndPositionMs(ms).build())
+                    .build()
+            track.addItem(
+                EditedMediaItem
+                    .Builder(media)
+                    .setDurationUs(BLACK_VIDEO_MS * 1000)
+                    .setEffects(
+                        Effects(
+                            emptyList(),
+                            listOf(
+                                Presentation.createForWidthAndHeight(
+                                    canvas.width,
+                                    canvas.height,
+                                    Presentation.LAYOUT_SCALE_TO_FIT_WITH_CROP,
+                                ),
+                            ),
+                        ),
+                    ).build(),
+            )
+            left -= ms
+        }
+    }
+
+    /** The black video to fill empty time with. Set by the app, which has the assets. */
+    var blackVideo: () -> File = { error("set by appComposition") }
+
+    /**
+     * Which picture track each clip goes on. A plain cut stays on the same track and only a transition
+     * changes it, so a long take with a few dissolves does not start a decoder for every empty stretch.
+     */
+    private fun trackLayout(p: Project): IntArray {
+        val out = IntArray(p.clips.size)
+        for (i in 1 until p.clips.size) {
+            out[i] = if (p.transitionAfter(p.clips[i - 1].id) != null) 1 - out[i - 1] else out[i - 1]
+        }
+        return out
+    }
+
+    private fun transitionEffect(
+        p: Project,
+        clip: Clip,
+        index: Int,
+    ): Effect? {
+        val start = p.startTime(clip.id)
+        val incoming =
+            p.clips.getOrNull(index - 1)?.let { prev ->
+                val t = p.transitionAfter(prev.id) ?: return@let null
+                val d = p.transitionOverlap(index - 1)
+                if (d > 0) TransitionEffect.Window(TransitionEffect.typeIndex(t.type), start, d) else null
+            }
+        val outgoing =
+            p.transitionAfter(clip.id)?.let { t ->
+                val d = p.transitionOverlap(index)
+                if (d > 0) TransitionEffect.Window(TransitionEffect.typeIndex(t.type), start + clip.timelineDuration - d, d) else null
+            }
+        if (incoming == null && outgoing == null) return null
+        return TransitionEffect(incoming, outgoing, isTop = trackLayout(p)[index] == 0)
     }
 
     private fun captionEffect(
@@ -257,14 +493,6 @@ class CompositionBuilder(
 
     /** The file for a sound effect id, or null when it is unknown. */
     var soundEffectFile: (String) -> java.io.File? = { null }
-
-    private fun loudness(p: Project): AudioProcessor? {
-        val key = com.zellahq.app.sound.Sounds.LOUDNESS_KEY
-        val db = (p.extras[key] as? kotlinx.serialization.json.JsonPrimitive)?.content?.toDoubleOrNull()
-        if (db == null || kotlin.math.abs(db) < 0.1) return null
-        val g = com.zellahq.core.audio.Loudness.dbToLinear(db).toFloat()
-        return GainProcessor(softLimit = true) { g }
-    }
 
     /** Colour effects for a clip. Set by the app (needs assets); empty in tests that do not set it. */
     var clipLook: (Clip, Size) -> List<Effect> = { _, _ -> emptyList() }
@@ -326,15 +554,16 @@ class CompositionBuilder(
     }
 
     /**
-     * Cross-fade. Measured on the emulator (ExportRenderTest, 2026-11-04): track 0 draws ON TOP of
-     * track 1. So the bottom track is always opaque where it has a clip, and only the top track
-     * carries the fade: rising when its clip comes in, falling when its clip goes out. Giving the
-     * incoming clip the alpha instead rendered no fade at all when the incoming clip was underneath.
+     * Two tracks. Measured on the emulator (ExportRenderTest, 2026-11-04): track 0 draws ON TOP of
+     * track 1. Each transition's shape lives in [TransitionEffect], which writes it into the top
+     * clip's alpha; a track with nothing on it at this moment is fully transparent.
      */
     private inner class CrossfadeSettings(
         private val p: Project,
         private val canvas: Size,
     ) : VideoCompositorSettings {
+        private val layout = trackLayout(p)
+
         override fun getOutputSize(inputSizes: List<Size>) = canvas
 
         override fun getOverlaySettings(
@@ -342,29 +571,11 @@ class CompositionBuilder(
             presentationTimeUs: Long,
         ): OverlaySettings {
             val t = presentationTimeUs / 1e6
-            // Track 0 holds clips 0, 2, 4; track 1 holds 1, 3, 5.
             val playing =
-                p.clips.withIndex().firstOrNull { (i, c) ->
-                    i % 2 == inputId && t >= p.startTime(c.id) && t < p.startTime(c.id) + c.timelineDuration
+                p.clips.withIndex().any { (i, c) ->
+                    layout[i] == inputId && t >= p.startTime(c.id) && t < p.startTime(c.id) + c.timelineDuration
                 }
-            val alpha =
-                when {
-                    playing == null -> 0f
-                    inputId != 0 -> 1f // the bottom track never fades; the top one blends over it
-                    else -> {
-                        val (i, c) = playing
-                        val s = p.startTime(c.id)
-                        val e = s + c.timelineDuration
-                        val inD = if (i > 0) p.transitionOverlap(i - 1) else 0.0
-                        val outD = p.transitionOverlap(i)
-                        when {
-                            inD > 0 && t < s + inD -> ((t - s) / inD).toFloat()
-                            outD > 0 && t > e - outD -> ((e - t) / outD).toFloat()
-                            else -> 1f
-                        }
-                    }
-                }
-            return StaticOverlaySettings.Builder().setAlphaScale(alpha).build()
+            return StaticOverlaySettings.Builder().setAlphaScale(if (playing) 1f else 0f).build()
         }
     }
 }

@@ -5,7 +5,6 @@ import android.media.MediaMetadataRetriever
 import android.util.Log
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import com.zellahq.app.editor.CompositionBuilder
 import com.zellahq.app.editor.ExportOutcome
 import com.zellahq.app.editor.ExportSettings
 import com.zellahq.app.editor.Exporter
@@ -59,7 +58,7 @@ class LookRenderTest {
                 ) as ExportDecision.Allowed
             ).permit
         val builder =
-            CompositionBuilder(Storage.store(context)).apply {
+            com.zellahq.app.editor.appComposition(context, Storage.store(context)).apply {
                 clipLook = {
                         c,
                         s,

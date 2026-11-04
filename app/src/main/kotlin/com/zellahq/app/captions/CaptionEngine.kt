@@ -105,10 +105,14 @@ class CaptionEngine(private val context: Context) {
                         val t =
                             w.transcribe(pcm, lang!!, translate) { pct -> onProgress(((done + windowLen * pct / 100.0) / total).toFloat()) }
                                 ?: return if (stopped) Outcome.Stopped else Outcome.Failed("Captions stopped part way. Please try again.")
-                        val words =
+                        val spoken =
                             t.words.filterNot {
                                 isNoise(it.text)
-                            }.map { SourceWord(it.text, windowStart + it.startMs / 1000.0, windowStart + it.endMs / 1000.0) }
+                            }.map { com.zellahq.core.auto.SpokenWord(it.text, it.startMs / 1000.0, it.endMs / 1000.0) }
+                        val words =
+                            com.zellahq.core.auto.WordTiming.tighten(spoken, pcm).map {
+                                SourceWord(it.text, windowStart + it.start, windowStart + it.end)
+                            }
                         placed += CaptionBuilder.place(project, clip, words)
                     }
                     done += to - from
