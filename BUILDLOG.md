@@ -13,8 +13,9 @@ Read this and tasks/lessons.md at the start of every session.
 | 4 Captions | Built and measured on the emulator. Gate NOT passed (needs a phone and a real Bangla clip). |
 | 5 Looks, sound, text | Built and measured on the emulator. Open items below. |
 | 6 One-tap AI | Built and measured on the emulator. Open items below. |
-| 7 Background, B-roll, Assistant, blur | In progress. Callouts, blur and the Assistant are built and measured on the emulator. |
-| 8 and 9 | Not started |
+| 7 Background, B-roll, Assistant, blur | Built and measured on the emulator. Gate met for what an emulator can show; no phone, no real provider. |
+| 8 Billing, first run, languages | Built. Billing never reached real Google Play. Translations not read by native speakers. |
+| 9 Release | Store kit written in `docs/store/`. Nothing submitted: that needs the owner's account. |
 
 ## Phase 0 evidence (2026-11-04)
 
@@ -263,6 +264,34 @@ export is not built, since Android has no ready alpha video path; its Pro line s
 person cutout has no live camera preview yet. Colour sliders use plain formulas, which are not the same maths
 as the iPhone's Core Image filters, so a project moved between them may differ slightly. A look's dark corners
 and blur do not sit inside a mask's area.
+
+## Phase 8 and 9 evidence (2026-11-04, emulator only)
+
+| Check | Result |
+| --- | --- |
+| The minified release | R8 on, zipaligned at 16 KB, signed with the debug key for testing, driven through the real screens: captions made 28 words from a spoken clip (whisper), a background found the person (LiteRT), the text reader ran (Tesseract), a full export wrote 9.1 MB. Nothing in the crash buffer |
+| Purchases | `PurchasesTest`: pending grants nothing, a bad signature grants nothing, a refund drops the plan. `EntitlementSealTest`: a hand edit of the plan or install date reads as free with Pro Week over; rolling the clock back gives nothing back; a real RSA signature is checked and a changed purchase fails |
+| 16 KB pages | every library in the APK reads 0x4000 with `llvm-readelf`. Two of ours were 0x1000 and were fixed |
+| Translations | 8 languages, 532 entries each. A script against the English: no missing names, every placeholder matches, no dashes. Arabic and Bangla home screens looked at; Arabic lays out right to left |
+| Accessibility | a scan of home, editor, mark up and export: no tap target under 48 dp. Sliders now carry their label for TalkBack. No one has used it with TalkBack on |
+| Preview | found by driving the app: the paused picture went black whenever a panel resized it. Now handed the surface again. Looked at by measuring the pixels before and after |
+
+Full instrumented suite on the emulator: 62 of 64 pass, in 16 minutes. The other two are `ModelDownloaderTest` cases
+that need a test server started by hand on the Mac, which was not running. That code did not change this round.
+Unit tests: 159, none failing.
+
+Not verified, and only the owner can do it: buying, refunding and restoring against real Google Play; the signed
+build; the Data safety decision. Heat and battery have no measurement, since an emulator has neither. The list
+is in `docs/store/RELEASE_CHECKLIST.md`.
+
+Known differences from the brief or the iPhone:
+- Pro Week restarts if Zella is uninstalled and reinstalled. Android has nothing like the iPhone's keychain stamp
+  that survives an uninstall, short of a server, and the brief says no server.
+- Live camera background is not live: the choice applies when the recording is opened. Transparent export and MOV
+  are not built. The Assistant has 78 tools against the iPhone's 74, but not the same 74: no per-band beat controls.
+- Word choice for B-roll uses a stop list, since Android has no equivalent of Apple's tagger.
+- Voice effects and colour sliders use plain filters and formulas, so they are alike in kind, not identical.
+- Short onboarding instead of the iPhone's quiz. The brief's rules on pressure made that the honest start.
 
 ## Phase 1 exit gate: NOT passed
 

@@ -18,6 +18,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import com.zellahq.app.R
 import com.zellahq.app.editor.EditorState
 import com.zellahq.app.editor.Tool
@@ -148,6 +150,8 @@ fun CalloutsPanel(
 
         Text(stringResource(R.string.co_hide_title), color = color)
         Text(stringResource(R.string.co_hide_detail), color = color)
+        // Above the buttons: below them it landed out of sight, and the tap looked as if it did nothing.
+        report?.let { Text(it, color = color) }
         OutlinedTextField(
             value = hideWords,
             onValueChange = { hideWords = it },
@@ -163,7 +167,6 @@ fun CalloutsPanel(
                 Tool(stringResource(R.string.co_hide_pixel)) { hide(true) }
             }
         }
-        report?.let { Text(it, color = color) }
     }
 }
 
@@ -197,16 +200,42 @@ private fun Editor(
             modifier = Modifier.fillMaxWidth(),
         )
     }
-    Text(stringResource(R.string.co_left), color = color)
-    Slider(value = r[0].toFloat(), onValueChange = { setRect(x = it.toDouble()) }, valueRange = 0f..1f)
-    Text(stringResource(R.string.co_up), color = color)
-    Slider(value = r[1].toFloat(), onValueChange = { setRect(y = it.toDouble()) }, valueRange = 0f..1f)
-    Text(stringResource(R.string.co_wide), color = color)
-    Slider(value = r[2].toFloat(), onValueChange = { setRect(w = it.toDouble()) }, valueRange = 0.02f..1f)
-    Text(stringResource(R.string.co_tall), color = color)
-    Slider(value = r[3].toFloat(), onValueChange = { setRect(h = it.toDouble()) }, valueRange = 0.02f..1f)
-    Text(stringResource(R.string.co_long), color = color)
+    val leftName = stringResource(R.string.co_left)
+    Text(leftName, color = color)
     Slider(
+        modifier = Modifier.semantics { contentDescription = leftName },
+        value = r[0].toFloat(),
+        onValueChange = { setRect(x = it.toDouble()) },
+        valueRange = 0f..1f,
+    )
+    val upName = stringResource(R.string.co_up)
+    Text(upName, color = color)
+    Slider(
+        modifier = Modifier.semantics { contentDescription = upName },
+        value = r[1].toFloat(),
+        onValueChange = { setRect(y = it.toDouble()) },
+        valueRange = 0f..1f,
+    )
+    val wideName = stringResource(R.string.co_wide)
+    Text(wideName, color = color)
+    Slider(
+        modifier = Modifier.semantics { contentDescription = wideName },
+        value = r[2].toFloat(),
+        onValueChange = { setRect(w = it.toDouble()) },
+        valueRange = 0.02f..1f,
+    )
+    val tallName = stringResource(R.string.co_tall)
+    Text(tallName, color = color)
+    Slider(
+        modifier = Modifier.semantics { contentDescription = tallName },
+        value = r[3].toFloat(),
+        onValueChange = { setRect(h = it.toDouble()) },
+        valueRange = 0.02f..1f,
+    )
+    val longName = stringResource(R.string.co_long)
+    Text(longName, color = color)
+    Slider(
+        modifier = Modifier.semantics { contentDescription = longName },
         value = c.duration.toFloat(),
         onValueChange = {
                 v ->

@@ -18,7 +18,7 @@ model, edits, undo, store, pricing gate), `zella-ui` (design tokens), `app` (eve
   Never write "nothing is uploaded" on a screen that touches one of them (`BeginnerCopyTest` checks).
 - **Free is permanent.** Complete editor and all AI free, watermark-free, exports up to 2 minutes at
   up to 1080p. Pro ($89 once) lifts length, 4K, 60 fps, transparent export, custom bitrate,
-  multi-aspect queue, templates, depth tools. Founder ($299 once) adds supporter perks. Pro Week:
+  multi-aspect queue, saved looks, and shows the depth tools. Founder ($299 once) adds supporter perks. Pro Week:
   every install gets 7 days of Pro, quietly. No watermark, no fake urgency, no countdowns, ever.
 - **The gate is enforced at the render boundary.** Only `PremiumGate.authorize` makes an
   `ExportPermit`; `ExportService` asks the gate itself. Never trust the UI for this.
@@ -53,7 +53,8 @@ recording, playback, export or the camera must be left marked "not verified on a
 
 ## Where the work stands
 
-Phases 0 to 5 (foundation, capture, timeline, export, captions, looks, sound, text) are built and
-measured on an emulator. No phone has been used yet. Phases 6 to 9 (one-tap AI, background removal
-and Assistant, billing, release) are in progress; `BUILDLOG.md` holds the status, evidence and open
-items for each.
+Phases 0 to 9 are built and measured on an emulator. No phone has been used, no real Assistant provider or stock
+site has been called, and billing has never reached real Google Play. `BUILDLOG.md` holds the evidence and the
+known differences; `docs/store/RELEASE_CHECKLIST.md` holds what only the owner can do.
+
+Depth tools (keyframes, masks, speed curves) are shown to Pro and always export on every tier: the iPhone's law.

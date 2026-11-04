@@ -200,3 +200,13 @@ Noir black and white twice. Apply only what differs from the look.
 
 Holes in faces and phantom people looked like a weak model. They were my input and output handling. A sheet of
 four variants on two real clips settled it in one run.
+
+## 2026-11-04: drive the real screens before calling a feature done
+
+Every render test passed while the paused preview was black after any panel opened. Only a tour of the real app
+showed it. A seek, a reset composition and a clear shutter all failed; re-attaching the surface worked. A result
+that lands below the fold also read as a dead button.
+
+## 2026-11-04: never chain a commit after a check with a semicolon
+
+A style failure went into a commit that way. It was caught and amended before pushing. Test the exit code first.

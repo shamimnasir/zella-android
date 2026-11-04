@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Zella</string>
+    <string name="app_name" translatable="false">Zella</string>
     <string name="home_tagline">Record your screen or yourself, then edit it right here.</string>
     <string name="home_camera">Record with camera</string>
     <string name="home_status">Your videos stay on this phone until you share them. A few optional extras use the internet, and each one says so where you turn it on.</string>
@@ -126,15 +126,15 @@
     <string name="ed_captions">Captions</string>
     <string name="cap_language_question">What language is spoken?</string>
     <string name="cap_lang_detect">Detect the language</string>
-    <string name="cap_lang_en">English</string>
-    <string name="cap_lang_bn">বাংলা, Bangla</string>
-    <string name="cap_lang_hi">हिन्दी, Hindi</string>
-    <string name="cap_lang_es">Español</string>
-    <string name="cap_lang_fr">Français</string>
-    <string name="cap_lang_vi">Tiếng Việt</string>
-    <string name="cap_lang_ar">العربية, Arabic</string>
-    <string name="cap_lang_ur">اردو, Urdu</string>
-    <string name="cap_lang_zh">中文, Chinese</string>
+    <string name="cap_lang_en" translatable="false">English</string>
+    <string name="cap_lang_bn" translatable="false">বাংলা, Bangla</string>
+    <string name="cap_lang_hi" translatable="false">हिन्दी, Hindi</string>
+    <string name="cap_lang_es" translatable="false">Español</string>
+    <string name="cap_lang_fr" translatable="false">Français</string>
+    <string name="cap_lang_vi" translatable="false">Tiếng Việt</string>
+    <string name="cap_lang_ar" translatable="false">العربية, Arabic</string>
+    <string name="cap_lang_ur" translatable="false">اردو, Urdu</string>
+    <string name="cap_lang_zh" translatable="false">中文, Chinese</string>
     <string name="cap_translate">Write the captions in English</string>
     <string name="cap_make">Make captions</string>
     <string name="cap_making">Making captions, %d%%</string>

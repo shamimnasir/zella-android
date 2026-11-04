@@ -221,6 +221,11 @@ private fun Home(
     LaunchedEffect(status.state, refresh) {
         if (status.state == RecorderState.Idle) {
             val now = recoverInterrupted(context)
+            // An export or a download cut short by a kill leaves a partial file. It is never a finished one.
+            withContext(Dispatchers.IO) {
+                listOf(Storage.exports(context), java.io.File(context.cacheDir, "mattes"), java.io.File(context.cacheDir, "transitions"))
+                    .forEach { d -> d.listFiles { f -> f.name.endsWith(".part") }?.forEach { it.delete() } }
+            }
             items = listRecordings(context, recovered + now)
             projects = withContext(Dispatchers.IO) { store.list().projects.map { it.second } }
         }

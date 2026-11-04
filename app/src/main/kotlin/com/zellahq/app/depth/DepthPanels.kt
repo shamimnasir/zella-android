@@ -23,6 +23,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import com.zellahq.app.R
 import com.zellahq.app.editor.EditorState
 import com.zellahq.app.editor.Storage
@@ -71,10 +73,19 @@ private fun Labelled(
     range: ClosedFloatingPointRange<Double>,
     onChange: (Double) -> Unit,
 ) {
-    Text(stringResource(label), color = MaterialTheme.colorScheme.onBackground)
-    Slider(value = value.toFloat().coerceIn(range.start.toFloat(), range.endInclusive.toFloat()), onValueChange = {
-        onChange(it.toDouble())
-    }, valueRange = range.start.toFloat()..range.endInclusive.toFloat())
+    val name = stringResource(label)
+    Text(name, color = MaterialTheme.colorScheme.onBackground)
+    Slider(
+        modifier =
+            Modifier.semantics {
+                contentDescription = name
+            },
+        value = value.toFloat().coerceIn(range.start.toFloat(), range.endInclusive.toFloat()),
+        onValueChange = {
+            onChange(it.toDouble())
+        },
+        valueRange = range.start.toFloat()..range.endInclusive.toFloat(),
+    )
 }
 
 @Composable

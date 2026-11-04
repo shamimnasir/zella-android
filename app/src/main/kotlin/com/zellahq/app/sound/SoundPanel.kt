@@ -23,6 +23,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.zellahq.app.R
 import com.zellahq.app.editor.EditorState
@@ -194,9 +196,17 @@ private fun Levels(
         onChange: (Double) -> Unit,
     ) {
         Text("$label: ${(value * 100).toInt()}%", color = text)
-        androidx.compose.material3.Slider(value = value.toFloat().coerceIn(0f, max), onValueChange = {
-            onChange(it.toDouble())
-        }, valueRange = 0f..max)
+        androidx.compose.material3.Slider(
+            modifier =
+                Modifier.semantics {
+                    contentDescription = label
+                },
+            value = value.toFloat().coerceIn(0f, max),
+            onValueChange = {
+                onChange(it.toDouble())
+            },
+            valueRange = 0f..max,
+        )
     }
     Text(stringResource(R.string.snd_levels), color = text)
     selected?.let { c ->
