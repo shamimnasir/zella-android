@@ -1,1 +1,0 @@
-/Users/shamim/Desktop/zella-android/zella-whisper/build/intermediates/cxx/Release/2m4145p5/obj/arm64-v8a

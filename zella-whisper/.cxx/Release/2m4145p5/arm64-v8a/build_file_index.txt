@@ -1,6 +1,0 @@
-/Users/shamim/Desktop/zella-android/third_party/whisper.cpp/CMakeLists.txt
-/Users/shamim/Desktop/zella-android/third_party/whisper.cpp/ggml/CMakeLists.txt
-/Users/shamim/Desktop/zella-android/third_party/whisper.cpp/ggml/src/CMakeLists.txt
-/Users/shamim/Desktop/zella-android/third_party/whisper.cpp/ggml/src/ggml-cpu/CMakeLists.txt
-/Users/shamim/Desktop/zella-android/third_party/whisper.cpp/src/CMakeLists.txt
-/Users/shamim/Desktop/zella-android/zella-whisper/src/main/cpp/CMakeLists.txt
