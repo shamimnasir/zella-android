@@ -46,14 +46,16 @@ class BackgroundEffect(
     private inner class Program(useHdr: Boolean) : BaseGlShaderProgram(useHdr, 1) {
         private val gl: GlProgram
         private val down: GlProgram
+        private val soften: GlProgram
         private val reader = MatteFile(matte)
-        private val textures = IntArray(4)
+        private val textures = IntArray(5)
         private val loaded = intArrayOf(-1, -1)
         private val bytes = ByteArray(reader.width * reader.height)
         private val buffer = ByteBuffer.allocateDirect(bytes.size)
         private var width = 1
         private var height = 1
         private var fbo = -1
+        private var fboAcross = -1
         private var smallW = 1
         private var smallH = 1
         private var bgBitmap: Bitmap? = null
@@ -66,7 +68,13 @@ class BackgroundEffect(
                 gl.setBufferAttribute("aFramePosition", GlUtil.getNormalizedCoordinateBounds(), GlUtil.HOMOGENEOUS_COORDINATE_VECTOR_SIZE)
                 down = GlProgram(VERTEX, DOWNSCALE)
                 down.setBufferAttribute("aFramePosition", GlUtil.getNormalizedCoordinateBounds(), GlUtil.HOMOGENEOUS_COORDINATE_VECTOR_SIZE)
-                GLES20.glGenTextures(4, textures, 0)
+                soften = GlProgram(VERTEX, SOFTEN)
+                soften.setBufferAttribute(
+                    "aFramePosition",
+                    GlUtil.getNormalizedCoordinateBounds(),
+                    GlUtil.HOMOGENEOUS_COORDINATE_VECTOR_SIZE,
+                )
+                GLES20.glGenTextures(5, textures, 0)
                 for (t in 0..1) {
                     GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textures[t])
                     params()
@@ -93,10 +101,15 @@ class BackgroundEffect(
             smallW = max(2, inputWidth / 8)
             smallH = max(2, inputHeight / 8)
             try {
-                GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textures[2])
-                params()
-                GLES20.glTexImage2D(GLES20.GL_TEXTURE_2D, 0, GLES20.GL_RGBA, smallW, smallH, 0, GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, null)
+                if (fbo != -1) GlUtil.deleteFbo(fbo)
+                if (fboAcross != -1) GlUtil.deleteFbo(fboAcross)
+                for (t in intArrayOf(2, 4)) {
+                    GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textures[t])
+                    params()
+                    GLES20.glTexImage2D(GLES20.GL_TEXTURE_2D, 0, GLES20.GL_RGBA, smallW, smallH, 0, GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, null)
+                }
                 fbo = GlUtil.createFboForTexture(textures[2])
+                fboAcross = GlUtil.createFboForTexture(textures[4])
                 prepareBackground()
             } catch (e: GlUtil.GlException) {
                 throw VideoFrameProcessingException(e)
@@ -169,19 +182,24 @@ class BackgroundEffect(
             matteFrame(1, b)
             val mix = (at - a).toFloat()
             try {
+                GLES20.glDisable(GLES20.GL_BLEND)
                 if (choice.style == "blur") {
-                    // The input drawn into a small picture: smooth when read back, whatever the size.
+                    // The input averaged into a small picture, then softened across and down it. Reading the small
+                    // picture once is smooth; spaced samples of it showed as a faint grid over the background.
                     val viewport = IntArray(4)
                     val current = IntArray(1)
                     GLES20.glGetIntegerv(GLES20.GL_VIEWPORT, viewport, 0)
                     GLES20.glGetIntegerv(GLES20.GL_FRAMEBUFFER_BINDING, current, 0)
-                    GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, fbo)
                     GLES20.glViewport(0, 0, smallW, smallH)
+                    GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, fbo)
                     down.use()
                     down.setSamplerTexIdUniform("uTex", inputTexId, 0)
-                    down.setFloatsUniform("uStep", floatArrayOf(4f / width, 4f / height))
+                    down.setFloatsUniform("uStep", floatArrayOf(1f / width, 1f / height))
                     down.bindAttributesAndUniforms()
                     GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4)
+                    val spread = (choice.blurRadius ?: 18.0).toFloat() / 18f * SOFTEN_TEXELS_PER_TAP
+                    softenInto(fboAcross, textures[2], spread / smallW, 0f)
+                    softenInto(fbo, textures[4], 0f, spread / smallH)
                     GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, current[0])
                     GLES20.glViewport(viewport[0], viewport[1], viewport[2], viewport[3])
                 }
@@ -195,7 +213,6 @@ class BackgroundEffect(
                     }
                 }
                 gl.use()
-                GLES20.glDisable(GLES20.GL_BLEND)
                 gl.setSamplerTexIdUniform("uTex", inputTexId, 0)
                 gl.setSamplerTexIdUniform("uA", textures[0], 1)
                 gl.setSamplerTexIdUniform("uB", textures[1], 2)
@@ -210,8 +227,6 @@ class BackgroundEffect(
                     },
                 )
                 gl.setFloatsUniform("uColor", BackgroundPainter.colorOf(choice.colorHex))
-                val radius = (choice.blurRadius ?: 18.0).toFloat() / 18f
-                gl.setFloatsUniform("uBlur", floatArrayOf(radius * 1.5f / smallW, radius * 1.5f / smallH))
                 gl.setFloatsUniform("uTexel", floatArrayOf(1.5f / reader.width, 1.5f / reader.height))
                 gl.bindAttributesAndUniforms()
                 GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4)
@@ -221,6 +236,20 @@ class BackgroundEffect(
             }
         }
 
+        private fun softenInto(
+            target: Int,
+            from: Int,
+            stepX: Float,
+            stepY: Float,
+        ) {
+            GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, target)
+            soften.use()
+            soften.setSamplerTexIdUniform("uTex", from, 0)
+            soften.setFloatsUniform("uStep", floatArrayOf(stepX, stepY))
+            soften.bindAttributesAndUniforms()
+            GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4)
+        }
+
         override fun release() {
             super.release()
             reader.close()
@@ -228,8 +257,10 @@ class BackgroundEffect(
             try {
                 gl.delete()
                 down.delete()
-                GLES20.glDeleteTextures(4, textures, 0)
+                soften.delete()
+                GLES20.glDeleteTextures(5, textures, 0)
                 if (fbo != -1) GlUtil.deleteFbo(fbo)
+                if (fboAcross != -1) GlUtil.deleteFbo(fboAcross)
             } catch (e: GlUtil.GlException) {
                 throw VideoFrameProcessingException(e)
             }
@@ -237,6 +268,9 @@ class BackgroundEffect(
     }
 
     companion object {
+        /** Distance between samples at the default radius, in pixels of the small picture: under one leaves no gaps. */
+        private const val SOFTEN_TEXELS_PER_TAP = 0.6f
+
         private const val VERTEX = """
 attribute vec4 aFramePosition;
 varying vec2 vUv;
@@ -251,9 +285,33 @@ uniform sampler2D uTex;
 uniform vec2 uStep;
 varying vec2 vUv;
 void main() {
-  gl_FragColor = 0.25 * (
-    texture2D(uTex, vUv + uStep * vec2(-0.5, -0.5)) + texture2D(uTex, vUv + uStep * vec2(0.5, -0.5)) +
-    texture2D(uTex, vUv + uStep * vec2(-0.5, 0.5)) + texture2D(uTex, vUv + uStep * vec2(0.5, 0.5)));
+  // Four by four samples, each already the average of two by two pixels: all of the 8 by 8 block it stands for.
+  vec4 sum = vec4(0.0);
+  for (int x = -3; x <= 3; x += 2) {
+    for (int y = -3; y <= 3; y += 2) {
+      sum += texture2D(uTex, vUv + uStep * vec2(float(x), float(y)));
+    }
+  }
+  gl_FragColor = sum / 16.0;
+}
+"""
+
+        // One direction of a Gaussian at a time, five samples to the standard deviation.
+        private const val SOFTEN = """
+precision highp float;
+uniform sampler2D uTex;
+uniform vec2 uStep;
+varying vec2 vUv;
+void main() {
+  vec4 sum = vec4(0.0);
+  float total = 0.0;
+  for (int i = -12; i <= 12; i++) {
+    float o = float(i);
+    float w = exp(-o * o / 50.0);
+    sum += texture2D(uTex, vUv + uStep * o) * w;
+    total += w;
+  }
+  gl_FragColor = sum / total;
 }
 """
 
@@ -268,7 +326,6 @@ uniform sampler2D uBg;
 uniform float uMix;
 uniform int uMode;
 uniform vec3 uColor;
-uniform vec2 uBlur;
 uniform vec2 uTexel;
 varying vec2 vUv;
 
@@ -279,19 +336,7 @@ float maskAt(vec2 uv) {
 
 vec3 background(vec3 fallback) {
   if (uMode == 2) return texture2D(uBg, vec2(vUv.x, 1.0 - vUv.y)).rgb;
-  if (uMode == 1) {
-    vec3 sum = vec3(0.0);
-    float total = 0.0;
-    for (int x = -3; x <= 3; x++) {
-      for (int y = -3; y <= 3; y++) {
-        vec2 o = vec2(float(x), float(y));
-        float w = exp(-dot(o, o) / 8.0);
-        sum += texture2D(uBg, vUv + o * uBlur).rgb * w;
-        total += w;
-      }
-    }
-    return sum / total;
-  }
+  if (uMode == 1) return texture2D(uBg, vUv).rgb;
   return uColor;
 }
 

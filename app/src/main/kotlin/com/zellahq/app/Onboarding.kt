@@ -63,7 +63,7 @@ fun OnboardingScreen(onDone: () -> Unit) {
                 Tool(stringResource(R.string.ob_next), ZellaColors.CardMint) { page++ }
                 Tool(stringResource(R.string.ob_skip), onClick = onDone)
             } else {
-                Tool(stringResource(R.string.ob_start), ZellaColors.CardMint, onDone)
+                Tool(stringResource(R.string.ob_start), ZellaColors.CardMint, onClick = onDone)
             }
         }
     }

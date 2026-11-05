@@ -472,7 +472,7 @@ private fun Home(
 private fun ActionChip(
     label: String,
     onClick: () -> Unit,
-) = Tool(label, null, onClick)
+) = Tool(label, null, onClick = onClick)
 
 @Composable
 private fun LabelledSwitch(

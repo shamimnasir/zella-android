@@ -100,6 +100,20 @@ object BRoll {
         scope: ClosedFloatingPointRange<Double>?,
     ) = if (scope == null) max(1, defaultCount) else max(1, min(defaultCount, ((scope.endInclusive - scope.start) / 7).toInt()))
 
+    /**
+     * The picked clip's lines first. The editor always has a clip picked once there are two, and that clip may be a
+     * fraction of a second with no words in it. Then the whole video's lines count, so the button is never a dead end.
+     */
+    fun plan(
+        cues: List<CaptionCue>,
+        scope: ClosedFloatingPointRange<Double>?,
+        count: Int,
+        timelineDuration: Double,
+    ): List<BRollPlacement> {
+        val picked = placements(scoped(cues, scope), budget(count, scope), timelineDuration)
+        return if (picked.isEmpty() && scope != null) placements(cues, budget(count, null), timelineDuration) else picked
+    }
+
     fun clip(
         file: String,
         sourceDuration: Double,

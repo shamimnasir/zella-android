@@ -6,9 +6,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -33,7 +33,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.unit.dp
 import com.zellahq.ai.Agent
 import com.zellahq.ai.AgentEvent
 import com.zellahq.ai.LlmException
@@ -208,7 +207,7 @@ private fun Settings(
 }
 
 @Composable
-private fun Chat(
+private fun ColumnScope.Chat(
     session: AssistantSession,
     keys: AssistantKeys,
     settings: AssistantSettings,
@@ -221,7 +220,7 @@ private fun Chat(
     val bubbles = session.bubbles
     LaunchedEffect(bubbles.size) { if (bubbles.isNotEmpty()) list.animateScrollToItem(bubbles.size - 1) }
 
-    LazyColumn(Modifier.fillMaxWidth().heightIn(max = 220.dp), state = list, verticalArrangement = Arrangement.spacedBy(ZellaSpacing.S)) {
+    LazyColumn(Modifier.fillMaxWidth().weight(1f, fill = false), state = list, verticalArrangement = Arrangement.spacedBy(ZellaSpacing.S)) {
         items(bubbles) { b ->
             Text(
                 b.text,

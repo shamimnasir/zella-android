@@ -2,6 +2,14 @@
 
 Mistakes worth not repeating. Newest first.
 
+## 2026-11-06: a paused preview that "redraws" can be showing the wrong frame
+
+Handing `CompositionPlayer` its surface again drew a later frame each time while `currentPosition` and the label stayed
+put: 30 panels moved the picture 3.1 s at 0:00. A seek to the same place draws nothing, and redrawing without the
+handover, or on a timer, sometimes left it black. What holds: on the surface's own `surfaceChanged`, hand it over and then
+`setComposition` at the playhead. To check, compare the screen with frames cut from the source, and read the match error:
+my first probe compared against an uncropped frame and its answers meant nothing.
+
 ## 2026-11-04: a media test with round numbers hides rounding crashes
 
 Every ramp test used lengths that divide evenly, so a truncated boundary never landed on itself. A 4 second clip split

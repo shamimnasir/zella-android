@@ -4,6 +4,8 @@
 
 package com.zellahq.app.editor
 
+import android.view.SurfaceHolder
+import android.view.SurfaceView
 import android.view.ViewGroup
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -23,6 +25,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -37,12 +40,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.common.util.ExperimentalApi
@@ -122,6 +127,9 @@ fun EditorScreen(
     val selected = project.clips.firstOrNull { it.id == selectedId }
     val store = remember { Storage.store(context) }
 
+    // The panels share the screen with the picture: a tall panel used to leave only a thumbnail to watch.
+    val panelMax = (LocalConfiguration.current.screenHeightDp * 0.3f).dp.coerceAtLeast(160.dp)
+
     BackHandler {
         state.saveNow()
         onBack()
@@ -169,8 +177,9 @@ fun EditorScreen(
 
         Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
             var playerView by remember { mutableStateOf<PlayerView?>(null) }
-            // A panel opening resizes the picture. Handing the surface over again makes a paused player draw on it.
-            val reattach =
+            // A panel opening resizes the picture, and a paused player shows black until it has the surface again and
+            // is told to redraw. Either one alone left it black.
+            val redraw =
                 remember {
                     Runnable {
                         playerView?.let { v ->
@@ -178,17 +187,11 @@ fun EditorScreen(
                             v.player = null
                             v.player = p
                         }
+                        state.redrawAtPlayhead()
                     }
                 }
             AndroidView(
-                // A panel opening resizes the picture, and a paused player then shows black until told to redraw.
-                modifier =
-                    Modifier.aspectRatio(project.aspect.ratio.toFloat()).onSizeChanged {
-                        playerView?.let { v ->
-                            v.removeCallbacks(reattach)
-                            v.postDelayed(reattach, 250)
-                        }
-                    },
+                modifier = Modifier.aspectRatio(project.aspect.ratio.toFloat()),
                 factory = { ctx ->
                     PlayerView(ctx).also { playerView = it }.apply {
                         useController = false
@@ -198,6 +201,32 @@ fun EditorScreen(
                         setKeepContentOnPlayerReset(true)
                         resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
                         layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+                        // When the surface itself has changed, not on a timer: a timer sometimes ran first and left it black.
+                        (videoSurfaceView as? SurfaceView)?.holder?.addCallback(
+                            object : SurfaceHolder.Callback {
+                                private var size: Pair<Int, Int>? = null
+
+                                override fun surfaceCreated(holder: SurfaceHolder) = Unit
+
+                                override fun surfaceChanged(
+                                    holder: SurfaceHolder,
+                                    format: Int,
+                                    width: Int,
+                                    height: Int,
+                                ) {
+                                    val before = size
+                                    size = width to height
+                                    if (before != null && before != size) {
+                                        removeCallbacks(redraw)
+                                        postDelayed(redraw, 50)
+                                    }
+                                }
+
+                                override fun surfaceDestroyed(holder: SurfaceHolder) {
+                                    size = null
+                                }
+                            },
+                        )
                     }
                 },
                 update = { it.player = currentPlayer },
@@ -229,14 +258,23 @@ fun EditorScreen(
                 stringResource(if (playing) R.string.ed_pause else R.string.ed_play),
                 ZellaColors.CardMint,
             ) { state.togglePlay() }
-            Text("${mmss(position)} / ${mmss(project.duration)}", color = MaterialTheme.colorScheme.onBackground)
+            Text(
+                "${mmss(position)} / ${mmss(project.duration)}",
+                color = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier.weight(1f),
+            )
+            // Always in the same place, so they can be reached from any tool and never slide under a finger.
+            Row(horizontalArrangement = Arrangement.spacedBy(ZellaSpacing.Xs)) {
+                Tool(stringResource(R.string.ed_undo), enabled = history.canUndo, sidePadding = ZellaSpacing.S) { state.undo() }
+                Tool(stringResource(R.string.ed_redo), enabled = history.canRedo, sidePadding = ZellaSpacing.S) { state.redo() }
+            }
         }
 
         val clipLabel = stringResource(R.string.ed_clip_label)
         val fadeLabel = stringResource(R.string.ed_fade_chip)
         val timelineDescription = stringResource(R.string.ed_timeline_description, project.clips.size)
         AndroidView(
-            modifier = Modifier.fillMaxWidth().height(120.dp),
+            modifier = Modifier.fillMaxWidth().height(if (sheet == Sheet.None) 120.dp else 92.dp),
             factory = { ctx ->
                 TimelineView(ctx, store).apply {
                     onScrub = { state.seek(it) }
@@ -263,19 +301,18 @@ fun EditorScreen(
         note?.let { Text(stringResource(it), color = MaterialTheme.colorScheme.error) }
 
         // Every tool is a labelled word. Tools sit in five groups, so a beginner is never scrolling through thirty.
+        // All five groups fit on a 360 dp phone in English. A longer language can still scroll this row.
         // Tools that need a clip act on the picked one.
         Row(
             Modifier.horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(ZellaSpacing.S),
+            horizontalArrangement = Arrangement.spacedBy(ZellaSpacing.Xs),
         ) {
             ToolGroup.entries.forEach { g ->
-                Tool(stringResource(g.label), if (group == g) ZellaColors.CardViolet else null) {
+                Tool(stringResource(g.label), if (group == g) ZellaColors.CardViolet else null, sidePadding = 5.dp) {
                     group = g
                     sheet = Sheet.None
                 }
             }
-            if (history.canUndo) Tool(stringResource(R.string.ed_undo)) { state.undo() }
-            if (history.canRedo) Tool(stringResource(R.string.ed_redo)) { state.redo() }
         }
 
         @Composable
@@ -350,67 +387,67 @@ fun EditorScreen(
 
         if (sheet == Sheet.Captions) {
             // Captions can be long; the panel scrolls on its own so the tools above stay in place.
-            androidx.compose.foundation.layout.Box(Modifier.heightIn(max = 320.dp).verticalScroll(rememberScrollState())) {
+            androidx.compose.foundation.layout.Box(Modifier.heightIn(max = panelMax).verticalScroll(rememberScrollState())) {
                 com.zellahq.app.captions.CaptionsPanel(state, project)
             }
         }
         if (selected != null && sheet == Sheet.Transition && selected.id != project.clips.lastOrNull()?.id) {
-            androidx.compose.foundation.layout.Box(Modifier.heightIn(max = 240.dp).verticalScroll(rememberScrollState())) {
+            androidx.compose.foundation.layout.Box(Modifier.heightIn(max = panelMax).verticalScroll(rememberScrollState())) {
                 TransitionPanel(state, project, selected.id)
             }
         }
         if (sheet == Sheet.Auto) {
-            androidx.compose.foundation.layout.Box(Modifier.heightIn(max = 360.dp).verticalScroll(rememberScrollState())) {
+            androidx.compose.foundation.layout.Box(Modifier.heightIn(max = panelMax).verticalScroll(rememberScrollState())) {
                 com.zellahq.app.auto.AutoPanel(state, project)
             }
         }
         if (sheet == Sheet.Text) {
-            androidx.compose.foundation.layout.Box(Modifier.heightIn(max = 360.dp).verticalScroll(rememberScrollState())) {
+            androidx.compose.foundation.layout.Box(Modifier.heightIn(max = panelMax).verticalScroll(rememberScrollState())) {
                 com.zellahq.app.titles.TitlesPanel(state, project, position)
             }
         }
         if (sheet == Sheet.Background) {
-            androidx.compose.foundation.layout.Box(Modifier.heightIn(max = 320.dp).verticalScroll(rememberScrollState())) {
+            androidx.compose.foundation.layout.Box(Modifier.heightIn(max = panelMax).verticalScroll(rememberScrollState())) {
                 com.zellahq.app.cutout.BackgroundPanel(state, project)
             }
         }
         if (sheet == Sheet.BRoll) {
-            androidx.compose.foundation.layout.Box(Modifier.heightIn(max = 320.dp).verticalScroll(rememberScrollState())) {
+            androidx.compose.foundation.layout.Box(Modifier.heightIn(max = panelMax).verticalScroll(rememberScrollState())) {
                 com.zellahq.app.broll.BRollPanel(state, project, selectedId)
             }
         }
         if (sheet == Sheet.Pip) {
-            androidx.compose.foundation.layout.Box(Modifier.heightIn(max = 340.dp).verticalScroll(rememberScrollState())) {
+            androidx.compose.foundation.layout.Box(Modifier.heightIn(max = panelMax).verticalScroll(rememberScrollState())) {
                 com.zellahq.app.depth.PipPanel(state, project, position)
             }
         }
         if (selected != null && sheet == Sheet.Effects) {
-            androidx.compose.foundation.layout.Box(Modifier.heightIn(max = 340.dp).verticalScroll(rememberScrollState())) {
+            androidx.compose.foundation.layout.Box(Modifier.heightIn(max = panelMax).verticalScroll(rememberScrollState())) {
                 com.zellahq.app.depth.EffectsPanel(state, selected)
             }
         }
         if (selected != null && sheet == Sheet.Motion) {
-            androidx.compose.foundation.layout.Box(Modifier.heightIn(max = 340.dp).verticalScroll(rememberScrollState())) {
+            androidx.compose.foundation.layout.Box(Modifier.heightIn(max = panelMax).verticalScroll(rememberScrollState())) {
                 com.zellahq.app.depth.MotionPanel(state, project, selected, position)
             }
         }
         if (sheet == Sheet.Callouts) {
-            androidx.compose.foundation.layout.Box(Modifier.heightIn(max = 360.dp).verticalScroll(rememberScrollState())) {
+            androidx.compose.foundation.layout.Box(Modifier.heightIn(max = panelMax).verticalScroll(rememberScrollState())) {
                 com.zellahq.app.callouts.CalloutsPanel(state, project, position)
             }
         }
         if (sheet == Sheet.Assistant) {
-            androidx.compose.foundation.layout.Box(Modifier.heightIn(max = 420.dp)) {
+            androidx.compose.foundation.layout.Box(Modifier.heightIn(max = panelMax + 60.dp)) {
                 com.zellahq.app.assistant.AssistantPanel(assistant)
             }
         }
         if (sheet == Sheet.Sound) {
-            androidx.compose.foundation.layout.Box(Modifier.heightIn(max = 320.dp).verticalScroll(rememberScrollState())) {
+            androidx.compose.foundation.layout.Box(Modifier.heightIn(max = panelMax).verticalScroll(rememberScrollState())) {
                 com.zellahq.app.sound.SoundPanel(state, project, selected, position)
             }
         }
         if (selected != null && sheet == Sheet.Look) {
-            androidx.compose.foundation.layout.Box(Modifier.heightIn(max = 320.dp).verticalScroll(rememberScrollState())) {
+            androidx.compose.foundation.layout.Box(Modifier.heightIn(max = panelMax).verticalScroll(rememberScrollState())) {
                 com.zellahq.app.looks.LookPanel(state, selected)
             }
         }
@@ -460,14 +497,18 @@ fun EditorScreen(
 internal fun Tool(
     label: String,
     color: Color? = null,
+    enabled: Boolean = true,
+    sidePadding: Dp = ZellaSpacing.M,
     onClick: () -> Unit,
 ) {
     Box(
         Modifier
             .heightIn(min = ZellaSpacing.MinTap)
+            .widthIn(min = ZellaSpacing.MinTap)
+            .alpha(if (enabled) 1f else 0.4f)
             .background(color ?: ZellaColors.NightCard, RoundedCornerShape(ZellaRadius.Card))
-            .clickable(role = Role.Button, onClick = onClick)
-            .padding(horizontal = ZellaSpacing.M),
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
+            .padding(horizontal = sidePadding),
         contentAlignment = Alignment.Center,
     ) { Text(label, color = if (color == null) Color.White else ZellaColors.Ink) }
 }

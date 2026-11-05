@@ -627,6 +627,20 @@ class EditorState(
         player.seekTo((t * 1000).toLong())
     }
 
+    /**
+     * Redraws a paused preview at the playhead after its surface changed size, the same way an edit does. A seek to
+     * the same place draws nothing, and handing the player the surface again draws a later frame without moving the
+     * playhead: 30 panels opened and closed left the picture at 3.1 s with the time saying 0:00.
+     */
+    fun redrawAtPlayhead() {
+        val p = project.value
+        if (released || player.isPlaying || p.clips.isEmpty()) return
+        // At the very end there is no frame left to draw, so it asks for the last one.
+        val at = position.value.coerceAtMost((p.duration - 0.05).coerceAtLeast(0.0))
+        player.setComposition(builder.build(p).composition, (at * 1000).toLong())
+        player.prepare()
+    }
+
     fun release() {
         if (released) return
         saveNow()

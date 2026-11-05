@@ -62,7 +62,9 @@ class TimelineView(
 
     private val density = resources.displayMetrics.density
     private var pxPerSec = 80f * density
-    private val clipHeight = 64f * density
+
+    /** Room is kept above the blocks for the transition chips, also when the timeline is short because a panel is open. */
+    private val clipHeight get() = minOf(64f * density, height - 40f * density)
     private val grip = 14f * density
     private val corner = 10f * density
 
@@ -174,20 +176,31 @@ class TimelineView(
                 }
                 canvas.restore()
             }
-            canvas.drawText(labelFor(i, c), r.left + 8 * density, r.bottom - 6 * density, textPaint)
+            // The label starts clear of the white grip and stops at the block's end, so no letter is hidden or spills over.
+            val inset = if (c.id == selectedId) grip + 4 * density else 8 * density
+            canvas.save()
+            canvas.clipRect(r.left + inset, r.top, r.right - inset, r.bottom)
+            canvas.drawText(labelFor(i, c), r.left + inset, r.bottom - 6 * density, textPaint)
+            canvas.restore()
             if (c.id == selectedId) {
                 canvas.drawRoundRect(r, corner, corner, strokePaint)
                 canvas.drawRoundRect(RectF(r.left, r.top, r.left + grip, r.bottom), corner, corner, chipPaint)
                 canvas.drawRoundRect(RectF(r.right - grip, r.top, r.right, r.bottom), corner, corner, chipPaint)
             }
-            if (p.transitionAfter(c.id) != null && i < p.clips.size - 1) {
-                val cx = r.right
-                val chip = RectF(cx - 24 * density, r.top - 18 * density, cx + 24 * density, r.top - 2 * density)
-                canvas.drawRoundRect(chip, 8 * density, 8 * density, chipPaint)
-                canvas.drawText(fadeLabel, chip.left + 8 * density, chip.bottom - 4 * density, textPaint)
-            }
         }
         canvas.drawLine(width / 2f, 8 * density, width / 2f, height - 8 * density, playheadPaint)
+        // After the playhead, so its line never runs through the word. The chip is as wide as the word in any language.
+        p.clips.forEachIndexed { i, c ->
+            if (p.transitionAfter(c.id) != null && i < p.clips.size - 1) {
+                val r = clipRect(p, c)
+                val half = textPaint.measureText(fadeLabel) / 2 + 8 * density
+                val chip = RectF(r.right - half, r.top - 18 * density, r.right + half, r.top - 2 * density)
+                if (chip.right >= 0 && chip.left <= width) {
+                    canvas.drawRoundRect(chip, 8 * density, 8 * density, chipPaint)
+                    canvas.drawText(fadeLabel, chip.left + 8 * density, chip.bottom - 4 * density, textPaint)
+                }
+            }
+        }
     }
 
     @SuppressLint("ClickableViewAccessibility")

@@ -150,7 +150,7 @@ private fun Hero(
     onTap: () -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(ZellaSpacing.Xs)) {
-        Tool(stringResource(title), color, onTap)
+        Tool(stringResource(title), color, onClick = onTap)
         Text(stringResource(note), color = MaterialTheme.colorScheme.onBackground)
     }
 }

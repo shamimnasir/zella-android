@@ -20,6 +20,22 @@ class BRollTest {
         text: String,
     ) = CaptionCue("c$start", text.split(" ").mapIndexed { i, w -> CaptionWord(w, start + i * 0.2, start + i * 0.2 + 0.18) })
 
+    @Test fun aPickedClipWithNoWordsFallsBackToTheWholeVideo() {
+        // As found on the emulator: the editor had a 0.15 s clip picked, and the button reported no useful words.
+        val cues = listOf(cue(1.0, "mountain river"), cue(7.0, "beautiful sunset"))
+        val tiny = 0.0..0.15
+        assertEquals(listOf("mountain", "beautiful"), BRoll.plan(cues, tiny, BRoll.DEFAULT_COUNT, 13.0).map { it.keyword })
+    }
+
+    @Test fun aPickedClipWithWordsStaysScoped() {
+        val cues = listOf(cue(1.0, "mountain river"), cue(7.0, "beautiful sunset"))
+        assertEquals(listOf("beautiful"), BRoll.plan(cues, 6.5..9.0, BRoll.DEFAULT_COUNT, 13.0).map { it.keyword })
+    }
+
+    @Test fun noUsefulWordsAnywhereStaysEmpty() {
+        assertEquals(0, BRoll.plan(listOf(cue(1.0, "the and but")), 0.0..0.15, BRoll.DEFAULT_COUNT, 13.0).size)
+    }
+
     @Test fun keywordsSkipSmallWordsAndPutLongOnesFirst() {
         val k = BRoll.keywords("The mountain was really beautiful, and we could see it from there")
         assertEquals("beautiful", k[0])

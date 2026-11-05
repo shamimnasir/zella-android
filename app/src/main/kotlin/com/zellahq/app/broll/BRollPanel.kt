@@ -47,6 +47,9 @@ fun BRollPanel(
     var busy by remember { mutableStateOf<String?>(null) }
     var note by remember { mutableStateOf<String?>(null) }
     val count = project.clips.count { it.isBRoll }
+
+    // The result stops showing once the cutaways have changed, for example after Undo.
+    var noteForCount by remember { mutableStateOf(0) }
     val working = stringResource(R.string.br_working)
 
     fun run(work: (BRollMaker, Project, (String) -> Unit) -> BRollMaker.Outcome) {
@@ -60,6 +63,7 @@ fun BRollPanel(
                 val r = out.getOrNull()
                 note = r?.note ?: context.getString(R.string.ed_background_failed)
                 if (r != null && r.placed > 0) state.applyResult(start, "cutaways", r.project)
+                noteForCount = state.project.value.clips.count { it.isBRoll }
             }
         }, "b-roll").start()
     }
@@ -67,6 +71,8 @@ fun BRollPanel(
     Column(verticalArrangement = Arrangement.spacedBy(ZellaSpacing.S)) {
         Text(stringResource(R.string.br_detail), color = color)
         busy?.let { Text(it, color = color) }
+        // Right under the button: lower down it was off the bottom of the panel, and the button seemed to do nothing.
+        note?.takeIf { noteForCount == count }?.let { Text(it, color = color) }
         if (busy == null) {
             Tool(stringResource(R.string.br_cards), ZellaColors.CardMint) {
                 run { m, p, _ -> m.cards(p, selectedId) }
@@ -115,7 +121,6 @@ fun BRollPanel(
                 }
             }
         }
-        note?.let { Text(it, color = color) }
         if (count > 0) {
             Tool(stringResource(R.string.br_remove, count), ZellaColors.CardCoral) {
                 state.edit("remove cutaways") { BRoll.removeAll(it).first }

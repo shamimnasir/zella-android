@@ -200,7 +200,7 @@ class BRollMaker(private val context: Context) {
         val cues = p.captions?.cues.orEmpty()
         if (cues.isEmpty()) return Outcome(p, 0, context.getString(com.zellahq.app.R.string.br_note_no_captions))
         val s = scope(p, selected)
-        val places = BRoll.placements(BRoll.scoped(cues, s), BRoll.budget(count, s), p.duration)
+        val places = BRoll.plan(cues, s, count, p.duration)
         if (places.isEmpty()) return Outcome(p, 0, context.getString(com.zellahq.app.R.string.br_note_no_words))
         val (w, h) = canvas(p.aspect)
         val made =
@@ -235,7 +235,7 @@ class BRollMaker(private val context: Context) {
         val cues = p.captions?.cues.orEmpty()
         if (cues.isEmpty()) return Outcome(p, 0, context.getString(com.zellahq.app.R.string.br_note_no_captions))
         val s = scope(p, selected)
-        val places = BRoll.placements(BRoll.scoped(cues, s), BRoll.budget(count, s), p.duration)
+        val places = BRoll.plan(cues, s, count, p.duration)
         if (places.isEmpty()) return Outcome(p, 0, context.getString(com.zellahq.app.R.string.br_note_no_words))
         val made = ArrayList<Pair<Clip, Double>>()
         var problem: String? = null
